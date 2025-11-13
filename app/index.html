@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Login | Senado NUSP</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --ring: rgba(37, 99, 235, 0.35);
+      --border: #e2e8f0;
+      --shadow: 0 10px 25px rgba(2, 6, 23, 0.08);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    main {
+      width: 100%;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px 48px;
+      flex: 1;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .title {
+      font-size: 1.375rem;
+      font-weight: 700;
+      margin: 6px 0 4px;
+      text-align: center;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      font-size: 0.9375rem;
+      color: var(--muted);
+      text-align: center;
+      margin: 0 0 20px;
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
+      background: #fff;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+
+    input::placeholder {
+      color: #94a3b8;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background .15s ease, transform .02s ease;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.9375rem;
+      display: none;
+    }
+
+    .helper {
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 420px) {
+      .card {
+        padding: 18px;
+      }
+
+      .title {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="header"></div>
+<main role="main">
+<section aria-labelledby="login-title" class="card">
+<h1 class="title" id="login-title">Acessar o Sistema</h1>
+<p class="subtitle">Informe suas credenciais</p>
+<div class="error" id="error-box" role="alert"></div>
+<form id="login-form" novalidate="">
+<div class="field">
+<label for="username">Login</label>
+<input autocomplete="username" id="username" name="usuario" placeholder="seu.usuario" required="" type="text"/>
+</div>
+<div class="field">
+<label for="password">Senha</label>
+<input autocomplete="current-password" id="password" name="senha" placeholder="••••••••" required="" type="password"/>
+</div>
+<button class="btn" id="submit-btn" type="submit">Entrar</button>
+<p class="helper">Apenas usuários autorizados.</p>
+</form>
+</section>
+</main>
+<div id="footer"></div>
+<script>
+    // Importa cabeçalho e rodapé externos (mantido)
+    async function loadComponent(id, file) {
+      try {
+        const response = await fetch(file);
+        const html = await response.text();
+        document.getElementById(id).innerHTML = html;
+      } catch (e) {
+        console.error(`Erro ao carregar ${file}:`, e);
+      }
+    }
+
+    // Carrega scripts auxiliares após os componentes (mantido)
+    function loadScript(src) {
+      const script = document.createElement('script');
+      script.src = src;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+
+    async function initializePage() {
+      await Promise.all([
+        loadComponent("header", "/components/header.html"),
+        loadComponent("footer", "/components/footer.html")
+      ]);
+      
+    }
+
+    initializePage();
+  </script>
+<script src="/js/auth_jwt.js?v=2"></script>
+<script>
+    // Executa todo o código JS após o DOM carregar
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // --- Lógica do "Passo 4" (Pular login se já estiver logado) ---
+      (async () => {
+        if (!window.Auth) return;
+        try {
+          // Verifica se o token salvo ainda é válido
+          const me = await Auth.whoAmI();
+
+          if (me.ok && me.user) {
+            // Token é válido, redireciona baseado na role
+            const roleRaw = (me.user.role || '').toString().toLowerCase();
+            const isAdmin = roleRaw === 'administrador';
+            window.location.replace(isAdmin ? '/admin/index.html' : '/home.html');
+          }
+          // Se me.ok for false, não faz nada e deixa o usuário logar.
+        } catch (e) {
+          // Erro no whoAmI (ex: rede), deixa o usuário logar.
+          console.warn('whoAmI check failed, showing login page.', e);
+        }
+      })();
+      // --- Fim da Lógica do Passo 4 ---
+
+
+      // --- Seu código do formulário de login (está correto) ---
+      const form = document.getElementById('login-form');
+      const inputUser = document.getElementById('username');
+      const inputPass = document.getElementById('password');
+      const errorBox = document.getElementById('error-box');
+      const btn = document.getElementById('submit-btn');
+
+      if (!form || form.dataset.bound === '1') return;
+      form.dataset.bound = '1';
+
+      let loggingIn = false;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (loggingIn) return;
+        loggingIn = true;
+        if (errorBox) errorBox.style.display = 'none';
+        if (btn) btn.disabled = true;
+
+        const usuario = (inputUser?.value || '').trim();
+        const senha = inputPass?.value || '';
+
+        try {
+          // Esta função já redireciona em caso de sucesso
+          await Auth.doLogin(usuario, senha);
+          return;
+        } catch (err) {
+          if (errorBox) {
+            errorBox.textContent = (err && err.message) ? err.message : 'Usuário ou senha inválidos';
+            errorBox.style.display = 'block';
+          } else {
+            alert(err?.message || 'Usuário ou senha inválidos');
+          }
+          if (btn) btn.disabled = false;
+          loggingIn = false;
+        }
+      });
+      // --- Fim do código do formulário ---
+
+    });
+  </script>
+<script src="/js/auth_jwt.js"></script>  <script src="/js/session-autoload.js"></script>
+</body>
+</html>

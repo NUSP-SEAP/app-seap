@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <title>Registro de Operação de Áudio</title>
+  <meta content="Formulário de Registro de Operação de Áudio" name="description" />
+  <meta content="noindex,nofollow" name="robots" />
+  <link href="../../imgs/header-senado.png" rel="icon" />
+  <style>
+    :root {
+      --gap: 12px;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", sans-serif;
+      background: #f6f7f9;
+      color: #222;
+    }
+    main {
+      max-width: 980px;
+      margin: 24px auto 56px;
+      padding: 0 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.5rem;
+    }
+    .grid {
+      display: grid;
+      gap: var(--gap);
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    label {
+      font-weight: 600;
+      font-size: .95rem;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #d7dbe3;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 1rem;
+      background: #fff;
+    }
+    select:disabled { background: #f2f4f7; }
+    textarea { min-height: 110px; resize: vertical; }
+    .muted { color: #616a7a; font-size: .92rem; }
+    .field-inline { display: flex; align-items: center; gap: 10px; }
+    .actions { display: flex; gap: 10px; margin-top: 14px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .btn-primary { background: #0b5ed7; color: #fff; }
+    .btn-secondary { background: #e9ecef; color: #1b1f24; }
+    .btn-icon {
+      width: 36px; height: 36px; border-radius: 999px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 18px;
+    }
+    .btn-add { background: #198754; color: #fff; }
+    .btn-remove { background: #dc3545; color: #fff; }
+    .required::after { content: " *"; color: #d00; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .section-title { margin: 22px 0 6px; font-weight: 700; color: #334155; }
+    /* --- Operadores: layout consistente --- */
+    .ops-row { display: grid; grid-template-columns: 40px 1fr 40px; gap: 8px; align-items: end; }
+    .ops-row--first { grid-template-columns: 1fr 40px; }
+    .ops-empty { width: 40px; height: 36px; } /* placeholder */
+    .ops-label-inline { align-self: center; font-weight: 600; }
+    @media (max-width: 720px) {
+      .grid-2, .grid-4 { grid-template-columns: 1fr; }
+      .ops-row { grid-template-columns: 40px 1fr 40px; }
+      .ops-row--first { grid-template-columns: 1fr 40px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>Registro de Operação de Áudio</h1>
+      <p class="muted">Preencha todas as informações da operação. Os campos marcados com * são obrigatórios.</p>
+      <form id="form-roa" novalidate="">
+        <!-- 1) Identificação -->
+        <div class="section-title">1) Identificação</div>
+        <div class="grid grid-4">
+          <div>
+            <label class="required" for="data_operacao">Data da operação</label>
+            <input id="data_operacao" name="data_operacao" required="" type="date" />
+          </div>
+          <div>
+            <label for="horario_pauta">Horário da Pauta</label>
+            <input id="horario_pauta" name="horario_pauta" type="time" />
+          </div>
+          <div>
+            <label class="required" for="hora_inicio">Hora de início</label>
+            <input id="hora_inicio" name="hora_inicio" required="" type="time" />
+          </div>
+          <div>
+            <label for="hora_fim">Hora de término</label>
+            <input id="hora_fim" name="hora_fim" type="time" />
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div>
+            <label class="required" for="sala_id">Local do Evento</label>
+            <select disabled="" id="sala_id" name="sala_id" required="">
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+          <div>
+            <label class="required" for="nome_evento">Nome do Evento</label>
+            <input id="nome_evento" name="nome_evento" placeholder="Ex.: Audiência pública..." required="" type="text" />
+          </div>
+        </div>
+
+        <!-- Operadores -->
+        <div class="section-title">Operadores</div>
+        <!-- Operador 1 (obrigatório) -->
+        <div class="ops-row ops-row--first" id="op-row-1">
+          <div>
+            <label class="required" for="operador_1">Operador 1</label>
+            <select disabled="" id="operador_1" name="operador_1" required="">
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top" type="button">+</button>
+        </div>
+
+        <!-- Linha "Adicionar operador" (legenda + mesmo botão do topo) -->
+        <div class="ops-row--first" style="display:grid; grid-template-columns: 1fr 40px; margin-top: 6px;">
+          <span class="ops-label-inline">Adicionar operador</span>
+          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top-legend" type="button">+</button>
+        </div>
+
+        <!-- Operador 2 -->
+        <div class="ops-row" id="op-row-2" style="display:none; margin-top: 6px;">
+          <button aria-label="Remover operador" class="btn-icon btn-remove" id="btn-remove-op-2" type="button">−</button>
+          <div>
+            <label for="operador_2">Operador 2</label>
+            <select disabled="" id="operador_2" name="operador_2">
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+          <button aria-label="Adicionar operador 3" class="btn-icon btn-add" id="btn-add-op-2" type="button">+</button>
+        </div>
+
+        <!-- Operador 3 -->
+        <div class="ops-row" id="op-row-3" style="display:none; margin-top: 6px;">
+          <div class="ops-empty"></div>
+          <div>
+            <label for="operador_3">Operador 3</label>
+            <select disabled="" id="operador_3" name="operador_3">
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+          <div class="ops-empty"></div>
+        </div>
+
+        <!-- 2) Recursos/Parâmetros -->
+        <div class="section-title">2) Recursos/Parâmetros</div>
+        <div class="grid grid-2">
+          <div>
+            <label for="usb_01">USB 01</label>
+            <input id="usb_01" name="usb_01" placeholder="Texto livre (ex.: pendrive, identificação, observações)" type="text" />
+          </div>
+          <div>
+            <label for="usb_02">USB 02</label>
+            <input id="usb_02" name="usb_02" placeholder="Texto livre (ex.: pendrive, identificação, observações)" type="text" />
+          </div>
+        </div>
+
+        <!-- 3) Observações -->
+        <div class="section-title">3) Observações</div>
+        <div>
+          <label for="observacoes">Anotações gerais</label>
+          <textarea id="observacoes" name="observacoes" placeholder="Use este campo para registrar detalhes relevantes da operação."></textarea>
+        </div>
+
+        <!-- 4) Anormalidade? -->
+        <div class="section-title">4) Houve anormalidade?</div>
+        <div aria-labelledby="anormalidade-label" class="field-inline" role="radiogroup">
+          <span class="sr-only" id="anormalidade-label">Houve anormalidade</span>
+          <label class="field-inline">
+            <input checked="" name="houve_anormalidade" type="radio" value="nao" />
+            Não
+          </label>
+          <label class="field-inline">
+            <input name="houve_anormalidade" type="radio" value="sim" />
+            Sim
+          </label>
+        </div>
+        <p class="muted">Se marcar “Sim”, após salvar este registro você será direcionado ao formulário de <em>Registro de Anormalidade</em>.</p>
+
+        <div class="actions">
+          <button class="btn-secondary" type="reset">Limpar</button>
+          <button class="btn-primary" type="submit">Salvar registro</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    // URLs de PRODUÇÃO (workflow ATIVO)
+    const SALAS_URL = "https://n8n.senado-nusp.cloud/webhook/forms/lookup/salas";
+    const OPERADORES_URL = "https://n8n.senado-nusp.cloud/webhook/forms/lookup/operadores";
+
+    // Helpers
+    function fillSelect(selectEl, rows, valueKey, labelKey, placeholder = "Selecione") {
+      const opts = ['<option value="' + '' + '">' + placeholder + '</option>']
+        .concat(rows.map(r => '<option value="' + r[valueKey] + '">' + r[labelKey] + '</option>'))
+        .join('');
+      selectEl.innerHTML = opts;
+      selectEl.disabled = false;
+    }
+    function isVisible(el) { return window.getComputedStyle(el).display !== 'none'; }
+
+    async function loadLookups() {
+      try {
+        const [salasRes, opsRes] = await Promise.all([
+          fetch(SALAS_URL, { cache: 'no-store' }),
+          fetch(OPERADORES_URL, { cache: 'no-store' })
+        ]);
+        const salasJson = await salasRes.json();
+        const opsJson = await opsRes.json();
+
+        fillSelect(document.getElementById('sala_id'), salasJson.data || [], 'id', 'nome', 'Selecione uma sala');
+
+        const allOps = opsJson.data || [];
+        ['operador_1', 'operador_2', 'operador_3'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) fillSelect(el, allOps, 'id', 'nome_completo', 'Selecione um operador');
+        });
+      } catch (err) {
+        console.error('Falha ao carregar dados de lookup:', err);
+      }
+    }
+
+    // Lógica de adicionar/remover operadores conforme regras
+    function setupOperatorsUI() {
+      const row2 = document.getElementById('op-row-2');
+      const row3 = document.getElementById('op-row-3');
+      const addTop = document.getElementById('btn-add-top');
+      const addTopLegend = document.getElementById('btn-add-top-legend');
+      const add2 = document.getElementById('btn-add-op-2');
+      const rem2 = document.getElementById('btn-remove-op-2');
+
+      function showRow2() { row2.style.display = 'grid'; }
+      function hideRow2() { row2.style.display = 'none'; document.getElementById('operador_2').value = ''; }
+      function showRow3() { row3.style.display = 'grid'; }
+      function hideRow3() { row3.style.display = 'none'; document.getElementById('operador_3').value = ''; }
+
+      function updateButtons() {
+        const has2 = isVisible(row2);
+        const has3 = isVisible(row3);
+        addTop.style.display = has2 ? 'none' : '';
+        addTopLegend.style.display = has2 ? 'none' : '';
+        add2.style.display = (has2 && !has3) ? '' : 'none';
+        rem2.style.display = has2 ? '' : 'none';
+      }
+
+      function addOperator() {
+        if (!isVisible(row2)) showRow2();
+        else if (!isVisible(row3)) showRow3();
+        updateButtons();
+      }
+
+      addTop.addEventListener('click', addOperator);
+      addTopLegend.addEventListener('click', addOperator);
+      add2.addEventListener('click', () => { if (!isVisible(row3)) showRow3(); updateButtons(); });
+      rem2.addEventListener('click', () => {
+        if (isVisible(row3)) hideRow3();
+        else hideRow2();
+        updateButtons();
+      });
+
+      hideRow2(); hideRow3(); updateButtons();
+    }
+
+    // Inicialização
+    loadLookups();
+    setupOperatorsUI();
+
+    // Submissão (ainda sem POST)
+    const form = document.getElementById('form-roa');
+    form.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+      alert('Pré-validação concluída. Próxima etapa: integrar ao Webhook POST para salvar no Postgres.');
+    });
+  </script>
+
+  <!-- Drop-in de sessão: centraliza proteção, header/footer e logout -->
+  <script src="/js/session-autoload.js"></script>
+</body>
+</html>

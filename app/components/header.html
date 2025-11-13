@@ -1,0 +1,96 @@
+<header class="site-header">
+    <div class="site-header__inner">
+
+        <div class="header-spacer"></div>
+
+        <div class="logo-container">
+            <img class="site-logo" src="/imgs/header-senado.png" alt="Brasão do Senado Federal">
+        </div>
+
+        <div class="site-header__right">
+            <span id="user-greeting" style="display: none;"></span>
+            <a id="btn-logout" href="#" class="btn-logout" style="display: none;">Sair</a>
+        </div>
+
+    </div>
+</header>
+
+<style>
+    /* ===== Layout idêntico ao seu header antigo ===== */
+    .site-header {
+        background: #fff;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .site-header__inner {
+        width: 100%;
+        max-width: 980px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        /* justify-content: space-between; (mantido como antes: sem usar) */
+    }
+
+    .site-logo {
+        height: 150px;
+        /* mesmo tamanho grande do seu header antigo */
+        width: auto;
+        object-fit: contain;
+    }
+
+    /* 3 colunas com o mesmo tamanho (como no antigo) */
+    .header-spacer,
+    .logo-container,
+    .site-header__right {
+        flex: 1;
+    }
+
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        /* centraliza o brasão */
+    }
+
+    .site-header__right {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        /* nome + botão à direita */
+    }
+
+    #user-greeting {
+        opacity: .9;
+        font-size: 16px;
+        /* mesmo ajuste do antigo */
+        font-weight: 700;
+        /* negrito */
+        color: #0f172a;
+        margin-right: 10px;
+    }
+
+    /* ===== Botão “Sair” — versão moderna que você aprovou ===== */
+    .btn-logout {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        border: 1px solid #fecaca;
+        /* borda vermelho-claro */
+        background: #fee2e2;
+        /* fundo vermelho-claro */
+        color: #991b1b;
+        /* texto vermelho-escuro */
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+        transition: background .15s ease, border-color .15s ease;
+    }
+
+    .btn-logout:hover {
+        background: #fecaca;
+        /* um pouco mais forte no hover */
+        border-color: #fca5a5;
+    }
+</style>

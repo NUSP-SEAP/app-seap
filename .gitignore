@@ -1,0 +1,9 @@
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Se um dia tiver dependências tipo node
+node_modules/

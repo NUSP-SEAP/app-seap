@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Checklist Diário</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            /* Padding removido para o header/footer usar a largura total */
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            /* Adicionado margin-top */
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            text-align: center;
+            color: #222;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="time"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            /* Importante para o padding não quebrar o layout */
+        }
+
+        .check-item {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .check-item-label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .check-item input[type="radio"] {
+            margin-right: 5px;
+        }
+
+        .check-item label {
+            display: inline-block;
+            margin-right: 20px;
+            font-weight: 500;
+        }
+
+        .falha-descricao {
+            display: none;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #005a9e;
+        }
+
+        #statusMessage {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header"></div>
+    <div class="container">
+        <h1>Checklist Diário</h1>
+        <form id="checklistForm">
+            <div class="form-group">
+                <label for="dataOperacao">Data da Operação:</label>
+                <input id="dataOperacao" name="dataOperacao" required="" type="date" />
+            </div>
+            <div class="form-group">
+                <label for="local">Plenário/Sala:</label>
+                <select id="local" name="local" required="">
+                    <option value="">Selecione um local...</option>
+                    <option value="Auditório">Auditório</option>
+                    <option value="Plenário">Plenário</option>
+                    <option value="Sala 02">Sala 02</option>
+                    <option value="Sala 03">Sala 03</option>
+                    <option value="Sala 06">Sala 06</option>
+                    <option value="Sala 07">Sala 07</option>
+                    <option value="Sala 09">Sala 09</option>
+                    <option value="Sala 13">Sala 13</option>
+                    <option value="Sala 15">Sala 15</option>
+                    <option value="Sala 19">Sala 19</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="turno">Turno:</label>
+                <select id="turno" name="turno" required="">
+                    <option value="">Selecione um turno...</option>
+                    <option value="Matutino">Matutino</option>
+                    <option value="Vespertino">Vespertino</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="horaInicio">Horário de início dos testes:</label>
+                <input id="horaInicio" name="horaInicio" required="" type="time" />
+            </div>
+            <div class="form-group">
+                <p>Status dos Equipamentos (Marque "Ok" ou "Falha"):</p>
+                <div class="check-item">
+                    <span class="check-item-label">Sistema Zoom</span>
+                    <label><input name="sistemaZoom" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="sistemaZoom" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaSistemaZoom" name="falhaSistemaZoom"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">PC do Secretário</span>
+                    <label><input name="pcSecretario" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="pcSecretario" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaPcSecretario" name="falhaPcSecretario"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">Vídeowall</span>
+                    <label><input name="videowall" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="videowall" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaVideowall" name="falhaVideowall"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">Mic sem fio</span>
+                    <label><input name="micSemFio" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="micSemFio" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaMicSemFio" name="falhaMicSemFio"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">Mic de bancada</span>
+                    <label><input name="micBancada" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="micBancada" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaMicBancada" name="falhaMicBancada"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">Sinal TV Senado</span>
+                    <label><input name="sinalTVSenado" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="sinalTVSenado" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaSinalTVSenado" name="falhaSinalTVSenado"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">Tablet Presidente</span>
+                    <label><input name="tabletPresidente" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="tabletPresidente" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaTabletPresidente" name="falhaTabletPresidente"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">Tablet Secretária</span>
+                    <label><input name="tabletSecretaria" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="tabletSecretaria" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaTabletSecretaria" name="falhaTabletSecretaria"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">Relógio (sincronismo)</span>
+                    <label><input name="relogio" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="relogio" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaRelogio" name="falhaRelogio"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+                <div class="check-item">
+                    <span class="check-item-label">VIP</span>
+                    <label><input name="vip" required="" type="radio" value="Ok" /> Ok</label>
+                    <label><input name="vip" type="radio" value="Falha" /> Falha</label>
+                    <textarea class="falha-descricao" id="falhaVip" name="falhaVip"
+                        placeholder="Descreva a falha..."></textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="horaTermino">Horário de término dos testes:</label>
+                <input id="horaTermino" name="horaTermino" required="" type="time" />
+            </div>
+            <div class="form-group">
+                <label for="observacoes">Observações gerais:</label>
+                <textarea id="observacoes" name="observacoes" placeholder="Alguma observação adicional..."
+                    rows="5"></textarea>
+            </div>
+            <button type="submit">Enviar Checklist</button>
+            <div id="statusMessage"></div>
+        </form>
+    </div>
+    <div id="footer"></div>
+    <script>
+        // --- LÓGICA DE CARREGAMENTO (padrão do app) ---
+        async function loadComponent(id, file) {
+            try {
+                const response = await fetch(file);
+                const html = await response.text();
+                document.getElementById(id).innerHTML = html;
+            } catch (e) {
+                console.error(`Erro ao carregar ${file}:`, e);
+            }
+        }
+
+        function loadScript(src) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.defer = true;
+            document.body.appendChild(script);
+        }
+
+        async function initializePage() {
+            // Espera os componentes terminarem de carregar
+            await Promise.all([
+                loadComponent("header", "/components/header.html"),
+                loadComponent("footer", "/components/footer.html")
+            ]);
+
+            // SÓ DEPOIS de carregar o HTML, carrega o script do header
+
+        }
+
+        initializePage(); // Executa a inicialização da página
+
+        // --- LÓGICA DO FORMULÁRIO (original preservada) ---
+
+        // (A constante N8N_WEBHOOK_URL foi removida daqui, 
+        // pois a URL correta é usada dentro do 'Auth.authFetch' abaixo)
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupConditionalLogic();
+            setupFormSubmission();
+        });
+
+        /**
+         * Configura a lógica condicional para os campos de falha
+         * (Função original preservada)
+         */
+        function setupConditionalLogic() {
+            const radioButtons = document.querySelectorAll('.check-item input[type="radio"]');
+
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    // Constrói o ID do textarea de falha (ex: "falha" + "SistemaZoom")
+                    const name = e.target.name;
+                    const falhaTextarea = document.getElementById('falha' + name.charAt(0).toUpperCase() + name.slice(1));
+
+                    if (falhaTextarea) {
+                        if (e.target.value === 'Falha' && e.target.checked) {
+                            falhaTextarea.style.display = 'block'; //
+                        } else {
+                            falhaTextarea.style.display = 'none'; //
+                            falhaTextarea.value = ''; // Limpa o campo ao ocultar
+                        }
+                    }
+                });
+            });
+        }
+
+        /**
+         * Configura o envio do formulário para o Webhook do n8n
+         * (Função original preservada)
+         */
+        function setupFormSubmission() {
+            const form = document.getElementById('checklistForm');
+            const statusMessage = document.getElementById('statusMessage');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Impede o envio HTML padrão
+
+                statusMessage.textContent = 'Enviando...';
+                statusMessage.style.color = '#333';
+
+                // Coleta todos os dados do formulário
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                try {
+                    // 'Auth.authFetch' agora está disponível graças ao 'auth.js'
+                    const response = await Auth.authFetch(
+                        'https://n8n.senado-nusp.cloud/webhook-test/checklist',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data),
+                        }
+                    );
+
+                    if (response.ok) {
+                        statusMessage.textContent = 'Checklist enviado com sucesso!';
+                        statusMessage.style.color = 'green';
+                        form.reset();
+                        // Reseta manualmente os campos de falha (o reset do form não dispara o 'change')
+                        document.querySelectorAll('.falha-descricao').forEach(area => {
+                            area.style.display = 'none';
+                        });
+                    } else {
+                        // Tenta ler a resposta de erro do n8n
+                        const errorData = await response.json();
+                        console.error('Erro do n8n:', errorData);
+                        statusMessage.textContent = `Erro ao enviar: ${errorData.message || 'O servidor retornou um erro.'}`;
+                        statusMessage.style.color = 'red';
+                    }
+                } catch (error) {
+                    console.error('Erro de rede:', error);
+                    statusMessage.textContent = 'Erro de rede. Verifique sua conexão ou a URL do Webhook.';
+                    statusMessage.style.color = 'red';
+                }
+            });
+        }
+    </script>
+    <script src="/js/auth_jwt.js"></script>
+  <script src="/js/session-autoload.js"></script>
+</body>
+
+</html>

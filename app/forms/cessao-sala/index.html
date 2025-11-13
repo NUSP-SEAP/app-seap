@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Cessão de Sala / Outros Eventos</title>
+    <style>
+        :root {
+            --ink: #0f172a;
+            --muted: #475569;
+            --brand: #155EEF;
+            --border: #e2e8f0;
+            --bg: #f8fafc
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
+        }
+
+        .wrap {
+            max-width: 980px;
+            margin: 24px auto;
+            padding: 0 16px
+        }
+
+        h1 {
+            margin: 0 0 10px
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap
+        }
+
+        .col {
+            flex: 1 1 220px;
+            min-width: 220px
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin: 8px 0 6px
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font: inherit
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical
+        }
+
+        .help {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px
+        }
+
+        .hdr {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 14px 0;
+            margin-bottom: 10px
+        }
+
+        .hdr__inner {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .userbox {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .btn {
+            display: inline-block;
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer
+        }
+
+        .btn.primary {
+            background: #155EEF;
+            color: #fff;
+            border-color: #155EEF
+        }
+
+        .btn.danger {
+            background: #e11d48;
+            color: #fff;
+            border-color: #e11d48
+        }
+
+        .btn.small {
+            padding: 6px 10px;
+            border-radius: 999px
+        }
+
+        .ops-list .row {
+            align-items: flex-end
+        }
+
+        .ops-list .btn.small {
+            margin-bottom: 10px
+        }
+
+        .req {
+            color: #e11d48;
+            margin-left: 4px
+        }
+
+        .hr {
+            height: 1px;
+            background: var(--border);
+            margin: 10px 0
+        }
+
+        .note {
+            color: #0f172a;
+            background: #eef4ff;
+            border: 1px solid #d6e4ff;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="header"></div>
+    <!-- <header class="hdr">
+        <div class="hdr__inner">
+            <div style="display:flex; align-items:center; gap:10px">
+                <img src="/imgs/header-senado.png" alt="Brasão do Senado Federal"
+                    style="height:52px;width:auto;object-fit:contain">
+                <div>
+                    <div style="font-weight:700">SENADO FEDERAL</div>
+                    <div style="font-size:12px;color:#475569">Secretaria-Geral da Mesa • Núcleo do Sistema de
+                        Sonorização de Plenários</div>
+                </div>
+            </div>
+            <div class="userbox">
+                <span id="auth-user-name" style="font-weight:700;display:none"></span>
+                <a id="logout-btn" class="btn small danger" href="#" style="display:none">Sair</a>
+            </div>
+        </div>
+    </header> -->
+
+    <div class="wrap">
+
+        <h1>Cessão de Sala / Outros Eventos</h1>
+        <p class="help">Preencha todas as informações do evento. Campos com <span class="req">*</span> são obrigatórios.
+        </p>
+
+        <!-- 1) Identificação -->
+        <section class="card">
+            <h2>1) Identificação</h2>
+
+            <div class="row">
+                <div class="col">
+                    <label>Data do evento <span class="req">*</span></label>
+                    <input type="date" id="data_evento" required>
+                </div>
+                <div class="col">
+                    <label>Horário da Pauta</label>
+                    <input type="time" id="horario_pauta" placeholder="--:--">
+                </div>
+                <div class="col">
+                    <label>Hora de início <span class="req">*</span></label>
+                    <input type="time" id="hora_inicio" required>
+                </div>
+                <div class="col">
+                    <label>Hora de término <span class="req">*</span></label>
+                    <input type="time" id="hora_termino" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <label>Espaço solicitado <span class="req">*</span></label>
+                    <select id="sala_id" required>
+                        <option value="">Carregando salas...</option>
+                    </select>
+                </div>
+                <div class="col" style="flex:2 1 420px">
+                    <label>Nome do evento <span class="req">*</span></label>
+                    <input type="text" id="nome_evento" placeholder="Ex.: Audiência pública..." required>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2) Operadores -->
+        <section class="card">
+            <h2>2) Operadores</h2>
+            <div id="operadores" class="ops-list">
+                <div class="row op-item" data-i="1">
+                    <div class="col" style="flex:2 1 320px">
+                        <label>Operador 1 <span class="req">*</span></label>
+                        <select class="op-select" required>
+                            <option value="">Carregando operadores...</option>
+                        </select>
+                    </div>
+                    <div class="col" style="max-width:120px">
+                        <button class="btn small" type="button" id="add-op">+ adicionar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3) Solicitação -->
+        <section class="card">
+            <h2>3) Solicitação</h2>
+            <div class="row">
+                <div class="col" style="flex:2 1 420px">
+                    <label>Órgão/Unidade solicitante <span class="req">*</span></label>
+                    <input type="text" id="orgao_unidade_solicitante" placeholder="Ex.: Secretaria X / Órgão Y"
+                        required>
+                </div>
+                <div class="col">
+                    <label>Contato responsável</label>
+                    <input type="text" id="contato_responsavel" placeholder="Nome e ramal/celular">
+                </div>
+            </div>
+        </section>
+
+        <!-- 4) Recursos -->
+        <section class="card">
+            <h2>4) Recursos / equipamentos utilizados</h2>
+            <textarea id="recursos_utilizados"
+                placeholder="Texto livre (microfones, projeção, streaming etc.)"></textarea>
+        </section>
+
+        <!-- 5) Observações -->
+        <section class="card">
+            <h2>5) Observações</h2>
+            <textarea id="observacoes" placeholder="Use este campo para registrar detalhes relevantes."></textarea>
+        </section>
+
+        <!-- 6) Anormalidade -->
+        <section class="card">
+            <h2>6) Houve anormalidade?</h2>
+            <div class="row">
+                <label style="display:flex;align-items:center;gap:10px">
+                    <input type="radio" name="anom" value="Não" checked> Não
+                </label>
+                <label style="display:flex;align-items:center;gap:10px">
+                    <input type="radio" name="anom" value="Sim"> Sim
+                </label>
+            </div>
+            <div class="note">Ao marcar “Sim” e salvar, você será direcionado ao formulário de Registro de Anormalidade.
+            </div>
+        </section>
+
+        <div class="card" style="display:flex; gap:10px; justify-content:flex-end">
+            <button class="btn" id="btn-clear" type="button">Limpar</button>
+            <button class="btn primary" id="btn-save" type="button">Salvar registro</button>
+        </div>
+
+        <div id="msg" class="card" style="display:none"></div>
+
+    </div>
+
+    <!-- Sessão + header (usa sua lógica atual) -->
+    <script src="/js/auth_jwt.js"></script>
+    <script>
+        
+    </script>
+
+    <script>
+        // Carrega o componente e inicializa saudação e logout
+        (async () => {
+            try {
+                const wrap = document.getElementById('header');
+                const html = await fetch('/components/header.html', { cache: 'no-store' }).then(r => r.text());
+                wrap.innerHTML = html;
+
+                // injeta os JS que já funcionam nas demais páginas
+                const s1 = document.createElement('script'); s1.src = '/js/initHeader.js'; document.body.appendChild(s1);
+                const s2 = document.createElement('script'); s2.src = '/js/logout.js'; document.body.appendChild(s2);
+            } catch (e) {
+                console.error('Falha ao carregar header:', e);
+            }
+        })();
+    </script>
+
+    <script>
+        /** ==========================
+         *  CONFIG: endpoints do n8n
+         *  ========================== */
+        const API = {
+            LIST_SALAS: 'https://n8n.senado-nusp.cloud/webhook/forms/lookup/salas',        // ajuste o host
+            LIST_OPERADORES: 'https://n8n.senado-nusp.cloud/webhook/forms/lookup/operadores',
+            SALVAR: 'https://n8n.sua-instancia.cloud/webhook/forms/cessao-sala'
+        };
+
+        /** Util: token JWT do seu front (localStorage) e fetch com Authorization */
+        function getJwtToken() {
+            // tenta usar as chaves mais comuns do seu projeto
+            return localStorage.getItem('auth_token')
+                || localStorage.getItem('token')
+                || '';
+        }
+        async function authFetch(url, options = {}) {
+            const token = getJwtToken();
+            const headers = Object.assign({}, options.headers || {}, token ? { Authorization: 'Bearer ' + token } : {});
+            return fetch(url, Object.assign({}, options, { headers }));
+        }
+
+        /** UI helpers */
+        const byId = (id) => document.getElementById(id);
+        const msg = byId('msg');
+        function showMsg(html) { msg.innerHTML = html; msg.style.display = 'block'; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+        /** Carrega salas do banco */
+        async function loadSalas() {
+            const sel = byId('sala_id');
+            sel.innerHTML = '<option value="">Carregando salas...</option>';
+            try {
+                const r = await authFetch(API.LIST_SALAS, { method: 'GET' });
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+
+                const json = await r.json();
+
+                // Normaliza: o seu workflow retorna { data: [...] }
+                const arr = Array.isArray(json) ? json
+                    : Array.isArray(json.data) ? json.data
+                        : Array.isArray(json.salas) ? json.salas
+                            : Array.isArray(json.items) ? json.items
+                                : [];
+
+                if (!arr.length) throw new Error('lista vazia');
+
+                sel.innerHTML = '<option value="">Selecione uma sala</option>';
+                arr.forEach(s => {
+                    const o = document.createElement('option');
+                    // aceita {id,nome} ou {value,label}
+                    o.value = (s.id ?? s.value);
+                    o.textContent = (s.nome ?? s.label ?? String(o.value));
+                    sel.appendChild(o);
+                });
+            } catch (e) {
+                console.error('Falha ao carregar salas:', e);
+                sel.innerHTML = '<option value="">[Erro ao carregar salas]</option>';
+            }
+        }
+
+        /** Carrega operadores e prepara o "Adicionar" */
+        let operadoresCache = [];
+        function fillOpSelect(selectEl) {
+            selectEl.innerHTML = '<option value="">Selecione um operador</option>';
+            operadoresCache.forEach(p => {
+                const o = document.createElement('option');
+                o.value = p.id;
+                o.textContent = p.nome;
+                selectEl.appendChild(o);
+            });
+        }
+        async function loadOperadores() {
+            try {
+                const r = await authFetch(API.LIST_OPERADORES);
+                const json = await r.json();
+
+                // Aceita {data:[...]}, {items:[...]}, ou array direto
+                const arr = Array.isArray(json) ? json
+                    : Array.isArray(json.data) ? json.data
+                        : Array.isArray(json.items) ? json.items
+                            : [];
+
+                if (!arr.length) throw new Error('Lista de operadores vazia');
+
+                // Padroniza para o shape usado no front: { id, nome }
+                operadoresCache = arr.map(o => ({
+                    id: o.id,
+                    nome: o.nome ?? o.nome_completo ?? o.label ?? ''
+                }));
+
+                document.querySelectorAll('.op-select').forEach(fillOpSelect);
+            } catch (e) {
+                document.querySelectorAll('.op-select')
+                    .forEach(s => s.innerHTML = '<option value="">[Erro ao carregar]</option>');
+            }
+        }
+        const MAX_OPS = 3;
+
+        function opCount() {
+            return document.querySelectorAll('.op-item').length;
+        }
+        function updateOpUI() {
+            // Desativa/ativa o botão +adicionar
+            const addBtn = document.getElementById('add-op');
+            if (addBtn) addBtn.disabled = opCount() >= MAX_OPS;
+
+            // Renumera rótulos "Operador N"
+            document.querySelectorAll('.op-item').forEach((row, idx) => {
+                const lab = row.querySelector('label');
+                if (lab) lab.firstChild.nodeValue = `Operador ${idx + 1} `;
+            });
+        }
+        function addOperadorRow() {
+            if (opCount() >= MAX_OPS) { updateOpUI(); return; }
+
+            const list = document.getElementById('operadores');
+            const idx = opCount() + 1;
+
+            const row = document.createElement('div');
+            row.className = 'row op-item';
+            row.dataset.i = String(idx);
+            row.innerHTML = `
+    <div class="col" style="flex:2 1 320px">
+      <label>Operador ${idx} <span class="req">*</span></label>
+      <select class="op-select" required></select>
+    </div>
+    <div class="col" style="max-width:120px">
+      <button class="btn small btn-remove" type="button">– remover</button>
+    </div>
+  `;
+            list.appendChild(row);
+            const sel = row.querySelector('.op-select');
+            fillOpSelect(sel);
+            row.querySelector('.btn-remove').addEventListener('click', () => {
+                row.remove();
+                updateOpUI();
+            });
+            updateOpUI();
+        }
+
+        /** Valida e monta payload */
+        function getHouveAnom() { return (document.querySelector('input[name="anom"]:checked') || {}).value || 'Não'; }
+        function readPayload() {
+            const ops = Array.from(document.querySelectorAll('.op-item .op-select')).map((sel, idx) => ({
+                operador_id: sel.value,
+                ordem: idx + 1
+            })).filter(o => o.operador_id);
+
+            return {
+                data_evento: byId('data_evento').value,
+                horario_pauta: byId('horario_pauta').value || null,
+                hora_inicio: byId('hora_inicio').value,
+                hora_termino: byId('hora_termino').value,
+                sala_id: byId('sala_id').value,
+                nome_evento: byId('nome_evento').value.trim(),
+                orgao_unidade_solicitante: byId('orgao_unidade_solicitante').value.trim(),
+                contato_responsavel: byId('contato_responsavel').value.trim() || null,
+                recursos_utilizados: byId('recursos_utilizados').value.trim() || null,
+                observacoes: byId('observacoes').value.trim() || null,
+                houve_anormalidade: getHouveAnom(),
+                operadores: ops
+            };
+        }
+        function validatePayload(p) {
+            const errs = [];
+            if (!p.data_evento) errs.push('• Data do evento é obrigatória.');
+            if (!p.hora_inicio) errs.push('• Hora de início é obrigatória.');
+            if (!p.hora_termino) errs.push('• Hora de término é obrigatória.');
+            if (!p.sala_id) errs.push('• Espaço solicitado é obrigatório.');
+            if (!p.nome_evento) errs.push('• Nome do evento é obrigatório.');
+            if (!p.orgao_unidade_solicitante) errs.push('• Órgão/Unidade solicitante é obrigatório.');
+            if (!p.operadores.length) errs.push('• Informe ao menos 1 operador.');
+            return errs;
+        }
+
+        /** Eventos */
+        document.addEventListener('DOMContentLoaded', async () => {
+            // saudação e botão "Sair" são geridos pelo seu initHeader.js
+            // (mostrar elementos quando logado)
+            const nameSpan = document.getElementById('auth-user-name');
+            const btnOut = document.getElementById('logout-btn');
+            nameSpan && (nameSpan.style.display = '');
+            btnOut && (btnOut.style.display = '');
+
+            // data padrão = hoje
+            byId('data_evento').valueAsDate = new Date();
+
+            await loadSalas();
+            await loadOperadores();
+
+            document.getElementById('add-op')?.addEventListener('click', addOperadorRow);
+            updateOpUI();
+
+            document.getElementById('btn-clear').addEventListener('click', () => location.reload());
+
+            document.getElementById('btn-save').addEventListener('click', async () => {
+                msg.style.display = 'none';
+                const payload = readPayload();
+                const errs = validatePayload(payload);
+                if (errs.length) {
+                    showMsg('<b>Corrija os seguintes pontos:</b><br>' + errs.join('<br>'));
+                    return;
+                }
+
+                try {
+                    const r = await authFetch(API.SALVAR, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await r.json().catch(() => ({}));
+                    if (!r.ok || !data.ok) {
+                        showMsg('<b>Falha ao salvar.</b> ' + (data.error || 'Verifique os dados e tente novamente.'));
+                        return;
+                    }
+                    if (data.redirectAnormalidade) {
+                        window.location.href = data.redirectAnormalidade;
+                    } else {
+                        showMsg('<b>Registro salvo com sucesso!</b> ID: ' + data.id);
+                    }
+                } catch (e) {
+                    showMsg('<b>Erro de comunicação com o servidor.</b> Tente novamente.');
+                }
+            });
+        });
+    </script>
+
+  <script src="/js/session-autoload.js"></script>
+</body>
+
+</html>

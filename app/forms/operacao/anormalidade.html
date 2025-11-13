@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Registro de Anormalidade na Operação de Áudio</title>
+<meta content="Formulário de Registro de Anormalidade na Operação de Áudio" name="description"/>
+<meta content="noindex,nofollow" name="robots"/>
+<link href="../../imgs/header-senado.png" rel="icon"/>
+<style>
+    :root {
+      --gap: 12px;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", sans-serif;
+      background: #f6f7f9;
+      color: #222;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 24px auto 56px;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.5rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: var(--gap);
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    label {
+      font-weight: 600;
+      font-size: .95rem;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #d7dbe3;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 1rem;
+      background: #fff;
+    }
+
+    input[readonly],
+    textarea[readonly] {
+      background: #f2f4f7;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .muted {
+      color: #616a7a;
+      font-size: .92rem;
+    }
+
+    .field-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #0b5ed7;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e9ecef;
+      color: #1b1f24;
+    }
+
+    .required::after {
+      content: " *";
+      color: #d00;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .section-title {
+      margin: 22px 0 6px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #334155;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 720px) {
+
+      .grid-2,
+      .grid-3,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app-header"></div>
+<main>
+<div class="card">
+<h1>Registro de Anormalidade na Operação de Áudio</h1>
+<p class="muted">Preencha as informações referentes à anormalidade. Campos marcados com * são obrigatórios.</p>
+<p class="muted" id="registro-ref" style="margin-top:-6px;"></p>
+<form id="form-raoa" novalidate="">
+<!-- IDs e referências (ocultos) -->
+<input id="registro_id" name="registro_id" type="hidden"/>
+<input id="sala_id" name="sala_id" type="hidden"/>
+<!-- 1) Referência ao Registro de Operação -->
+<div class="section-title">1) Referência ao Registro de Operação</div>
+<div class="grid grid-3">
+<div>
+<label class="required" for="data">Data</label>
+<input id="data" name="data" readonly="" required="" type="date"/>
+</div>
+<div>
+<label for="sala_nome">Local/Sala</label>
+<input id="sala_nome" name="sala_nome" readonly="" type="text"/>
+</div>
+<div>
+<label for="nome_evento">Nome do Evento</label>
+<input id="nome_evento" name="nome_evento" readonly="" type="text"/>
+</div>
+</div>
+<!-- 2) Detalhes da anormalidade -->
+<div class="section-title">2) Detalhes da Anormalidade</div>
+<div class="grid grid-3">
+<div>
+<label class="required" for="hora_inicio_anormalidade">Horário de início da anormalidade</label>
+<input id="hora_inicio_anormalidade" name="hora_inicio_anormalidade" required="" type="time"/>
+</div>
+<div>
+<label class="required" for="data_solucao">Data da solução da anormalidade</label>
+<input id="data_solucao" name="data_solucao" required="" type="date"/>
+</div>
+<div>
+<label for="hora_solucao">Hora da solução da anormalidade</label>
+<input id="hora_solucao" name="hora_solucao" type="time"/>
+</div>
+</div>
+<div>
+<label class="required" for="descricao_anormalidade">Descrição da anormalidade</label>
+<textarea id="descricao_anormalidade" name="descricao_anormalidade" required=""></textarea>
+</div>
+<!-- 3) Impactos e reclamações -->
+<div class="section-title">3) Impactos e Reclamações</div>
+<div class="grid grid-2">
+<div>
+<label class="required">Houve prejuízo ao andamento?</label>
+<div class="field-inline">
+<label><input checked="" name="houve_prejuizo" type="radio" value="nao"/> Não</label>
+<label><input name="houve_prejuizo" type="radio" value="sim"/> Sim</label>
+</div>
+</div>
+<div class="hidden" id="grp_descricao_prejuizo">
+<label for="descricao_prejuizo">Descrição do prejuízo (opcional)</label>
+<textarea id="descricao_prejuizo" name="descricao_prejuizo" placeholder="Se houve, descreva brevemente o prejuízo."></textarea>
+</div>
+</div>
+<div class="grid grid-2">
+<div>
+<label class="required">Houve reclamação?</label>
+<div class="field-inline">
+<label><input checked="" name="houve_reclamacao" type="radio" value="nao"/> Não</label>
+<label><input name="houve_reclamacao" type="radio" value="sim"/> Sim</label>
+</div>
+</div>
+<div class="hidden" id="grp_autores_conteudo_reclamacao">
+<label for="autores_conteudo_reclamacao">Autor(es) e conteúdo resumido da(s) reclamação(ões)
+              (opcional)</label>
+<textarea id="autores_conteudo_reclamacao" name="autores_conteudo_reclamacao"></textarea>
+</div>
+</div>
+<!-- 4) Manutenção -->
+<div class="section-title">4) Manutenção</div>
+<div class="grid grid-2">
+<div>
+<label class="required">Foi necessário acionar manutenção?</label>
+<div class="field-inline">
+<label><input checked="" name="acionou_manutencao" type="radio" value="nao"/> Não</label>
+<label><input name="acionou_manutencao" type="radio" value="sim"/> Sim</label>
+</div>
+</div>
+<div class="hidden" id="grp_hora_acionamento">
+<label for="hora_acionamento_manutencao">Hora do acionamento da manutenção (opcional)</label>
+<input id="hora_acionamento_manutencao" name="hora_acionamento_manutencao" type="text"/>
+</div>
+</div>
+<div class="grid grid-2">
+<div>
+<label class="required">Anormalidade resolvida pelo próprio operador?</label>
+<div class="field-inline">
+<label><input name="resolvida_pelo_operador" type="radio" value="nao"/> Não</label>
+<label><input checked="" name="resolvida_pelo_operador" type="radio" value="sim"/> Sim</label>
+</div>
+</div>
+<div>
+<label for="procedimentos_adotados">Descrição sucinta dos procedimentos adotados (opcional)</label>
+<textarea id="procedimentos_adotados" name="procedimentos_adotados"></textarea>
+</div>
+</div>
+<!-- 5) Responsáveis -->
+<div class="section-title">5) Responsáveis</div>
+<div class="grid grid-2">
+<div>
+<label class="required" for="responsavel_evento">Responsável do evento (Comissão/Mesa/Organização)</label>
+<input id="responsavel_evento" name="responsavel_evento" placeholder="Nome do responsável" required="" type="text"/>
+</div>
+<div>
+<label class="required" for="operador_responsavel_id">Operador responsável pelo registro</label>
+<select disabled="" id="operador_responsavel_id" name="operador_responsavel_id" required="">
+<option value="">Carregando...</option>
+</select>
+</div>
+</div>
+<div class="actions">
+<button class="btn-secondary" type="reset">Limpar</button>
+<button class="btn-primary" type="submit">Salvar registro</button>
+</div>
+</form>
+</div>
+</main>
+<div id="app-footer"></div>
+<script>
+    // >>> Ajuste as URLs para PRODUÇÃO (workflow ATIVO, sem '/webhook-test')
+    const OPERADORES_URL = "https://n8n.senado-nusp.cloud/webhook/forms/lookup/operadores";
+    const SALAS_URL = "https://n8n.senado-nusp.cloud/webhook/forms/lookup/salas";
+    // Endpoint que deve devolver os dados do registro de operação de áudio (id, data, sala_id, nome_evento)
+    // Ex.: GET .../webhook/forms/lookup/registro-operacao?id=123  →  { "data": { "id":123, "data":"2025-03-12", "sala_id": 7, "nome_evento":"Audiência..." } }
+    const REGISTRO_LOOKUP_URL = "https://n8n.senado-nusp.cloud/webhook/forms/lookup/registro-operacao";
+
+    async function inject(selector, url) {
+      try {
+        const res = await fetch(url, { cache: "no-cache" });
+        const html = await res.text();
+        document.querySelector(selector).innerHTML = html;
+      } catch (e) {
+        console.error("Falha ao carregar componente:", url, e);
+      }
+    }
+    inject("#app-header", "../../components/header.html");
+    inject("#app-footer", "../../components/footer.html");
+
+    // Helpers
+    function qs(name) {
+      const p = new URLSearchParams(window.location.search);
+      return p.get(name);
+    }
+    function fillSelect(selectEl, rows, valueKey, labelKey, placeholder = "Selecione") {
+      const opts = ['<option value="">' + placeholder + '</option>']
+        .concat(rows.map(r => '<option value="' + r[valueKey] + '">' + r[labelKey] + "</option>"))
+        .join("");
+      selectEl.innerHTML = opts;
+      selectEl.disabled = false;
+    }
+    function toggle(el, show) { el.classList[show ? "remove" : "add"]("hidden"); }
+
+    async function loadLookupsAndPrefill() {
+      const registroId = qs("ref") || qs("registro_id");
+      if (registroId) {
+        document.getElementById("registro-ref").innerHTML = '<span class="badge">Vinculado ao Registro #' + registroId + "</span>";
+      }
+
+      try {
+        const promises = [
+          fetch(OPERADORES_URL, { cache: "no-store" }).then(r => r.json()).catch(() => ({ data: [] })),
+          fetch(SALAS_URL, { cache: "no-store" }).then(r => r.json()).catch(() => ({ data: [] }))
+        ];
+
+        if (registroId) {
+          promises.push(
+            fetch(REGISTRO_LOOKUP_URL + "?id=" + encodeURIComponent(registroId), { cache: "no-store" })
+              .then(r => r.json())
+              .catch(() => null)
+          );
+        }
+
+        const [opsJson, salasJson, registroJson] = await Promise.all(promises);
+
+        // Operadores
+        fillSelect(document.getElementById("operador_responsavel_id"), opsJson?.data || [], "id", "nome_completo", "Selecione o operador");
+
+        // Pré-preenchimento a partir do registro de operação
+        if (registroJson && (registroJson.data || Array.isArray(registroJson))) {
+          let reg = registroJson.data || registroJson;
+          if (Array.isArray(reg)) reg = reg[0];
+          // dados básicos
+          document.getElementById("registro_id").value = reg.id || registroId || "";
+          if (reg.data) document.getElementById("data").value = String(reg.data).slice(0, 10);
+          document.getElementById("nome_evento").value = reg.nome_evento || "";
+
+          // sala: tenta nome direto; se não houver, resolve via lista de salas
+          const salaId = reg.sala_id || reg.salaId || null;
+          const salaNomeDireto = reg.sala_nome || reg.salaNome || "";
+          if (salaId) document.getElementById("sala_id").value = salaId;
+          if (salaNomeDireto) {
+            document.getElementById("sala_nome").value = salaNomeDireto;
+          } else if (salaId && salasJson?.data) {
+            const match = (salasJson.data || []).find(s => String(s.id) === String(salaId));
+            if (match) document.getElementById("sala_nome").value = match.nome;
+          }
+        } else {
+          // Como fallback, aceita query params diretos
+          const qpData = qs("data");
+          const qpSalaId = qs("sala_id");
+          const qpSalaNome = qs("sala_nome");
+          const qpNomeEvento = qs("nome_evento");
+
+          if (qpData) document.getElementById("data").value = String(qpData).slice(0, 10);
+          if (qpSalaId) document.getElementById("sala_id").value = qpSalaId;
+          if (qpSalaNome) document.getElementById("sala_nome").value = qpSalaNome;
+          if (qpNomeEvento) document.getElementById("nome_evento").value = qpNomeEvento;
+        }
+      } catch (err) {
+        console.error("Falha no carregamento inicial:", err);
+      }
+    }
+
+    function setupConditionalFields() {
+      const grpPrejuizo = document.getElementById("grp_descricao_prejuizo");
+      const grpReclamacao = document.getElementById("grp_autores_conteudo_reclamacao");
+      const grpAcionamento = document.getElementById("grp_hora_acionamento");
+
+      document.querySelectorAll('input[name="houve_prejuizo"]').forEach(r => {
+        r.addEventListener("change", () => toggle(grpPrejuizo, r.value === "sim" && r.checked));
+      });
+      document.querySelectorAll('input[name="houve_reclamacao"]').forEach(r => {
+        r.addEventListener("change", () => toggle(grpReclamacao, r.value === "sim" && r.checked));
+      });
+      document.querySelectorAll('input[name="acionou_manutencao"]').forEach(r => {
+        r.addEventListener("change", () => toggle(grpAcionamento, r.value === "sim" && r.checked));
+      });
+
+      // estado inicial
+      toggle(grpPrejuizo, false);
+      toggle(grpReclamacao, false);
+      toggle(grpAcionamento, false);
+    }
+
+    // Inicialização
+    loadLookupsAndPrefill();
+    setupConditionalFields();
+
+    // Submissão (ainda sem POST ao n8n; validação local)
+    const form = document.getElementById("form-raoa");
+    form.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+      alert("Pré-validação concluída. Próxima etapa: integrar ao Webhook POST para salvar esta anormalidade no Postgres.");
+    });
+  </script>
+  <script src="/js/auth_jwt.js"></script>  <script src="/js/session-autoload.js"></script>
+</body>
+</html>

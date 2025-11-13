@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cessão de Sala / Outros Eventos</title>
+    <meta name="description" content="Solicitação de cessão de sala e registro de outros eventos" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/imgs/header-senado.png" />
+    <style>
+        :root {
+            --gap: 12px;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, .08);
+            --muted: #475569;
+            --ok: #065f46;
+            --warn: #7f1d1d;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+            background: #f6f7f9;
+            color: #111827
+        }
+
+        main {
+            max-width: 980px;
+            margin: 24px auto 56px;
+            padding: 0 16px
+        }
+
+        .card {
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin: 14px 0
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(20px, 2.6vw, 28px)
+        }
+
+        p.lead {
+            margin: 0 0 14px;
+            color: var(--muted)
+        }
+
+        .grid {
+            display: grid;
+            gap: var(--gap)
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr))
+        }
+
+        @media (max-width:720px) {
+
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr
+            }
+        }
+
+        label {
+            display: block;
+            margin: 6px 0 6px;
+            font-weight: 600;
+            color: #0b1220
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="time"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff
+        }
+
+        textarea {
+            min-height: 96px;
+            resize: vertical
+        }
+
+        .checks {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px 10px
+        }
+
+        .checks label {
+            font-weight: 500;
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer
+        }
+
+        .btn.primary {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb
+        }
+
+        .btn:disabled {
+            opacity: .6;
+            cursor: not-allowed
+        }
+
+        .help {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .ok {
+            background: #ecfdf5;
+            border: 1px solid #d1fae5;
+            color: var(--ok);
+            padding: 10px 12px;
+            border-radius: 10px
+        }
+
+        .err {
+            background: #fff1f2;
+            border: 1px solid #fecaca;
+            color: var(--warn);
+            padding: 10px 12px;
+            border-radius: 10px
+        }
+
+        .hide {
+            display: none !important
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header"></div>
+
+    <main>
+        <section class="card">
+            <h1>Cessão de Sala / Outros Eventos</h1>
+            <p class="lead">Preencha os dados para formalizar o uso do espaço e as necessidades do evento.</p>
+        </section>
+
+        <form id="form-cessao" class="card" enctype="multipart/form-data" novalidate>
+            <div class="grid grid-3">
+                <div>
+                    <label for="data_evento">Data do evento *</label>
+                    <input type="date" id="data_evento" name="data_evento" required />
+                </div>
+                <div>
+                    <label for="hora_inicio">Hora de início *</label>
+                    <input type="time" id="hora_inicio" name="hora_inicio" required />
+                </div>
+                <div>
+                    <label for="hora_fim">Hora de término *</label>
+                    <input type="time" id="hora_fim" name="hora_fim" required />
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div>
+                    <label for="sala_id">Espaço solicitado *</label>
+                    <select id="sala_id" name="sala_id" required>
+                        <option value="">Carregando salas…</option>
+                    </select>
+                    <div class="help">Lista controlada (Plenário/Sala).</div>
+                </div>
+
+                <div>
+                    <label for="tipo_evento">Tipo de evento *</label>
+                    <select id="tipo_evento" name="tipo_evento" required>
+                        <option value="">Selecione…</option>
+                        <option>Curso</option>
+                        <option>Fórum</option>
+                        <option>Reunião</option>
+                        <option>Sessão de autógrafos</option>
+                        <option>Palestra</option>
+                        <option>Coletiva de imprensa</option>
+                        <option>Outro</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div>
+                    <label for="orgao_unidade">Órgão/Unidade solicitante *</label>
+                    <input type="text" id="orgao_unidade" name="orgao_unidade" required />
+                </div>
+                <div>
+                    <label for="contato_responsavel">Contato responsável (nome e ramal/celular) *</label>
+                    <input type="text" id="contato_responsavel" name="contato_responsavel" required />
+                </div>
+            </div>
+
+            <div class="grid">
+                <div>
+                    <label>Recursos / equipamentos necessários</label>
+                    <div class="checks">
+                        <label><input type="checkbox" name="recursos" value="Som">Som</label>
+                        <label><input type="checkbox" name="recursos" value="Microfones">Microfones</label>
+                        <label><input type="checkbox" name="recursos" value="Projeção">Projeção</label>
+                        <label><input type="checkbox" name="recursos" value="Streaming">Streaming</label>
+                        <label><input type="checkbox" name="recursos" value="Gravação">Gravação</label>
+                        <label><input type="checkbox" name="recursos" value="Tradução simultânea">Tradução
+                            simultânea</label>
+                        <label><input type="checkbox" name="recursos" value="Computador">Computador</label>
+                        <label><input type="checkbox" name="recursos" value="Internet cabeada">Internet cabeada</label>
+                        <label><input type="checkbox" name="recursos" value="Púlpito">Púlpito</label>
+                        <label><input type="checkbox" name="recursos" value="Mesa de apoio">Mesa de apoio</label>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label for="observacoes">Observações / condições</label>
+                <textarea id="observacoes" name="observacoes"
+                    placeholder="Restrições, montagem, horários de acesso etc."></textarea>
+            </div>
+
+            <div class="grid grid-2">
+                <div>
+                    <label for="aprovacao_status">Aprovação/Autorização *</label>
+                    <select id="aprovacao_status" name="aprovacao_status" required>
+                        <option value="">Selecione…</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Autorizado">Autorizado</option>
+                        <option value="Negado">Negado</option>
+                    </select>
+                    <div class="help">Status da autorização.</div>
+                </div>
+
+                <div>
+                    <label for="aprovacao_doc">Documento comprobatório (PDF/Imagem) <span
+                            id="doc-required">*</span></label>
+                    <input type="file" id="aprovacao_doc" name="aprovacao_doc" accept=".pdf,.jpg,.jpeg,.png" />
+                    <div class="help">Anexe o despacho/ato quando aplicável.</div>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn" type="reset">Limpar</button>
+                <button id="btn-submit" class="btn primary" type="submit">Salvar solicitação</button>
+            </div>
+
+            <div id="ok" class="ok hide" role="status"></div>
+            <div id="err" class="err hide" role="alert"></div>
+        </form>
+    </main>
+
+    <div id="footer"></div>
+
+    <script>
+        // ====== Sessão atual (JWT) + Header com nome e botão Sair ======
+        (function start() {
+            if (window.Auth && Auth.protectPage) { Auth.protectPage({ adminOnly: false }); }
+            (async function loadParts() {
+                async function loadComponent(id, file) { try { const html = await fetch(file).then(r => r.text()); document.getElementById(id).innerHTML = html; } catch (e) { console.error('Erro ao carregar', file, e); } }
+                await Promise.all([loadComponent('header', '/components/header.html'), loadComponent('footer', '/components/footer.html')]);
+                const s = document.createElement('script'); s.src = '/js/initHeader.js'; document.body.appendChild(s);
+            })();
+        })();
+
+        // ====== Endpoints do n8n (você já usa n8n.senado-nusp.cloud) ======
+        const N8N_BASE = (window.N8N_BASE) || 'https://n8n.senado-nusp.cloud';
+        const N8N_CESSAO_URL = N8N_BASE + '/webhook/cessao-sala';
+        const N8N_SALAS_URL = N8N_BASE + '/webhook/list-salas';
+
+        // ====== Utilidades ======
+        const $ = (sel) => document.querySelector(sel);
+        const todayISO = () => new Date().toISOString().slice(0, 10);
+        function getRecursos() { return Array.from(document.querySelectorAll('input[name="recursos"]:checked')).map(i => i.value); }
+
+        // Arquivo obrigatório quando status = Autorizado/Negado
+        function setDocRequired() {
+            const st = $('#aprovacao_status').value;
+            const req = (st === 'Autorizado' || st === 'Negado');
+            const inp = $('#aprovacao_doc'); const star = $('#doc-required');
+            if (req) { inp.setAttribute('required', 'required'); star.style.display = ''; }
+            else { inp.removeAttribute('required'); star.style.display = 'none'; }
+        }
+
+        async function populateSalas() {
+            const select = $('#sala_id');
+            select.innerHTML = '<option value=\"\">Carregando…</option>';
+            const fallback = [
+                { id: 1, nome: 'Auditório' }, { id: 2, nome: 'Plenário' }, { id: 3, nome: 'Sala 02' }, { id: 4, nome: 'Sala 03' }, { id: 5, nome: 'Sala 06' },
+                { id: 6, nome: 'Sala 07' }, { id: 7, nome: 'Sala 09' }, { id: 8, nome: 'Sala 13' }, { id: 9, nome: 'Sala 15' }, { id: 10, nome: 'Sala 19' }
+            ];
+            try {
+                let resp = (window.Auth && Auth.authFetch) ? await Auth.authFetch(N8N_SALAS_URL, { method: 'GET' }) : await fetch(N8N_SALAS_URL);
+                if (!resp.ok) throw new Error('Falha ' + resp.status);
+                const data = await resp.json();
+                const list = Array.isArray(data) ? data : (data.items || fallback);
+                select.innerHTML = '<option value=\"\">Selecione…</option>' + list.map(s => `<option value="${'${'}s.id{'}'}">${'${'}s.nome{'}'}</option>`).join('');
+            } catch (e) {
+                console.warn('Usando lista local de salas:', e);
+                select.innerHTML = '<option value=\"\">Selecione…</option>' + fallback.map(s => `<option value="${'${'}s.id{'}'}">${'${'}s.nome{'}'}</option>`).join('');
+            }
+        }
+
+        async function submitForm(ev) {
+            ev.preventDefault();
+            $('#ok').classList.add('hide'); $('#err').classList.add('hide');
+            const btn = $('#btn-submit'); btn.disabled = true;
+
+            const form = ev.currentTarget;
+            if (!form.checkValidity()) { form.reportValidity(); btn.disabled = false; return; }
+
+            const hi = $('#hora_inicio').value, hf = $('#hora_fim').value;
+            if (hi && hf && hf <= hi) { $('#err').textContent = 'Hora de término deve ser maior que a de início.'; $('#err').classList.remove('hide'); btn.disabled = false; return; }
+
+            const payload = {
+                data_evento: $('#data_evento').value,
+                hora_inicio: hi,
+                hora_fim: hf,
+                sala_id: $('#sala_id').value ? Number($('#sala_id').value) : null,
+                tipo_evento: $('#tipo_evento').value,
+                orgao_unidade: $('#orgao_unidade').value.trim(),
+                contato_responsavel: $('#contato_responsavel').value.trim(),
+                recursos: getRecursos(),
+                observacoes: $('#observacoes').value,
+                aprovacao_status: $('#aprovacao_status').value
+            };
+
+            const fd = new FormData();
+            fd.append('payload', JSON.stringify(payload));
+            const file = $('#aprovacao_doc').files[0];
+            if (file) fd.append('aprovacao_doc', file, file.name);
+
+            try {
+                let resp;
+                const opts = { method: 'POST', body: fd }; // não setar Content-Type manualmente
+                if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(N8N_CESSAO_URL, opts);
+                else {
+                    const headers = new Headers();
+                    const tok = (window.Auth && Auth.loadToken) ? Auth.loadToken() : '';
+                    if (tok) headers.set('Authorization', 'Bearer ' + tok);
+                    resp = await fetch(N8N_CESSAO_URL, { ...opts, headers });
+                }
+                const text = await resp.text();
+                let data; try { data = JSON.parse(text || '{}'); } catch { data = {}; }
+                if (!resp.ok) throw new Error(data?.error || data?.message || ('Falha ' + resp.status));
+
+                $('#ok').textContent = data?.message || 'Solicitação registrada com sucesso.';
+                $('#ok').classList.remove('hide');
+                form.reset(); $('#data_evento').value = todayISO(); setDocRequired();
+            } catch (e) {
+                $('#err').textContent = e?.message || 'Falha ao enviar a solicitação.';
+                $('#err').classList.remove('hide');
+            } finally { btn.disabled = false; }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            $('#data_evento').value = todayISO();
+            populateSalas();
+            setDocRequired();
+            $('#aprovacao_status').addEventListener('change', setDocRequired);
+            document.getElementById('form-cessao').addEventListener('submit', submitForm);
+        });
+    </script>
+
+    <script src="/js/auth_jwt.js"></script>
+  <script src="/js/session-autoload.js"></script>
+</body>
+
+</html>
