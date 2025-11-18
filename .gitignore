@@ -7,3 +7,9 @@ Thumbs.db
 
 # Se um dia tiver dependências tipo node
 node_modules/
+
+# Pastas
+.vscode/
+checklist/
+docs-db/
+html/
