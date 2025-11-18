@@ -1,7 +1,7 @@
 async function doServerLogout() {
   const t = localStorage.getItem('auth_token') || '';
   try {
-    await fetch('https://n8n.senado-nusp.cloud/webhook/auth/logout', {
+    await fetch('https://senado-nusp.cloud/webhook/auth/logout', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${t}` }
     });

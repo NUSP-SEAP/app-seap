@@ -1,6 +1,6 @@
 
 // ==== Config ====
-const N8N_BASE = 'https://n8n.senado-nusp.cloud';
+const N8N_BASE = 'https://senado-nusp.cloud';
 const WHOAMI_URL = `${N8N_BASE}/webhook/whoami`;
 const LOGIN_URL = `${N8N_BASE}/webhook/login`;
 

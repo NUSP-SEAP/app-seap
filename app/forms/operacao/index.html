@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
@@ -13,40 +14,55 @@
       --radius: 10px;
       --shadow: 0 1px 3px rgba(0, 0, 0, .08);
     }
+
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", sans-serif;
       background: #f6f7f9;
       color: #222;
     }
+
     main {
       max-width: 980px;
       margin: 24px auto 56px;
       padding: 0 16px;
     }
+
     .card {
       background: #fff;
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       padding: 20px;
     }
+
     h1 {
       margin: 0 0 16px;
       font-size: 1.5rem;
     }
+
     .grid {
       display: grid;
       gap: var(--gap);
     }
-    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
     label {
       font-weight: 600;
       font-size: .95rem;
       display: block;
       margin-bottom: 6px;
     }
-    input, select, textarea {
+
+    input,
+    select,
+    textarea {
       width: 100%;
       border: 1px solid #d7dbe3;
       border-radius: 8px;
@@ -54,11 +70,33 @@
       font-size: 1rem;
       background: #fff;
     }
-    select:disabled { background: #f2f4f7; }
-    textarea { min-height: 110px; resize: vertical; }
-    .muted { color: #616a7a; font-size: .92rem; }
-    .field-inline { display: flex; align-items: center; gap: 10px; }
-    .actions { display: flex; gap: 10px; margin-top: 14px; }
+
+    select:disabled {
+      background: #f2f4f7;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .muted {
+      color: #616a7a;
+      font-size: .92rem;
+    }
+
+    .field-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
     button {
       border: 0;
       border-radius: 10px;
@@ -66,33 +104,102 @@
       font-size: 1rem;
       cursor: pointer;
     }
-    .btn-primary { background: #0b5ed7; color: #fff; }
-    .btn-secondary { background: #e9ecef; color: #1b1f24; }
+
+    .btn-primary {
+      background: #0b5ed7;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e9ecef;
+      color: #1b1f24;
+    }
+
     .btn-icon {
-      width: 36px; height: 36px; border-radius: 999px;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 18px;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
     }
-    .btn-add { background: #198754; color: #fff; }
-    .btn-remove { background: #dc3545; color: #fff; }
-    .required::after { content: " *"; color: #d00; }
+
+    .btn-add {
+      background: #198754;
+      color: #fff;
+    }
+
+    .btn-remove {
+      background: #dc3545;
+      color: #fff;
+    }
+
+    .required::after {
+      content: " *";
+      color: #d00;
+    }
+
     .sr-only {
-      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
-    .section-title { margin: 22px 0 6px; font-weight: 700; color: #334155; }
+
+    .section-title {
+      margin: 22px 0 6px;
+      font-weight: 700;
+      color: #334155;
+    }
+
     /* --- Operadores: layout consistente --- */
-    .ops-row { display: grid; grid-template-columns: 40px 1fr 40px; gap: 8px; align-items: end; }
-    .ops-row--first { grid-template-columns: 1fr 40px; }
-    .ops-empty { width: 40px; height: 36px; } /* placeholder */
-    .ops-label-inline { align-self: center; font-weight: 600; }
+    .ops-row {
+      display: grid;
+      grid-template-columns: 40px 1fr 40px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .ops-row--first {
+      grid-template-columns: 1fr 40px;
+    }
+
+    .ops-empty {
+      width: 40px;
+      height: 36px;
+    }
+
+    /* placeholder */
+    .ops-label-inline {
+      align-self: center;
+      font-weight: 600;
+    }
+
     @media (max-width: 720px) {
-      .grid-2, .grid-4 { grid-template-columns: 1fr; }
-      .ops-row { grid-template-columns: 40px 1fr 40px; }
-      .ops-row--first { grid-template-columns: 1fr 40px; }
+
+      .grid-2,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .ops-row {
+        grid-template-columns: 40px 1fr 40px;
+      }
+
+      .ops-row--first {
+        grid-template-columns: 1fr 40px;
+      }
     }
   </style>
 </head>
+
 <body>
   <main>
     <div class="card">
@@ -128,7 +235,8 @@
           </div>
           <div>
             <label class="required" for="nome_evento">Nome do Evento</label>
-            <input id="nome_evento" name="nome_evento" placeholder="Ex.: Audiência pública..." required="" type="text" />
+            <input id="nome_evento" name="nome_evento" placeholder="Ex.: Audiência pública..." required=""
+              type="text" />
           </div>
         </div>
 
@@ -148,12 +256,14 @@
         <!-- Linha "Adicionar operador" (legenda + mesmo botão do topo) -->
         <div class="ops-row--first" style="display:grid; grid-template-columns: 1fr 40px; margin-top: 6px;">
           <span class="ops-label-inline">Adicionar operador</span>
-          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top-legend" type="button">+</button>
+          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top-legend"
+            type="button">+</button>
         </div>
 
         <!-- Operador 2 -->
         <div class="ops-row" id="op-row-2" style="display:none; margin-top: 6px;">
-          <button aria-label="Remover operador" class="btn-icon btn-remove" id="btn-remove-op-2" type="button">−</button>
+          <button aria-label="Remover operador" class="btn-icon btn-remove" id="btn-remove-op-2"
+            type="button">−</button>
           <div>
             <label for="operador_2">Operador 2</label>
             <select disabled="" id="operador_2" name="operador_2">
@@ -180,11 +290,13 @@
         <div class="grid grid-2">
           <div>
             <label for="usb_01">USB 01</label>
-            <input id="usb_01" name="usb_01" placeholder="Texto livre (ex.: pendrive, identificação, observações)" type="text" />
+            <input id="usb_01" name="usb_01" placeholder="Texto livre (ex.: pendrive, identificação, observações)"
+              type="text" />
           </div>
           <div>
             <label for="usb_02">USB 02</label>
-            <input id="usb_02" name="usb_02" placeholder="Texto livre (ex.: pendrive, identificação, observações)" type="text" />
+            <input id="usb_02" name="usb_02" placeholder="Texto livre (ex.: pendrive, identificação, observações)"
+              type="text" />
           </div>
         </div>
 
@@ -192,7 +304,8 @@
         <div class="section-title">3) Observações</div>
         <div>
           <label for="observacoes">Anotações gerais</label>
-          <textarea id="observacoes" name="observacoes" placeholder="Use este campo para registrar detalhes relevantes da operação."></textarea>
+          <textarea id="observacoes" name="observacoes"
+            placeholder="Use este campo para registrar detalhes relevantes da operação."></textarea>
         </div>
 
         <!-- 4) Anormalidade? -->
@@ -208,7 +321,8 @@
             Sim
           </label>
         </div>
-        <p class="muted">Se marcar “Sim”, após salvar este registro você será direcionado ao formulário de <em>Registro de Anormalidade</em>.</p>
+        <p class="muted">Se marcar “Sim”, após salvar este registro você será direcionado ao formulário de <em>Registro
+            de Anormalidade</em>.</p>
 
         <div class="actions">
           <button class="btn-secondary" type="reset">Limpar</button>
@@ -220,8 +334,8 @@
 
   <script>
     // URLs de PRODUÇÃO (workflow ATIVO)
-    const SALAS_URL = "https://n8n.senado-nusp.cloud/webhook/forms/lookup/salas";
-    const OPERADORES_URL = "https://n8n.senado-nusp.cloud/webhook/forms/lookup/operadores";
+    const SALAS_URL = "https://senado-nusp.cloud/webhook/forms/lookup/salas";
+    const OPERADORES_URL = "https://senado-nusp.cloud/webhook/forms/lookup/operadores";
 
     // Helpers
     function fillSelect(selectEl, rows, valueKey, labelKey, placeholder = "Selecione") {
@@ -299,16 +413,87 @@
     loadLookups();
     setupOperatorsUI();
 
-    // Submissão (ainda sem POST)
+    // Submissão: envia para o backend Django
     const form = document.getElementById('form-roa');
-    form.addEventListener('submit', (ev) => {
+    form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      if (!form.checkValidity()) { form.reportValidity(); return; }
-      alert('Pré-validação concluída. Próxima etapa: integrar ao Webhook POST para salvar no Postgres.');
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const submitBtn = form.querySelector('.btn-primary[type="submit"], button.btn-primary[type="submit"], button[type="submit"]');
+      const originalText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Salvando...';
+      }
+
+      const FORM_URL = '/webhook/operacao/registro';
+
+      try {
+        const formData = new FormData(form);
+
+        let resp;
+        if (window.Auth && Auth.authFetch) {
+          resp = await Auth.authFetch(FORM_URL, { method: 'POST', body: formData });
+        } else {
+          // fallback sem JWT (não deve acontecer em produção, mas evita quebra feia)
+          resp = await fetch(FORM_URL, { method: 'POST', body: formData, credentials: 'omit' });
+        }
+
+        if (resp.status === 401) {
+          // Sessão expirada ou inválida
+          if (window.Auth && Auth.doLogout) {
+            Auth.doLogout();
+            return;
+          }
+          alert('Sua sessão expirou. Faça login novamente.');
+          window.location.href = '/index.html';
+          return;
+        }
+
+        let data;
+        try {
+          data = await resp.json();
+        } catch (_) {
+          data = null;
+        }
+
+        if (!resp.ok) {
+          let msg = `Erro ao salvar (HTTP ${resp.status}).`;
+          if (data && data.errors) {
+            const parts = [];
+            for (const [campo, texto] of Object.entries(data.errors)) {
+              parts.push(`${campo}: ${texto}`);
+            }
+            if (parts.length) msg = 'Erros de validação:\n\n' + parts.join('\n');
+          } else if (data && data.error) {
+            msg = String(data.error);
+          }
+          alert(msg);
+          return;
+        }
+
+        const id = data && typeof data.registro_id !== 'undefined' ? data.registro_id : '';
+        alert(`Registro salvo com sucesso!${id ? `\n\nID: ${id}` : ''}`);
+
+        form.reset();
+      } catch (err) {
+        console.error('Erro ao enviar formulário:', err);
+        alert('Erro inesperado ao salvar o registro. Tente novamente.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      }
     });
   </script>
 
   <!-- Drop-in de sessão: centraliza proteção, header/footer e logout -->
   <script src="/js/session-autoload.js"></script>
 </body>
+
 </html>
