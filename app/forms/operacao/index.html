@@ -477,9 +477,23 @@
         }
 
         const id = data && typeof data.registro_id !== 'undefined' ? data.registro_id : '';
-        alert(`Registro salvo com sucesso!${id ? `\n\nID: ${id}` : ''}`);
+        const houveAnormalidade = data && data.houve_anormalidade === true;
 
-        form.reset();
+        if (!houveAnormalidade) {
+          // Comportamento atual quando NÃO houve anormalidade
+          alert(`Registro salvo com sucesso!${id ? `\n\nID: ${id}` : ''}`);
+          form.reset();
+        } else {
+          // Novo fluxo: houve anormalidade → ir para o formulário de anormalidades
+          if (!id) {
+            alert("Registro salvo com sucesso, mas não foi possível obter o ID para redirecionar ao formulário de anormalidades.");
+            return;
+          }
+
+          alert("Formulário enviado com sucesso!\nRedirecionando ao formulário de registro de anormalidades.");
+          window.location.href = `/forms/operacao/anormalidade.html?registro_id=${encodeURIComponent(id)}`;
+        }
+
       } catch (err) {
         console.error('Erro ao enviar formulário:', err);
         alert('Erro inesperado ao salvar o registro. Tente novamente.');
