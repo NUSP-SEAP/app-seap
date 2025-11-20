@@ -6,61 +6,11 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <title>Home | Senado NUSP</title>
-    <style>
-        body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-            margin: 0;
-        }
 
-        header,
-        footer {
-            display: flex;
-            justify-content: center;
-            background: #fff;
-        }
-
-        main {
-            max-width: 980px;
-            margin: 24px auto;
-            padding: 0 16px;
-        }
-
-        .grid {
-            display: grid;
-            gap: 12px;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        }
-
-        a.card {
-            display: block;
-            padding: 14px 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            text-decoration: none;
-            color: #0f172a;
-            background: #fff;
-            box-shadow: 0 6px 20px rgba(2, 6, 23, .06);
-        }
-
-        .muted {
-            color: #475569;
-            font-size: 14px;
-        }
-
-        .btn {
-            display: inline-block;
-            background: #2563eb;
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 999px;
-            text-decoration: none;
-            font-weight: 700;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/app/home.css">
 </head>
 
 <body>
-    <div id="header"></div>
     <main>
         <h1>Página Principal</h1>
         <p class="muted">Escolha uma ação.</p>
@@ -73,44 +23,9 @@
                     class="muted">Abrir</span></a>
         </div>
     </main>
-    <div id="footer"></div>
-    <script>
-        async function loadComponent(id, file) {
-            try {
-                const response = await fetch(file);
-                const html = await response.text();
-                document.getElementById(id).innerHTML = html;
-            } catch (e) {
-                console.error(`Erro ao carregar ${file}:`, e);
-            }
-        }
 
-        // --- NOVO: Função para carregar scripts ---
-        function loadScript(src) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.defer = true;
-            document.body.appendChild(script);
-        }
-
-        // --- NOVO: Lógica de inicialização ---
-        async function initializePage() {
-            // Espera os componentes HTML terminarem de carregar
-            await Promise.all([
-                loadComponent("header", "/components/header.html"),
-                loadComponent("footer", "/components/footer.html")
-            ]);
-
-            // SÓ DEPOIS de carregar o HTML, carrega o script
-        }
-
-        initializePage(); // Executa a inicialização
-    </script>
-    <script src="/js/auth_jwt.js?v=2"></script>
-    <script>document.addEventListener('DOMContentLoaded', () => {
-        });</script>
-    <script src="/js/auth_jwt.js"></script>
-  <script src="/js/session-autoload.js"></script>
+    <script src="/js/session-autoload.js" defer></script>
+    <script src="/js/app/home.js" defer></script>
 </body>
 
 </html>

@@ -6,60 +6,14 @@
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <title>Admin | Senado NUSP</title>
 
-    <!-- Esconde APENAS quando o drop‑in marcar data-auth="pending" -->
-    <style>
-        html[data-auth="pending"] {
-            visibility: hidden
-        }
-    </style>
+    <link rel="stylesheet" href="/css/app/admin/index.css">
 
-    <style>
-        body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-            margin: 0;
-            background: #f6f7f9;
-            color: #0f172a;
-        }
-
-        main {
-            max-width: 980px;
-            margin: 24px auto;
-            padding: 0 16px;
-        }
-
-        .muted {
-            color: #475569;
-            font-size: 14px;
-        }
-
-        .cards {
-            display: grid;
-            gap: 12px;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        }
-
-        .card {
-            display: block;
-            padding: 14px 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            text-decoration: none;
-            color: #0f172a;
-            background: #fff;
-            box-shadow: 0 6px 20px rgba(2, 6, 23, .06);
-        }
-    </style>
-
-    <!-- ÚNICA linha: o drop‑in protege, injeta header/footer e liga o “Sair”. -->
     <script src="/js/session-autoload.js" defer></script>
 </head>
 
 <body>
-    <div id="header"></div>
-
     <main>
         <h1>Painel dos Administradores</h1>
-
         <div class="cards">
             <a class="card" href="/home.html">
                 Ir à Home dos Operadores
@@ -77,8 +31,6 @@
             </a>
         </div>
     </main>
-
-    <div id="footer"></div>
 </body>
 
 </html>

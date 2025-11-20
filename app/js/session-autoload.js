@@ -194,3 +194,20 @@
     }
   });
 })();
+
+// Garante favicon padrão em todas as páginas
+(function ensureFavicon() {
+  try {
+    var head = document.head || document.getElementsByTagName('head')[0];
+    var link = document.querySelector('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      head.appendChild(link);
+    }
+    var href = '/imgs/header-senado.png'; // ajuste se você tiver um favicon dedicado
+    if (!link.href || !link.href.endsWith(href)) {
+      link.href = href;
+    }
+  } catch (_) { }
+})();

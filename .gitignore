@@ -10,6 +10,5 @@ node_modules/
 
 # Pastas
 .vscode/
-checklist/
 docs-db/
 html/
