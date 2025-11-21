@@ -1,9 +1,3 @@
-
-// ==== Config ====
-const N8N_BASE = 'https://senado-nusp.cloud';
-const WHOAMI_URL = `${N8N_BASE}/webhook/whoami`;
-const LOGIN_URL = `${N8N_BASE}/webhook/login`;
-
 // ==== Helpers ====
 const clean = v => (typeof v === 'string' && v.startsWith('=')) ? v.slice(1) : v;
 function deepClean(obj) {
@@ -65,7 +59,8 @@ async function whoAmI({ refresh = false, allowCached = true } = {}) {
   }
 
   __whoamiPromise = (async () => {
-    const resp = await authFetch(WHOAMI_URL + `?ts=${Date.now()}`, { method: 'GET' });
+    const url = AppConfig.apiUrl(AppConfig.endpoints.auth.whoami);
+    const resp = await authFetch(url + `?ts=${Date.now()}`, { method: 'GET' });
     if (resp.status === 401) {
       clearToken();                 // ← limpa auth_token
       saveUser(null);               // ← limpa auth_user
@@ -103,7 +98,8 @@ async function protectPage({ adminOnly = false } = {}) {
 
 // ==== Login ====
 async function doLogin(usuario, senha) {
-  const resp = await fetch(LOGIN_URL, {
+  const url = AppConfig.apiUrl(AppConfig.endpoints.auth.login);
+  const resp = await fetch(url, {
     method: 'POST',
     headers: buildNoCacheHeaders(new Headers({ 'Content-Type': 'application/json' })),
     body: JSON.stringify({ usuario, senha })
@@ -144,7 +140,8 @@ async function doLogout() {
   try {
     const token = (Auth.loadToken && Auth.loadToken()) || localStorage.getItem('auth_token') || '';
     if (token) {
-      await fetch('/webhook/auth/logout', {
+      const url = AppConfig.apiUrl(AppConfig.endpoints.auth.logout);
+      await fetch(url, {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token }
       });

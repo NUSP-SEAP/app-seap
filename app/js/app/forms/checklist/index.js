@@ -1,6 +1,3 @@
-// ====== Config (lookups) — já migrado p/ Django ======
-const SALAS_URL = "https://senado-nusp.cloud/webhook/forms/lookup/salas";
-
 // ====== Estado dos horários (não exibidos) ======
 let _entradaPagina = null; // Date da entrada
 function hhmmss(d) { const p = n => String(n).padStart(2, "0"); return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()); }
@@ -34,16 +31,17 @@ function bindConditionalFailures() {
 }
 
 async function loadSalas() {
+    const url = AppConfig.apiUrl(AppConfig.endpoints.lookups.salas);
     const sel = document.getElementById('sala_id');
     sel.innerHTML = '<option value="">Carregando...</option>';
     try {
         let resp;
-        if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(SALAS_URL, { method: 'GET' });
+        if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(url, { method: 'GET' });
         else {
             const headers = new Headers();
             const tok = localStorage.getItem('auth_token') || '';
             if (tok) headers.set('Authorization', 'Bearer ' + tok);
-            resp = await fetch(SALAS_URL, { method: 'GET', headers });
+            resp = await fetch(url, { method: 'GET', headers });
         }
         const json = await resp.json().catch(() => ({}));
         const rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
@@ -131,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
 
         try {
-            const url = 'https://senado-nusp.cloud/webhook/forms/checklist/registro';
+            const url = AppConfig.apiUrl(AppConfig.endpoints.forms.checklist);
 
             let resp;
             if (window.Auth && Auth.authFetch) {

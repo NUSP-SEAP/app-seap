@@ -1,6 +1,6 @@
 // URLs de PRODUÇÃO (workflow ATIVO)
-const SALAS_URL = "https://senado-nusp.cloud/webhook/forms/lookup/salas";
-const OPERADORES_URL = "https://senado-nusp.cloud/webhook/forms/lookup/operadores";
+const SALAS_URL = AppConfig.apiUrl(AppConfig.endpoints.lookups.salas);
+const OPERADORES_URL = AppConfig.apiUrl(AppConfig.endpoints.lookups.operadores);
 
 // Helpers
 function fillSelect(selectEl, rows, valueKey, labelKey, placeholder = "Selecione") {
@@ -95,7 +95,7 @@ form.addEventListener('submit', async (ev) => {
         submitBtn.textContent = 'Salvando...';
     }
 
-    const FORM_URL = '/webhook/operacao/registro';
+    const FORM_URL = AppConfig.apiUrl(AppConfig.endpoints.forms.operacao);
 
     try {
         const formData = new FormData(form);

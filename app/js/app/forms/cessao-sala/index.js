@@ -14,9 +14,9 @@
 })();
 
 const API = {
-    LIST_SALAS: 'https://senado-nusp.cloud/webhook/forms/lookup/salas',        // ajuste o host
-    LIST_OPERADORES: 'https://senado-nusp.cloud/webhook/forms/lookup/operadores',
-    SALVAR: 'https://n8n.sua-instancia.cloud/webhook/forms/cessao-sala'
+    LIST_SALAS: AppConfig.apiUrl(AppConfig.endpoints.lookups.salas),
+    LIST_OPERADORES: AppConfig.apiUrl(AppConfig.endpoints.lookups.operadores),
+    SALVAR: AppConfig.apiUrl(AppConfig.endpoints.forms.cessaoSala)
 };
 
 /** Util: token JWT do seu front (localStorage) e fetch com Authorization */

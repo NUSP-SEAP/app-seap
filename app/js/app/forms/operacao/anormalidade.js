@@ -1,7 +1,7 @@
 // === Lookups ===
-const SALAS_URL = "https://senado-nusp.cloud/webhook/forms/lookup/salas"; // mesmo usado em Operação
-const REGISTRO_ANORMALIDADE_URL = "https://senado-nusp.cloud/webhook/operacao/anormalidade/registro";
-const REGISTRO_LOOKUP_URL = "https://senado-nusp.cloud/webhook/forms/lookup/registro-operacao";
+const SALAS_URL = AppConfig.apiUrl(AppConfig.endpoints.lookups.salas);
+const REGISTRO_ANORMALIDADE_URL = AppConfig.apiUrl(AppConfig.endpoints.forms.anormalidade);
+const REGISTRO_LOOKUP_URL = AppConfig.apiUrl(AppConfig.endpoints.lookups.registroOperacao);
 
 function getToken() {
     return localStorage.getItem("auth_token") || localStorage.getItem("token") || "";

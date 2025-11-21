@@ -6,7 +6,7 @@
     const fileName = document.getElementById("foto-nome");
     const preview = document.getElementById("foto-preview");
 
-    const WEBHOOK_URL = "https://senado-nusp.cloud/webhook/admin/operadores/novo";
+    const WEBHOOK_URL = AppConfig.apiUrl(AppConfig.endpoints.admin.novoOperador);
 
     // 2) Como pegar o token da sessão (aproveitando o session-autoload.js)
     function getAuthToken() {
