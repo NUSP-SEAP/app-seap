@@ -19,10 +19,3 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup); else setup();
 })();
-
-document.addEventListener('click', (ev) => {
-  const btn = ev.target.closest('#btn-logout, #btnLogout');
-  if (!btn) return;
-  ev.preventDefault();
-  doServerLogout();
-});

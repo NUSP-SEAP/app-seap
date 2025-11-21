@@ -140,7 +140,25 @@ async function doLogin(usuario, senha) {
 }
 
 // ==== Logout ====
-function doLogout() { clearToken(); saveUser(null); window.location.replace('/index.html'); }
+async function doLogout() {
+  try {
+    const token = (Auth.loadToken && Auth.loadToken()) || localStorage.getItem('auth_token') || '';
+    if (token) {
+      await fetch('/webhook/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+    }
+  } catch (_) {
+    // Mesmo se o servidor falhar, seguimos limpando o cliente
+  } finally {
+    try { Auth.clearToken && Auth.clearToken(); } catch { }
+    try { Auth.saveUser && Auth.saveUser(null); } catch { }
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    location.replace('/index.html');
+  }
+}
 
 // ==== Header ====
 async function renderUserHeader() {

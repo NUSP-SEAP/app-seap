@@ -32,7 +32,7 @@
   // =======================
   // Utilidades
   // =======================
-  function log() { if (CFG.debug) try { console.debug("[session-autoload]", ...arguments); } catch (_) { } }
+  function log() { try { if (CFG.debug) console.debug("[session-autoload]", ...arguments); } catch (_) { } }
   function ready(fn) { if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
   function path() { return location.pathname.replace(/\/+$/, "").toLowerCase(); }
   function isLoginPage() {
@@ -72,14 +72,15 @@
   }
 
   function bindLogoutOnce() {
-    var b = document.querySelector("#btn-logout, #btnLogout");
-    if (!b || b.dataset.bound === "1") return;
-    b.addEventListener("click", function (ev) {
+    var b = document.querySelector('#btn-logout, #btnLogout');
+    if (!b || b.dataset.bound === '1') return;
+    b.addEventListener('click', function (ev) {
       ev.preventDefault();
-      if (window.Auth && Auth.doLogout) Auth.doLogout();
-      else location.href = CFG.loginPath;
+      if (window.doServerLogout) return doServerLogout();        // 1º: legado compatível
+      if (window.Auth && Auth.doLogout) return Auth.doLogout();  // 2º: server-first unificado
+      location.href = '/index.html';                             // fallback
     });
-    b.dataset.bound = "1";
+    b.dataset.bound = '1';
   }
 
   // =======================
@@ -211,3 +212,12 @@
     }
   } catch (_) { }
 })();
+
+function ensureFavicon() {
+  if (document.querySelector('link[rel="icon"]')) return;
+  var link = document.createElement('link');
+  link.rel = 'icon';
+  // Ideal: um favicon dedicado (ex.: /favicon.ico). Se ainda não tiver, use um PNG leve.
+  link.href = '/favicon.ico';
+  document.head.appendChild(link);
+}
