@@ -14,14 +14,17 @@
   <main>
     <div class="card">
       <h1>Registro de Operação de Áudio</h1>
-      <p class="muted">Preencha todas as informações da operação. Os campos marcados com * são obrigatórios.</p>
-      <form id="form-roa" novalidate="">
+      <p class="subtitle">
+        Preencha os dados da operação de áudio realizada na sala selecionada.
+      </p>
+
+      <form id="form-roa" novalidate>
         <!-- 1) Identificação -->
         <div class="section-title">1) Identificação</div>
         <div class="grid grid-4">
           <div>
             <label class="required" for="data_operacao">Data da operação</label>
-            <input id="data_operacao" name="data_operacao" required="" type="date" />
+            <input id="data_operacao" name="data_operacao" required type="date" />
           </div>
           <div>
             <label for="horario_pauta">Horário da Pauta</label>
@@ -29,25 +32,42 @@
           </div>
           <div>
             <label class="required" for="hora_inicio">Hora de início</label>
-            <input id="hora_inicio" name="hora_inicio" required="" type="time" />
+            <input id="hora_inicio" name="hora_inicio" required type="time" />
           </div>
           <div>
             <label for="hora_fim">Hora de término</label>
             <input id="hora_fim" name="hora_fim" type="time" />
           </div>
         </div>
+
         <div class="grid grid-2">
           <div>
             <label class="required" for="sala_id">Local do Evento</label>
-            <select disabled="" id="sala_id" name="sala_id" required="">
+            <select disabled id="sala_id" name="sala_id" required>
               <option value="">Carregando...</option>
             </select>
           </div>
           <div>
             <label class="required" for="nome_evento">Nome do Evento</label>
-            <input id="nome_evento" name="nome_evento" placeholder="Ex.: Audiência pública..." required=""
-              type="text" />
+            <input id="nome_evento" name="nome_evento" placeholder="Ex.: Audiência pública..." required type="text" />
           </div>
+        </div>
+
+        <!-- Tipo do Evento -->
+        <div class="section-title">Tipo do Evento</div>
+        <div class="field-inline" id="tipo-evento-group" aria-label="Tipo do Evento" role="radiogroup">
+          <label class="field-inline">
+            <input type="radio" name="tipo_evento" value="operacao" checked />
+            Operação Comum
+          </label>
+          <label class="field-inline">
+            <input type="radio" name="tipo_evento" value="cessao" />
+            Cessão de Sala
+          </label>
+          <label class="field-inline">
+            <input type="radio" name="tipo_evento" value="outros" />
+            Outros Eventos
+          </label>
         </div>
 
         <!-- Operadores -->
@@ -56,7 +76,7 @@
         <div class="ops-row ops-row--first" id="op-row-1">
           <div>
             <label class="required" for="operador_1">Operador 1</label>
-            <select disabled="" id="operador_1" name="operador_1" required="">
+            <select disabled id="operador_1" name="operador_1" required>
               <option value="">Carregando...</option>
             </select>
           </div>
@@ -66,21 +86,25 @@
         <!-- Linha "Adicionar operador" (legenda + mesmo botão do topo) -->
         <div class="ops-row--first" style="display:grid; grid-template-columns: 1fr 40px; margin-top: 6px;">
           <span class="ops-label-inline">Adicionar operador</span>
-          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top-legend"
-            type="button">+</button>
+          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top-legend" type="button">
+            +
+          </button>
         </div>
 
         <!-- Operador 2 -->
         <div class="ops-row" id="op-row-2" style="display:none; margin-top: 6px;">
-          <button aria-label="Remover operador" class="btn-icon btn-remove" id="btn-remove-op-2"
-            type="button">−</button>
+          <button aria-label="Remover operador" class="btn-icon btn-remove" id="btn-remove-op-2" type="button">
+            −
+          </button>
           <div>
             <label for="operador_2">Operador 2</label>
-            <select disabled="" id="operador_2" name="operador_2">
+            <select disabled id="operador_2" name="operador_2">
               <option value="">Carregando...</option>
             </select>
           </div>
-          <button aria-label="Adicionar operador 3" class="btn-icon btn-add" id="btn-add-op-2" type="button">+</button>
+          <button aria-label="Adicionar operador 3" class="btn-icon btn-add" id="btn-add-op-2" type="button">
+            +
+          </button>
         </div>
 
         <!-- Operador 3 -->
@@ -88,7 +112,7 @@
           <div class="ops-empty"></div>
           <div>
             <label for="operador_3">Operador 3</label>
-            <select disabled="" id="operador_3" name="operador_3">
+            <select disabled id="operador_3" name="operador_3">
               <option value="">Carregando...</option>
             </select>
           </div>
@@ -97,6 +121,11 @@
 
         <!-- 2) Recursos/Parâmetros -->
         <div class="section-title">2) Recursos/Parâmetros</div>
+        <p class="muted">
+          Use estes campos para registrar informações adicionais importantes sobre os dispositivos de gravação e
+          armazenamento utilizados.
+        </p>
+
         <div class="grid grid-2">
           <div>
             <label for="usb_01">USB 01</label>
@@ -119,24 +148,35 @@
         </div>
 
         <!-- 4) Anormalidade? -->
-        <div class="section-title">4) Houve anormalidade?</div>
-        <div aria-labelledby="anormalidade-label" class="field-inline" role="radiogroup">
-          <span class="sr-only" id="anormalidade-label">Houve anormalidade</span>
-          <label class="field-inline">
-            <input checked="" name="houve_anormalidade" type="radio" value="nao" />
-            Não
-          </label>
-          <label class="field-inline">
-            <input name="houve_anormalidade" type="radio" value="sim" />
-            Sim
-          </label>
+        <div id="section-anormalidade">
+          <div class="section-title">4) Houve anormalidade?</div>
+          <div aria-labelledby="anormalidade-label" class="field-inline" role="radiogroup">
+            <span class="sr-only" id="anormalidade-label">Houve anormalidade</span>
+            <label class="field-inline">
+              <input checked name="houve_anormalidade" type="radio" value="nao" />
+              Não
+            </label>
+            <label class="field-inline">
+              <input name="houve_anormalidade" type="radio" value="sim" />
+              Sim
+            </label>
+          </div>
+          <p class="muted">
+            Se marcar “Sim”, após salvar este registro você será direcionado ao formulário de
+            <em>Registro de Anormalidade</em>.
+          </p>
         </div>
-        <p class="muted">Se marcar “Sim”, após salvar este registro você será direcionado ao formulário de <em>Registro
-            de Anormalidade</em>.</p>
 
         <div class="actions">
-          <button class="btn-secondary" type="reset">Limpar</button>
-          <button class="btn-primary" type="submit">Salvar registro</button>
+          <button class="btn-secondary" type="button" id="btn-voltar">Voltar</button>
+          <button class="btn-secondary" type="reset" id="btn-limpar">Limpar</button>
+          <button class="btn-primary" type="button" id="btn-salvar-registro">Salvar registro</button>
+          <button class="btn-primary" type="button" id="btn-salvar-edicao" style="display:none;">
+            Salvar edição
+          </button>
+          <button class="btn-secondary" type="button" id="btn-finalizar-sessao">
+            Finalizar Registro da Sala/Operação
+          </button>
         </div>
       </form>
     </div>

@@ -32,7 +32,11 @@
   // =======================
   // Utilidades
   // =======================
-  function log() { try { if (CFG.debug) console.debug("[session-autoload]", ...arguments); } catch (_) { } }
+  function log() {
+    try {
+      if (CFG.debug) console.debug("[session-autoload]", ...arguments);
+    } catch (_) { }
+  }
   function ready(fn) { if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
   function path() { return location.pathname.replace(/\/+$/, "").toLowerCase(); }
   function isLoginPage() {
@@ -212,12 +216,3 @@
     }
   } catch (_) { }
 })();
-
-function ensureFavicon() {
-  if (document.querySelector('link[rel="icon"]')) return;
-  var link = document.createElement('link');
-  link.rel = 'icon';
-  // Ideal: um favicon dedicado (ex.: /favicon.ico). Se ainda não tiver, use um PNG leve.
-  link.href = '/favicon.ico';
-  document.head.appendChild(link);
-}
