@@ -13,14 +13,26 @@
 <body>
   <main>
     <div class="card">
+      <div id="info-operadores-sessao" class="muted" style="margin-bottom: 8px; display:none;"></div>
       <h1>Registro de Operação de Áudio</h1>
       <p class="subtitle">
         Preencha os dados da operação de áudio realizada na sala selecionada.
       </p>
 
       <form id="form-roa" novalidate>
-        <!-- 1) Identificação -->
-        <div class="section-title">1) Identificação</div>
+        <!-- 1) Local do Evento -->
+        <div class="section-title">1) Local do Evento</div>
+        <div class="grid">
+          <div>
+            <label class="required" for="sala_id">Local do Evento</label>
+            <select id="sala_id" name="sala_id" disabled required>
+              <option value="">Carregando.</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2) Identificação -->
+        <div class="section-title">2) Identificação</div>
         <div class="grid grid-4">
           <div>
             <label class="required" for="data_operacao">Data da operação</label>
@@ -40,21 +52,8 @@
           </div>
         </div>
 
-        <div class="grid grid-2">
-          <div>
-            <label class="required" for="sala_id">Local do Evento</label>
-            <select disabled id="sala_id" name="sala_id" required>
-              <option value="">Carregando...</option>
-            </select>
-          </div>
-          <div>
-            <label class="required" for="nome_evento">Nome do Evento</label>
-            <input id="nome_evento" name="nome_evento" placeholder="Ex.: Audiência pública..." required type="text" />
-          </div>
-        </div>
-
-        <!-- Tipo do Evento -->
-        <div class="section-title">Tipo do Evento</div>
+        <!-- 3) Tipo do Evento -->
+        <div class="section-title">3) Tipo do Evento</div>
         <div class="field-inline" id="tipo-evento-group" aria-label="Tipo do Evento" role="radiogroup">
           <label class="field-inline">
             <input type="radio" name="tipo_evento" value="operacao" checked />
@@ -70,57 +69,16 @@
           </label>
         </div>
 
-        <!-- Operadores -->
-        <div class="section-title">Operadores</div>
-        <!-- Operador 1 (obrigatório) -->
-        <div class="ops-row ops-row--first" id="op-row-1">
-          <div>
-            <label class="required" for="operador_1">Operador 1</label>
-            <select disabled id="operador_1" name="operador_1" required>
-              <option value="">Carregando...</option>
-            </select>
-          </div>
-          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top" type="button">+</button>
+        <!-- 4) Descrição do Evento -->
+        <div class="section-title">4) Descrição do Evento</div>
+        <div>
+          <label class="required" for="nome_evento">Descrição do Evento</label>
+          <input id="nome_evento" name="nome_evento" placeholder="Ex.: Audiência pública." required type="text" />
         </div>
 
-        <!-- Linha "Adicionar operador" (legenda + mesmo botão do topo) -->
-        <div class="ops-row--first" style="display:grid; grid-template-columns: 1fr 40px; margin-top: 6px;">
-          <span class="ops-label-inline">Adicionar operador</span>
-          <button aria-label="Adicionar operador 2" class="btn-icon btn-add" id="btn-add-top-legend" type="button">
-            +
-          </button>
-        </div>
 
-        <!-- Operador 2 -->
-        <div class="ops-row" id="op-row-2" style="display:none; margin-top: 6px;">
-          <button aria-label="Remover operador" class="btn-icon btn-remove" id="btn-remove-op-2" type="button">
-            −
-          </button>
-          <div>
-            <label for="operador_2">Operador 2</label>
-            <select disabled id="operador_2" name="operador_2">
-              <option value="">Carregando...</option>
-            </select>
-          </div>
-          <button aria-label="Adicionar operador 3" class="btn-icon btn-add" id="btn-add-op-2" type="button">
-            +
-          </button>
-        </div>
-
-        <!-- Operador 3 -->
-        <div class="ops-row" id="op-row-3" style="display:none; margin-top: 6px;">
-          <div class="ops-empty"></div>
-          <div>
-            <label for="operador_3">Operador 3</label>
-            <select disabled id="operador_3" name="operador_3">
-              <option value="">Carregando...</option>
-            </select>
-          </div>
-          <div class="ops-empty"></div>
-        </div>
-
-        <!-- 2) Recursos/Parâmetros -->
-        <div class="section-title">2) Recursos/Parâmetros</div>
+        <!-- 5) Recursos/Parâmetros -->
+        <div class="section-title">5) Recursos/Parâmetros</div>
         <p class="muted">
           Use estes campos para registrar informações adicionais importantes sobre os dispositivos de gravação e
           armazenamento utilizados.
@@ -139,17 +97,17 @@
           </div>
         </div>
 
-        <!-- 3) Observações -->
-        <div class="section-title">3) Observações</div>
+        <!-- 6) Observações -->
+        <div class="section-title">6) Observações</div>
         <div>
           <label for="observacoes">Anotações gerais</label>
           <textarea id="observacoes" name="observacoes"
             placeholder="Use este campo para registrar detalhes relevantes da operação."></textarea>
         </div>
 
-        <!-- 4) Anormalidade? -->
+        <!-- 7) Anormalidade? -->
         <div id="section-anormalidade">
-          <div class="section-title">4) Houve anormalidade?</div>
+          <div class="section-title">7) Houve anormalidade?</div>
           <div aria-labelledby="anormalidade-label" class="field-inline" role="radiogroup">
             <span class="sr-only" id="anormalidade-label">Houve anormalidade</span>
             <label class="field-inline">

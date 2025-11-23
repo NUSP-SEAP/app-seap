@@ -44,6 +44,133 @@
         sessaoAberta: false,
     };
 
+    // Atualiza o cabeçalho de operadores da sessão (acima do título)
+    function atualizarCabecalhoOperadoresSessao() {
+        const headerEl = document.getElementById("info-operadores-sessao");
+        if (!headerEl) return;
+
+        // Se não há estado carregado ou não há sessão aberta, esconde o cabeçalho
+        if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
+            headerEl.style.display = "none";
+            headerEl.textContent = "";
+            return;
+        }
+
+        // Preferência: usar entradas_sessao com a ordem real dos registros
+        let entradas = Array.isArray(estadoSessao.entradas_sessao)
+            ? estadoSessao.entradas_sessao.slice()
+            : [];
+
+        // Se não vierem entradas_sessao, cai no fallback usando nomes_operadores_sessao
+        if (!entradas.length) {
+            const nomesFallback = Array.isArray(estadoSessao.nomes_operadores_sessao)
+                ? estadoSessao.nomes_operadores_sessao
+                : [];
+
+            if (!nomesFallback.length) {
+                headerEl.style.display = "none";
+                headerEl.textContent = "";
+                return;
+            }
+
+            const linhasFallback = [];
+            linhasFallback.push("Registro aberto por " + nomesFallback[0] + ".");
+
+            const ordinaisFallback = {
+                2: "Segundo",
+                3: "Terceiro",
+                4: "Quarto",
+                5: "Quinto",
+                6: "Sexto",
+                7: "Sétimo",
+                8: "Oitavo",
+                9: "Nono",
+                10: "Décimo",
+            };
+
+            const descricoesFallback = [];
+            for (let i = 1; i < nomesFallback.length; i++) {
+                const posicao = i + 1; // 2, 3, 4...
+                const prefixo = ordinaisFallback[posicao] || posicao + "º";
+                descricoesFallback.push(prefixo + " registro feito por " + nomesFallback[i]);
+            }
+
+            for (let j = 0; j < descricoesFallback.length; j += 2) {
+                if (j + 1 < descricoesFallback.length) {
+                    linhasFallback.push(descricoesFallback[j] + " • " + descricoesFallback[j + 1]);
+                } else {
+                    linhasFallback.push(descricoesFallback[j]);
+                }
+            }
+
+            headerEl.innerHTML = linhasFallback.join("<br>");
+            headerEl.style.display = "";
+            return;
+        }
+
+        // Usa entradas_sessao com base no campo ordem (ordem real de gravação)
+        entradas.sort((a, b) => {
+            const oa =
+                typeof a.ordem === "number"
+                    ? a.ordem
+                    : parseInt(a.ordem || a.seq || 0, 10);
+            const ob =
+                typeof b.ordem === "number"
+                    ? b.ordem
+                    : parseInt(b.ordem || b.seq || 0, 10);
+
+            if (oa !== ob) return oa - ob;
+
+            const ea = a.entrada_id || a.id || 0;
+            const eb = b.entrada_id || b.id || 0;
+            return ea - eb;
+        });
+
+        const linhas = [];
+
+        const ordinais = {
+            1: "Primeiro",
+            2: "Segundo",
+            3: "Terceiro",
+            4: "Quarto",
+            5: "Quinto",
+            6: "Sexto",
+            7: "Sétimo",
+            8: "Oitavo",
+            9: "Nono",
+            10: "Décimo",
+        };
+
+        // 1ª linha: Registro aberto por <Nome do operador do 1º registro>
+        const primeira = entradas[0];
+        const nomePrimeiro =
+            primeira && primeira.operador_nome ? primeira.operador_nome : "—";
+        linhas.push("Registro aberto por " + nomePrimeiro + ".");
+
+        // Demais linhas: sempre dois registros por linha
+        const descricoes = [];
+        for (let i = 1; i < entradas.length; i++) {
+            const entrada = entradas[i];
+            const posicao = i + 1; // 2, 3, 4...
+            const prefixo = ordinais[posicao] || posicao + "º";
+            const nome =
+                entrada && entrada.operador_nome ? entrada.operador_nome : "—";
+            descricoes.push(prefixo + " registro feito por " + nome);
+        }
+
+        for (let j = 0; j < descricoes.length; j += 2) {
+            if (j + 1 < descricoes.length) {
+                linhas.push(descricoes[j] + " • " + descricoes[j + 1]);
+            } else {
+                linhas.push(descricoes[j]);
+            }
+        }
+
+        headerEl.innerHTML = linhas.join("<br>");
+        headerEl.style.display = "";
+    }
+
+
     // ====== Helpers genéricos ======
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -251,10 +378,24 @@
         const tipoSessao = estadoSessao && estadoSessao.tipo_evento;
         const tipoEfetivo = (tipoSessao || tipoSelecionado || "operacao").toLowerCase();
 
-        const permiteAnom =
-            estadoSessao && typeof estadoSessao.permite_anormalidade === "boolean"
-                ? estadoSessao.permite_anormalidade
-                : tipoEfetivo === "operacao";
+        // Sessão aberta? (usado tanto para anormalidade quanto para regra do Plenário)
+        const sessaoAberta =
+            !!(estadoSessao && estadoSessao.existe_sessao_aberta);
+
+        // Regra de anormalidade:
+        // - Se houver sessão aberta, respeita o que o back mandar em permite_anormalidade.
+        // - Se NÃO houver sessão aberta, depende só do tipo selecionado na tela
+        //   (apenas "operacao" mostra o bloco).
+        let permiteAnom;
+        if (
+            sessaoAberta &&
+            estadoSessao &&
+            typeof estadoSessao.permite_anormalidade === "boolean"
+        ) {
+            permiteAnom = estadoSessao.permite_anormalidade;
+        } else {
+            permiteAnom = tipoEfetivo === "operacao";
+        }
 
         // Mostra/esconde bloco de anormalidade
         if (permiteAnom) {
@@ -269,9 +410,6 @@
 
         // Regra especial: "Outros Eventos" => sala obrigatoriamente Plenário
         if (!salaSelect) return;
-
-        // Se já existe sessão aberta, a sala fica travada pelo back (não mexemos).
-        const sessaoAberta = !!(estadoSessao && estadoSessao.existe_sessao_aberta);
 
         if (tipoEfetivo === "outros" && !sessaoAberta) {
             // Tenta achar qualquer opção cujo texto contenha "plenário"
@@ -293,6 +431,116 @@
                 salaSelect.disabled = false;
             }
         }
+    }
+
+    function atualizarCabecalhoSessao(ctx) {
+        var textos = [];
+
+        if (!ctx || !ctx.existe_sessao_aberta) {
+            textos.push(
+                "<strong>Nenhuma sessão aberta para esta sala.</strong> Ao salvar, você irá iniciar o registro desta operação."
+            );
+        } else {
+            // ==== Parte 1: Cabeçalho com operadores em ordem cronológica ====
+            var entradas = ctx.entradas_sessao || [];
+            if (entradas.length > 0) {
+                // Garante ordenação por ordem (e depois pelo id, como fallback)
+                entradas = entradas
+                    .slice()
+                    .sort(function (a, b) {
+                        var oa =
+                            typeof a.ordem === "number" ? a.ordem : parseInt(a.ordem || 9999, 10);
+                        var ob =
+                            typeof b.ordem === "number" ? b.ordem : parseInt(b.ordem || 9999, 10);
+                        if (oa !== ob) return oa - ob;
+                        var ea = a.entrada_id || a.id || 0;
+                        var eb = b.entrada_id || b.id || 0;
+                        return ea - eb;
+                    });
+
+                // 1ª linha: Registro aberto por <Nome 1>
+                var primeira = entradas[0];
+                var nomePrimeiro = primeira.operador_nome || "—";
+                textos.push(
+                    "<strong>Registro aberto por " + nomePrimeiro + ".</strong>"
+                );
+
+                // Demais linhas: sempre dois registros por linha
+                if (entradas.length > 1) {
+                    var ordinais = {
+                        2: "Segundo",
+                        3: "Terceiro",
+                        4: "Quarto",
+                        5: "Quinto",
+                        6: "Sexto",
+                        7: "Sétimo",
+                        8: "Oitavo",
+                        9: "Nono",
+                        10: "Décimo",
+                    };
+
+                    var descricoes = [];
+                    for (var i = 1; i < entradas.length; i++) {
+                        var entrada = entradas[i];
+                        var posicao = i + 1; // 2, 3, 4...
+                        var prefixo = ordinais[posicao] || posicao + "º";
+                        var nome = entrada.operador_nome || "—";
+                        descricoes.push(prefixo + " registro feito por " + nome);
+                    }
+
+                    // Monta linhas com no máximo 2 descrições por linha
+                    for (var j = 0; j < descricoes.length; j += 2) {
+                        if (j + 1 < descricoes.length) {
+                            textos.push(descricoes[j] + " • " + descricoes[j + 1]);
+                        } else {
+                            textos.push(descricoes[j]);
+                        }
+                    }
+                }
+            } else {
+                // Fallback: se, por algum motivo, não vierem as entradas
+                var nomes = ctx.nomes_operadores_sessao || [];
+                if (nomes.length) {
+                    textos.push(
+                        "<strong>Sessão aberta para esta sala.</strong> Operadores na sessão: " +
+                        nomes.join(", ")
+                    );
+                } else {
+                    textos.push("<strong>Sessão aberta para esta sala.</strong>");
+                }
+            }
+
+            // ==== Parte 2: Situação do operador nessa sessão ====
+            var situ = ctx.situacao_operador || "sem_entrada";
+            if (situ === "sem_entrada") {
+                textos.push("Você ainda não registrou nenhuma entrada nesta sessão.");
+            } else if (situ === "uma_entrada") {
+                textos.push("Você já possui <strong>1 entrada</strong> nesta sessão.");
+            } else if (situ === "duas_entradas") {
+                textos.push(
+                    "Você já possui <strong>2 entradas</strong> nesta sessão (limite máximo)."
+                );
+            }
+        }
+
+        // ==== Parte 3: Resumo do tipo de evento / data / nome ====
+        if (ctx && ctx.tipo_evento) {
+            var tipoLabel;
+            if (ctx.tipo_evento === "operacao") tipoLabel = "Operação Comum";
+            else if (ctx.tipo_evento === "cessao") tipoLabel = "Cessão de Sala";
+            else tipoLabel = "Outros Eventos";
+            textos.push("Tipo do evento: <strong>" + tipoLabel + "</strong>.");
+        }
+
+        if (ctx && ctx.data) {
+            textos.push("Data da operação: <strong>" + ctx.data + "</strong>.");
+        }
+        if (ctx && ctx.nome_evento) {
+            textos.push("Evento: <strong>" + ctx.nome_evento + "</strong>.");
+        }
+
+        // Quebra em várias linhas, como na especificação do cabeçalho
+        setHeaderText(textos.join("<br>"));
     }
 
     function bindTipoEventoLogic() {
@@ -370,7 +618,77 @@
         }
     }
 
+    // ====== Bloqueio da tela enquanto não houver sala selecionada ======
+    function aplicarBloqueioPorSala() {
+        if (!form || !salaSelect) return;
+
+        const temSala = !!salaSelect.value;
+
+        // 1) Campos: tudo visível, mas read-only sem sala
+        const campos = form.querySelectorAll("input, select, textarea");
+        campos.forEach((el) => {
+            // A sala nunca é desabilitada aqui
+            if (el === salaSelect) {
+                el.disabled = false;
+                return;
+            }
+
+            // Sem sala -> desabilita; com sala -> libera
+            el.disabled = !temSala;
+        });
+
+        // 2) Botões: só Voltar funciona sem sala
+        if (!temSala) {
+            if (btnLimpar) {
+                btnLimpar.style.display = "none";
+                btnLimpar.disabled = true;
+            }
+            if (btnSalvarRegistro) {
+                btnSalvarRegistro.style.display = "none";
+                btnSalvarRegistro.disabled = true;
+            }
+            if (btnSalvarEdicao) {
+                btnSalvarEdicao.style.display = "none";
+                btnSalvarEdicao.disabled = true;
+            }
+            if (btnFinalizarSessao) {
+                btnFinalizarSessao.style.display = "none";
+                btnFinalizarSessao.disabled = true;
+            }
+            if (btnVoltar) {
+                btnVoltar.style.display = "";
+                btnVoltar.disabled = false;
+            }
+        } else {
+            // Com sala selecionada, volta ao estado "normal";
+            // o restante da lógica (sessão, tipo de evento etc.)
+            // ajusta botões conforme necessário.
+            if (btnLimpar) {
+                btnLimpar.style.display = "";
+                btnLimpar.disabled = false;
+            }
+            if (btnSalvarRegistro) {
+                btnSalvarRegistro.style.display = "";
+                // a lógica de sessão ainda pode mudar texto/habilitação
+            }
+            if (btnSalvarEdicao) {
+                // visibilidade/habilitação fina fica com aplicarEstadoSessaoNaUI
+                btnSalvarEdicao.disabled = false;
+            }
+            if (btnFinalizarSessao) {
+                btnFinalizarSessao.style.display = "";
+            }
+            if (btnVoltar) {
+                btnVoltar.style.display = "";
+                btnVoltar.disabled = false;
+            }
+        }
+    }
+
     function aplicarEstadoSessaoNaUI() {
+        // Garante bloqueio/desbloqueio das seções conforme a sala
+        aplicarBloqueioPorSala();
+
         const estado = estadoSessao;
         // Reset básico de botões
         if (btnSalvarRegistro) {
@@ -502,6 +820,9 @@
                     "Salvar edição (escolher 1ª ou 2ª entrada)";
             }
         }
+        // Atualiza o cabeçalho com os operadores da sessão
+        atualizarCabecalhoOperadoresSessao();
+
     }
 
     // ====== Salvar entrada (criação/edição) ======
@@ -533,8 +854,30 @@
             ? (radioAnom.value || "nao")
             : "nao";
 
+        // Descobre o operador logado (via JWT / Auth)
+        let operadorId = null;
+        try {
+            if (window.Auth && typeof Auth.loadUser === "function") {
+                const me = Auth.loadUser();
+                if (me && me.ok && me.user && me.user.id) {
+                    operadorId = me.user.id;
+                }
+            }
+        } catch (e) {
+            console.error("Erro ao obter operador logado:", e);
+        }
+
+        if (!operadorId) {
+            alert(
+                "Não foi possível identificar o operador logado. " +
+                "Tente fazer login novamente antes de salvar o registro."
+            );
+            return;
+        }
+
         // Monta payload JSON
         const payload = {
+            operador_id: operadorId,
             data_operacao: dataOperacaoInput ? dataOperacaoInput.value : "",
             horario_pauta: horarioPautaInput ? horarioPautaInput.value : "",
             hora_inicio: horaInicioInput ? horaInicioInput.value : "",
@@ -547,6 +890,7 @@
             tipo_evento: tipoEvento,
             houve_anormalidade: houveAnormalidadeRaw
         };
+
 
         // Em modo edição, define qual entrada_id será editada
         if (modo === "edicao" && estadoSessao) {
@@ -673,18 +1017,71 @@
             return;
         }
 
-        if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
-            alert("Não há sessão aberta nesta sala para ser finalizada.");
-            return;
+        const salaId = salaSelect.value;
+
+        // Garante que temos um estado atualizado da sessão para esta sala
+        if (!estadoSessao) {
+            await carregarEstadoSessao(salaId);
+        }
+
+        const sessaoAbertaAntes =
+            !!(estadoSessao && estadoSessao.existe_sessao_aberta);
+        let situacaoAntes = "sem_sessao";
+
+        if (estadoSessao && estadoSessao.situacao_operador) {
+            situacaoAntes = estadoSessao.situacao_operador;
+        } else if (uiState && uiState.situacao_operador) {
+            situacaoAntes = uiState.situacao_operador;
         }
 
         const confirmar = window.confirm(
             "Tem certeza de que deseja finalizar o Registro da Sala/Operação?\n" +
             "Após finalizado, não será possível lançar novos registros nesta sessão."
         );
-        if (!confirmar) return;
+        if (!confirmar) {
+            return;
+        }
 
-        const salaId = salaSelect.value;
+        // Regra importante:
+        // - Se NÃO há sessão aberta ainda (sem_sessao),
+        // - ou se o operador ainda não tem nenhuma entrada (sem_entrada),
+        // então "Finalizar" precisa PRIMEIRO salvar a entrada atual (criar a entrada)
+        // e SÓ DEPOIS encerrar a sessão.
+        if (!sessaoAbertaAntes || situacaoAntes === "sem_entrada") {
+            // Tenta salvar a entrada atual como criação de nova entrada.
+            await salvarEntrada("criacao");
+
+            // Recarrega o estado para ver se a entrada foi realmente salva
+            // e se a sessão foi criada/atualizada.
+            await carregarEstadoSessao(salaId);
+
+            const sessaoAbertaDepois =
+                !!(estadoSessao && estadoSessao.existe_sessao_aberta);
+            let situacaoDepois = "sem_sessao";
+
+            if (estadoSessao && estadoSessao.situacao_operador) {
+                situacaoDepois = estadoSessao.situacao_operador;
+            } else if (uiState && uiState.situacao_operador) {
+                situacaoDepois = uiState.situacao_operador;
+            }
+
+            // Se mesmo depois de tentar salvar continuamos sem sessão aberta
+            // ou sem nenhuma entrada do operador, não faz sentido finalizar.
+            if (!sessaoAbertaDepois || situacaoDepois === "sem_entrada") {
+                alert(
+                    "Não foi possível salvar sua entrada antes de finalizar a sessão.\n" +
+                    "Verifique os erros exibidos no salvamento e tente novamente."
+                );
+                return;
+            }
+        }
+
+        // A partir daqui, já deve haver sessão aberta para esta sala.
+        if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
+            alert("Não há sessão aberta nesta sala para ser finalizada.");
+            return;
+        }
+
         const payload = { sala_id: salaId };
 
         try {
@@ -697,7 +1094,7 @@
             const options = {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             };
 
             if (window.Auth && typeof Auth.authFetch === "function") {
@@ -725,7 +1122,7 @@
             }
 
             alert("Registro da Sala/Operação finalizado com sucesso.");
-            // Depois de finalizar, a próxima chamada de estado-sessao deve indicar que não há sessão aberta
+            // Depois de finalizar, recarrega o estado da sessão (que agora deve vir como "sem sessão")
             await carregarEstadoSessao(salaId);
         } catch (e) {
             console.error("Erro inesperado ao finalizar sessão:", e);
@@ -738,6 +1135,7 @@
             }
         }
     }
+
 
     // ====== Bootstrap ======
     document.addEventListener("DOMContentLoaded", async function () {
