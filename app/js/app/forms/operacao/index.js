@@ -370,35 +370,15 @@
         }
     }
 
-    // ====== UI: Tipo de Evento / Anormalidade / Sala Plenário ======
     function atualizarTipoEventoUI() {
         if (!sectionAnormalidade) return;
 
         const tipoSelecionado = getTipoEventoSelecionado();
-        const tipoSessao = estadoSessao && estadoSessao.tipo_evento;
-        const tipoEfetivo = (tipoSessao || tipoSelecionado || "operacao").toLowerCase();
+        const tipoEfetivo = (tipoSelecionado || "operacao").toLowerCase();
 
-        // Sessão aberta? (usado tanto para anormalidade quanto para regra do Plenário)
-        const sessaoAberta =
-            !!(estadoSessao && estadoSessao.existe_sessao_aberta);
-
-        // Regra de anormalidade:
-        // - Se houver sessão aberta, respeita o que o back mandar em permite_anormalidade.
-        // - Se NÃO houver sessão aberta, depende só do tipo selecionado na tela
-        //   (apenas "operacao" mostra o bloco).
-        let permiteAnom;
-        if (
-            sessaoAberta &&
-            estadoSessao &&
-            typeof estadoSessao.permite_anormalidade === "boolean"
-        ) {
-            permiteAnom = estadoSessao.permite_anormalidade;
-        } else {
-            permiteAnom = tipoEfetivo === "operacao";
-        }
-
-        // Mostra/esconde bloco de anormalidade
-        if (permiteAnom) {
+        // --- Regra de anormalidade ---
+        // Só mostra "Houve anormalidade?" quando tipo = operação
+        if (tipoEfetivo === "operacao") {
             sectionAnormalidade.style.display = "";
         } else {
             sectionAnormalidade.style.display = "none";
@@ -408,11 +388,17 @@
             if (radioNao) radioNao.checked = true;
         }
 
-        // Regra especial: "Outros Eventos" => sala obrigatoriamente Plenário
+        // --- Regra especial: "Outros Eventos" => sala obrigatoriamente Plenário ---
         if (!salaSelect) return;
 
-        if (tipoEfetivo === "outros" && !sessaoAberta) {
-            // Tenta achar qualquer opção cujo texto contenha "plenário"
+        if (tipoEfetivo === "outros") {
+            // Guarda a sala atual, se ainda não tiver guardado,
+            // para conseguir voltar a ela depois
+            if (!salaSelect.dataset.salaOriginalOutros) {
+                salaSelect.dataset.salaOriginalOutros = salaSelect.value || "";
+            }
+
+            // Procura uma opção cujo texto contenha "plenário"
             let plenOpt = null;
             Array.from(salaSelect.options || []).forEach((opt) => {
                 const txt =
@@ -424,12 +410,25 @@
             if (plenOpt) {
                 salaSelect.value = plenOpt.value;
             }
+            // Enquanto for "Outros Eventos", o Local do Evento fica travado
             salaSelect.disabled = true;
         } else {
-            // Só reabilita se não houver sessão aberta travando a sala
-            if (!sessaoAberta) {
-                salaSelect.disabled = false;
+            // Voltou para Operação Comum ou Cessão de Sala:
+            // restaura a sala que o usuário tinha escolhido antes de "Outros"
+            const original = salaSelect.dataset.salaOriginalOutros;
+            if (typeof original === "string") {
+                const hasOriginal = Array.from(salaSelect.options || []).some(
+                    (opt) => opt.value === original
+                );
+                if (hasOriginal) {
+                    salaSelect.value = original;
+                }
             }
+            delete salaSelect.dataset.salaOriginalOutros;
+
+            // Fora do "Outros Eventos", o combobox da sala fica livre.
+            // (Se não houver sala, o bloqueio dos demais campos é feito em aplicarBloqueioPorSala.)
+            salaSelect.disabled = false;
         }
     }
 
@@ -686,11 +685,19 @@
     }
 
     function aplicarEstadoSessaoNaUI() {
-        // Garante bloqueio/desbloqueio das seções conforme a sala
-        aplicarBloqueioPorSala();
+        // 1) Bloqueio base por sala (sem sala => tudo travado, só Voltar)
+        if (typeof aplicarBloqueioPorSala === "function") {
+            aplicarBloqueioPorSala();
+        }
+
+        // Se não houver sala selecionada, não segue com nada
+        if (!salaSelect || !salaSelect.value) {
+            return;
+        }
 
         const estado = estadoSessao;
-        // Reset básico de botões
+
+        // 2) Reset básico de botões (estado "neutro" com sala escolhida)
         if (btnSalvarRegistro) {
             btnSalvarRegistro.style.display = "";
             btnSalvarRegistro.disabled = false;
@@ -704,61 +711,41 @@
             btnFinalizarSessao.disabled = true;
         }
 
-        // Não há sessão conhecida para essa sala
+        // 3) Não há sessão conhecida para essa sala
         if (!estado) {
             uiState.situacao_operador = "sem_sessao";
             uiState.sessaoAberta = false;
 
-            // Sala ainda livre, tipo de evento livre
-            if (salaSelect) salaSelect.disabled = false;
+            // Sala livre; Tipo do Evento totalmente liberado
+            if (salaSelect) {
+                salaSelect.disabled = false;
+            }
 
-            // Mantemos data/hora/evento como estiverem no formulário (usuário vai preencher)
+            // NÃO mexe em data/horários/tipo/nome_evento:
+            // ficam em branco ou como o usuário preencheu
             atualizarTipoEventoUI();
+            atualizarCabecalhoOperadoresSessao();
             return;
         }
 
+        // 4) Há alguma sessão (aberta ou já fechada)
         uiState.sessaoAberta = !!estado.existe_sessao_aberta;
         uiState.situacao_operador = estado.situacao_operador || "sem_sessao";
 
         const sessaoAberta = uiState.sessaoAberta;
 
-        // Preenche cabeçalho, se disponível
-        if (dataOperacaoInput && estado.data) {
-            dataOperacaoInput.value = estado.data;
-        }
-        if (horarioPautaInput && estado.horario_pauta) {
-            horarioPautaInput.value = estado.horario_pauta;
-        }
-        if (horaInicioInput && estado.horario_inicio) {
-            horaInicioInput.value = estado.horario_inicio;
-        }
-        if (horaFimInput && estado.horario_termino) {
-            horaFimInput.value = estado.horario_termino;
-        }
-        if (nomeEventoInput && estado.nome_evento) {
-            nomeEventoInput.value = estado.nome_evento;
-        }
-
-        // Tipo do evento da sessão (se já existir, fica travado)
-        if (estado.tipo_evento) {
-            setTipoEventoSelecionado(estado.tipo_evento);
-        }
         const radiosTipo = $$('input[name="tipo_evento"]');
         radiosTipo.forEach((r) => {
-            r.disabled = !!estado.tipo_evento; // se o tipo já foi definido, não permite alterar
+            r.disabled = false;
         });
 
-        // Sala fica travada se há sessão aberta
+        // Combo de sala só é travado pela regra de "Outros Eventos" (Plenário).
+        // Aqui deixamos habilitado; o bloqueio base cuida de "sem sala".
         if (salaSelect) {
-            if (sessaoAberta) {
-                salaSelect.disabled = true;
-            } else {
-                // se não estiver em sessão aberta, respeita apenas a lógica do tipo de evento
-                salaSelect.disabled = false;
-            }
+            salaSelect.disabled = false;
         }
 
-        // Anormalidade / tipo evento / regra de sala Plenário
+        // Regras de "Houve anormalidade?" e "Outros Eventos" -> Plenário
         atualizarTipoEventoUI();
 
         // Controle dos botões conforme situação do operador
@@ -767,7 +754,7 @@
             ? estado.entradas_operador
             : [];
 
-        // Se há sessão, já podemos habilitar botão de finalizar
+        // Se há sessão, já podemos habilitar o botão de finalizar
         if (btnFinalizarSessao && sessaoAberta) {
             btnFinalizarSessao.disabled = false;
         }
@@ -782,16 +769,16 @@
             if (btnSalvarEdicao) {
                 btnSalvarEdicao.style.display = "none";
             }
-            // Botão de finalizar só faz sentido depois de abrir
             if (btnFinalizarSessao) {
                 btnFinalizarSessao.disabled = true;
             }
+            atualizarCabecalhoOperadoresSessao();
             return;
         }
 
-        // Há sessão aberta:
+        // Sessão aberta:
         if (situacao === "sem_entrada") {
-            // Operador B no Caso B – ainda não lançou nada
+            // Operador ainda não lançou nada
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
                 btnSalvarRegistro.textContent = "Salvar registro";
@@ -800,7 +787,7 @@
                 btnSalvarEdicao.style.display = "none";
             }
         } else if (situacao === "uma_entrada") {
-            // Operador C no Caso C – 1 entrada existente
+            // Operador com 1ª entrada
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
                 btnSalvarRegistro.textContent = "Novo registro (2ª entrada)";
@@ -810,7 +797,7 @@
                 btnSalvarEdicao.textContent = "Salvar edição da 1ª entrada";
             }
         } else if (situacao === "duas_entradas") {
-            // Operador D no Caso D – 2 entradas existentes; não há novo registro
+            // Operador com 2 entradas – não há novo registro
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "none";
             }
@@ -820,10 +807,10 @@
                     "Salvar edição (escolher 1ª ou 2ª entrada)";
             }
         }
-        // Atualiza o cabeçalho com os operadores da sessão
-        atualizarCabecalhoOperadoresSessao();
 
+        atualizarCabecalhoOperadoresSessao();
     }
+
 
     // ====== Salvar entrada (criação/edição) ======
     async function salvarEntrada(modo) {
