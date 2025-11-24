@@ -13,7 +13,10 @@
 <body>
   <main>
     <div class="card">
-      <div id="info-operadores-sessao" class="muted" style="margin-bottom: 8px; display:none;"></div>
+      <div class="sessao-header-row">
+        <div id="info-operadores-sessao" class="muted" style="display:none;"></div>
+        <div id="info-modo-edicao" class="muted" style="display:none; text-align: right;"></div>
+      </div>
       <h1>Registro de Operação de Áudio</h1>
       <p class="subtitle">
         Preencha os dados da operação de áudio realizada na sala selecionada.
@@ -126,6 +129,47 @@
         </div>
 
         <div class="actions">
+          <!-- Voltar (já existia, mantém o mesmo id que o JS já usa) -->
+          <button type="button" id="btnVoltar" class="btn btn-secondary">
+            Voltar
+          </button>
+
+          <button type="button" id="btnCancelarEdicao" class="btn btn-outline-secondary" style="display: none;">
+            Cancelar Edição
+          </button>
+
+          <!-- Limpar (já existia) -->
+          <button type="button" id="btnLimpar" class="btn btn-outline-secondary">
+            Limpar
+          </button>
+
+          <!-- Salvar registro / Novo registro (2ª entrada) -->
+          <button type="button" id="btnSalvarRegistro" class="btn btn-primary">
+            Salvar registro
+          </button>
+
+          <!-- Salvar Edição (usado quando entra em modo de edição) -->
+          <button type="button" id="btnSalvarEdicao" class="btn btn-primary" style="display: none;">
+            Salvar Edição
+          </button>
+
+          <!-- NOVOS: Editar 1ª e 2ª Entrada -->
+          <button type="button" id="btnEditarEntrada1" class="btn btn-outline-primary" style="display: none;">
+            Editar 1ª Entrada
+          </button>
+
+          <button type="button" id="btnEditarEntrada2" class="btn btn-outline-primary" style="display: none;">
+            Editar 2ª Entrada
+          </button>
+
+          <!-- Finalizar sessão (já existia, só garante o texto novo) -->
+          <button type="button" id="btnFinalizarSessao" class="btn btn-danger">
+            Finalizar Registro da Sala/Operação
+          </button>
+        </div>
+
+        <!-- Antigos botões. Deixei comentado aqui por precaução -->
+        <!-- <div class="actions">
           <button class="btn-secondary" type="button" id="btn-voltar">Voltar</button>
           <button class="btn-secondary" type="reset" id="btn-limpar">Limpar</button>
           <button class="btn-primary" type="button" id="btn-salvar-registro">Salvar registro</button>
@@ -135,7 +179,7 @@
           <button class="btn-secondary" type="button" id="btn-finalizar-sessao">
             Finalizar Registro da Sala/Operação
           </button>
-        </div>
+        </div> -->
       </form>
     </div>
   </main>

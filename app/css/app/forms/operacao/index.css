@@ -186,3 +186,21 @@ button {
         grid-template-columns: 1fr 40px;
     }
 }
+
+.sessao-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    /* pra não quebrar feio em telas pequenas */
+}
+
+#info-operadores-sessao {
+    text-align: left;
+}
+
+#info-modo-edicao {
+    text-align: right;
+}
