@@ -649,6 +649,31 @@
         }
     }
 
+    function derivarSituacaoOperador(estado) {
+        // Sem estado algum para essa sala
+        if (!estado) return "sem_sessao";
+
+        const entradasOperador = Array.isArray(estado.entradas_operador)
+            ? estado.entradas_operador
+            : [];
+
+        const temSessao = !!estado.existe_sessao_aberta;
+
+        // Nenhuma sessão aberta e nenhuma entrada do operador
+        if (!temSessao && entradasOperador.length === 0) {
+            return "sem_sessao";
+        }
+
+        // Sessão existe (ou há contexto de sessão), mas o operador ainda não registrou nada
+        if (entradasOperador.length === 0) {
+            return "sem_entrada";
+        }
+
+        // Operador com 1 ou 2+ entradas
+        if (entradasOperador.length === 1) return "uma_entrada";
+        return "duas_entradas";
+    }
+
     function aplicarEstadoSessaoNaUI() {
         // 0) Sempre começar escondendo os botões de edição / cancelar
         if (btnEditarEntrada1) {
@@ -695,7 +720,7 @@
             btnFinalizarSessao.disabled = true;
         }
 
-        // 3) Não há sessão conhecida para essa sala
+        // 3) Não há estado conhecido para essa sala ainda (não chamou /estado-sessao ou deu erro)
         if (!estado) {
             uiState.situacao_operador = "sem_sessao";
             uiState.sessaoAberta = false;
@@ -705,47 +730,49 @@
             return;
         }
 
-        // 4) Há alguma sessão (aberta ou já fechada)
-        uiState.sessaoAberta = !!estado.existe_sessao_aberta;
-        uiState.situacao_operador = estado.situacao_operador || "sem_sessao";
+        // 4) Deriva situação do operador e se a sessão está aberta
+        const situacaoDerivada = derivarSituacaoOperador(estado);
+        const sessaoAberta = !!estado.existe_sessao_aberta;
 
-        const sessaoAberta = uiState.sessaoAberta;
+        uiState.situacao_operador = situacaoDerivada;
+        uiState.sessaoAberta = sessaoAberta;
 
+        const situacao = situacaoDerivada;
+
+        // Rádios de tipo de evento sempre habilitados (demais regras dentro de atualizarTipoEventoUI)
         const radiosTipo = $$('input[name="tipo_evento"]');
         radiosTipo.forEach((r) => {
             r.disabled = false;
         });
-
-        // Regras de "Houve anormalidade?" e "Outros Eventos" -> Plenário
         atualizarTipoEventoUI();
 
-        // Controle dos botões conforme situação do operador
-        const situacao = uiState.situacao_operador;
-
-        // Se há sessão, já podemos habilitar o botão de finalizar
-        if (btnFinalizarSessao && sessaoAberta) {
-            btnFinalizarSessao.disabled = false;
+        // Habilita / desabilita botão de finalizar com base na existência de sessão
+        if (btnFinalizarSessao) {
+            btnFinalizarSessao.disabled = !sessaoAberta;
         }
 
-        if (!sessaoAberta) {
-            // Ainda não existe sessão aberta para essa sala
+        // === CASO 1: ainda NÃO existe sessão para esta sala ===
+        // (sem sessão e sem entrada do operador)
+        if (situacao === "sem_sessao") {
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
+                btnSalvarRegistro.disabled = false;
                 btnSalvarRegistro.textContent = "Salvar registro / Iniciar sessão";
             }
             if (btnSalvarEdicao) {
                 btnSalvarEdicao.style.display = "none";
+                btnSalvarEdicao.disabled = false;
             }
             if (btnFinalizarSessao) {
                 btnFinalizarSessao.disabled = true;
             }
+
             atualizarCabecalhoOperadoresSessao();
             return;
         }
 
-        // Sessão aberta:
+        // === CASO 2: já existe sessão para a sala, mas o operador ainda não tem entrada ===
         if (situacao === "sem_entrada") {
-            // Operador ainda não lançou nada
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
                 btnSalvarRegistro.disabled = false;
@@ -755,7 +782,6 @@
                 btnSalvarEdicao.style.display = "none";
                 btnSalvarEdicao.disabled = false;
             }
-            // Botões de edição não fazem sentido aqui
             if (btnEditarEntrada1) {
                 btnEditarEntrada1.style.display = "none";
             }
@@ -763,43 +789,43 @@
                 btnEditarEntrada2.style.display = "none";
             }
 
-        } else if (situacao === "uma_entrada") {
-            // Operador com 1ª entrada
-            // Botões esperados:
-            // - Voltar
-            // - Limpar
-            // - Novo registro (2ª entrada)
-            // - Editar 1ª Entrada
-            // - Finalizar Registro da Sala/Operação
+            atualizarCabecalhoOperadoresSessao();
+            return;
+        }
 
+        // === CASO 3: operador com 1ª entrada ===
+        if (situacao === "uma_entrada") {
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
                 btnSalvarRegistro.disabled = false;
                 btnSalvarRegistro.textContent = "Novo registro (2ª entrada)";
             }
 
-            // Fora do modo edição, o botão de salvar edição fica oculto
             if (btnSalvarEdicao) {
                 btnSalvarEdicao.style.display = "none";
                 btnSalvarEdicao.disabled = false;
             }
 
-            // Mostra o botão "Editar 1ª Entrada"
             if (btnEditarEntrada1) {
                 btnEditarEntrada1.style.display = "";
                 btnEditarEntrada1.disabled = false;
             }
-
-            // "Editar 2ª Entrada" não faz sentido com apenas uma entrada
             if (btnEditarEntrada2) {
                 btnEditarEntrada2.style.display = "none";
             }
 
-        } else if (situacao === "duas_entradas") {
-            // Operador com 2 entradas – comportamento 2.2.3
-            aplicarModoOperadorComDuasEntradas();
+            atualizarCabecalhoOperadoresSessao();
+            return;
         }
 
+        // === CASO 4: operador com 2 entradas ===
+        if (situacao === "duas_entradas") {
+            aplicarModoOperadorComDuasEntradas();
+            atualizarCabecalhoOperadoresSessao();
+            return;
+        }
+
+        // Fallback de segurança (não deveria chegar aqui)
         atualizarCabecalhoOperadoresSessao();
     }
 
@@ -1005,7 +1031,11 @@
     }
 
     // ====== Salvar entrada (criação/edição) ======
-    async function salvarEntrada(modo) {
+    async function salvarEntrada(modo, opcoes) {
+        opcoes = opcoes || {};
+        const suprimirValidacaoHtml5 = !!opcoes.suprimirValidacaoHtml5;
+        const suprimirAlertDeErro = !!opcoes.suprimirAlertDeErro;
+
         if (!form) return;
         if (!salaSelect || !salaSelect.value) {
             alert("Selecione uma sala antes de salvar o registro.");
@@ -1014,7 +1044,11 @@
 
         // Validação HTML5
         if (!form.checkValidity()) {
-            form.reportValidity();
+            // Comportamento padrão: foca no primeiro campo inválido
+            if (!suprimirValidacaoHtml5) {
+                form.reportValidity();
+            }
+            // Em modo "silencioso" (usado pelo Finalizar), apenas aborta
             return;
         }
 
@@ -1131,17 +1165,19 @@
             if (!resp.ok || !json || json.ok === false) {
                 console.error("Erro ao salvar entrada:", json);
 
-                // Erros de validação vindos do back
-                if (json && json.errors && typeof json.errors === "object") {
-                    const linhas = Object.entries(json.errors)
-                        .map(([campo, msg]) => `${campo}: ${msg}`)
-                        .join("\n");
-                    alert("Erro ao salvar o registro:\n\n" + linhas);
-                } else {
-                    const msg =
-                        (json && (json.message || json.detail || json.error)) ||
-                        "Falha ao salvar o registro.";
-                    alert(msg);
+                if (!suprimirAlertDeErro) {
+                    // Erros de validação vindos do back
+                    if (json && json.errors && typeof json.errors === "object") {
+                        const linhas = Object.entries(json.errors)
+                            .map(([campo, msg]) => `${campo}: ${msg}`)
+                            .join("\n");
+                        alert("Erro ao salvar o registro:\n\n" + linhas);
+                    } else {
+                        const msg =
+                            (json && (json.message || json.detail || json.error)) ||
+                            "Falha ao salvar o registro.";
+                        alert(msg);
+                    }
                 }
                 return;
             }
@@ -1188,7 +1224,7 @@
         } finally {
             if (btnPrincipal) {
                 btnPrincipal.disabled = false;
-                btnPrincipal.textContent = originalText || "Salvar registro";
+                // btnPrincipal.textContent = originalText || "Salvar registro";
             }
         }
     }
@@ -1202,62 +1238,22 @@
 
         const salaId = salaSelect.value;
 
-        // Garante que temos um estado atualizado da sessão para esta sala
-        if (!estadoSessao) {
-            await carregarEstadoSessao(salaId);
-        }
+        // Sempre recarrega o estado da sessão para esta sala
+        await carregarEstadoSessao(salaId);
 
-        const sessaoAbertaAntes =
-            !!(estadoSessao && estadoSessao.existe_sessao_aberta);
-        let situacaoAntes = "sem_sessao";
+        const sessaoAberta = !!(estadoSessao && estadoSessao.existe_sessao_aberta);
 
+        let situacaoOperador = "sem_sessao";
         if (estadoSessao && estadoSessao.situacao_operador) {
-            situacaoAntes = estadoSessao.situacao_operador;
+            situacaoOperador = estadoSessao.situacao_operador;
         } else if (uiState && uiState.situacao_operador) {
-            situacaoAntes = uiState.situacao_operador;
+            situacaoOperador = uiState.situacao_operador;
         }
 
-        const confirmar = window.confirm(
-            "Tem certeza de que deseja finalizar o Registro da Sala/Operação?\n" +
-            "Após finalizado, não será possível lançar novos registros nesta sessão."
-        );
-        if (!confirmar) {
-            return;
-        }
-
-        // Regra:
-        // - Se NÃO há sessão aberta ainda (sem_sessao),
-        // - ou se o operador ainda não tem nenhuma entrada (sem_entrada),
-        // então "Finalizar" precisa PRIMEIRO salvar a entrada atual
-        // e SÓ DEPOIS encerrar a sessão.
-        if (!sessaoAbertaAntes || situacaoAntes === "sem_entrada") {
-            await salvarEntrada("criacao");
-
-            // Recarrega o estado para ver se a entrada foi realmente salva
-            await carregarEstadoSessao(salaId);
-
-            const sessaoAbertaDepois =
-                !!(estadoSessao && estadoSessao.existe_sessao_aberta);
-            let situacaoDepois = "sem_sessao";
-
-            if (estadoSessao && estadoSessao.situacao_operador) {
-                situacaoDepois = estadoSessao.situacao_operador;
-            } else if (uiState && uiState.situacao_operador) {
-                situacaoDepois = uiState.situacao_operador;
-            }
-
-            if (!sessaoAbertaDepois || situacaoDepois === "sem_entrada") {
-                alert(
-                    "Não foi possível salvar sua entrada antes de finalizar a sessão.\n" +
-                    "Verifique os erros exibidos no salvamento e tente novamente."
-                );
-                return;
-            }
-        }
-
-        // A partir daqui, já deve haver sessão aberta para esta sala.
-        if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
-            alert("Não há sessão aberta nesta sala para ser finalizada.");
+        // Regra: só pode finalizar se houver sessão aberta
+        // e o operador tiver pelo menos um registro
+        if (!sessaoAberta || situacaoOperador === "sem_entrada") {
+            alert("Somente usuários com registro nesta sala/operação podem finalizar.");
             return;
         }
 
@@ -1283,28 +1279,43 @@
             }
 
             const json = await safeJson(resp);
+
             if (!resp.ok || !json || json.ok === false) {
                 console.error("Erro ao finalizar sessão:", json);
-
-                if (json && json.errors && typeof json.errors === "object") {
-                    const linhas = Object.entries(json.errors)
-                        .map(([campo, msg]) => `${campo}: ${msg}`)
-                        .join("\n");
-                    alert("Erro ao finalizar a sessão:\n\n" + linhas);
-                } else {
-                    const msg =
-                        (json && (json.message || json.detail || json.error)) ||
-                        "Falha ao finalizar a sessão de operação de áudio.";
-                    alert(msg);
-                }
+                const msg =
+                    (json && (json.message || json.detail || json.error)) ||
+                    "Falha ao finalizar o registro da sala/operação.";
+                alert(msg);
                 return;
             }
 
             alert("Registro da Sala/Operação finalizado com sucesso.");
 
-            // Depois de finalizar, recarrega o estado da sessão (que agora deve vir como "sem sessão")
+            // Depois de finalizar, voltamos para o estado "sem sala" selecionada
+            // e preenchemos a data da operação com o dia atual.
             modoEdicaoEntradaSeq = null;
-            await carregarEstadoSessao(salaId);
+
+            // Limpa o formulário inteiro
+            if (form) {
+                form.reset();
+            }
+
+            // Volta o select de sala para "Selecione a sala"
+            if (salaSelect) {
+                salaSelect.value = "";
+            }
+
+            // Não há sessão carregada enquanto nenhuma sala estiver selecionada
+            estadoSessao = null;
+            uiState.situacao_operador = "sem_sessao";
+            uiState.sessaoAberta = false;
+
+            // Garante que a data exibida seja o dia atual
+            ensureHojeEmDataOperacao();
+
+            // Reaplica bloqueios / visuais para o estado "sem sala"
+            aplicarEstadoSessaoNaUI();
+
         } catch (e) {
             console.error("Erro inesperado ao finalizar sessão:", e);
             alert("Erro inesperado ao finalizar a sessão.");
