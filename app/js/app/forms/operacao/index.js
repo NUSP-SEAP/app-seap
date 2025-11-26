@@ -1,6 +1,6 @@
 // app/js/app/forms/operacao/index.js
 // Front-end do formulário "Registro de Operação de Áudio"
-// Agora integrado aos endpoints JSON de sessão de operação de áudio.
+// Integrado aos endpoints JSON de sessão de operação de áudio.
 
 (function () {
     "use strict";
@@ -38,27 +38,110 @@
     let btnEditarEntrada2;
     let btnFinalizarSessao;
 
-
     let sectionAnormalidade;
 
+    // 1 = editando 1ª entrada; 2 = editando 2ª; null = não está editando
     let modoEdicaoEntradaSeq = null;
 
     // ====== Estado em memória ======
     let estadoSessao = null;
     const uiState = {
-        situacao_operador: null,   // "sem_sessao" | "sem_entrada" | "uma_entrada" | "duas_entradas"
+        situacao_operador: "sem_sessao",   // "sem_sessao" | "sem_entrada" | "uma_entrada" | "duas_entradas"
         sessaoAberta: false,
     };
 
-    // Atualiza o cabeçalho de operadores da sessão (acima do título)
+    // ====== Helpers genéricos ======
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    function safeJson(resp) {
+        return resp.json().catch(() => null);
+    }
+
+    function fillSelect(selectEl, rows, valueKey, labelKey, placeholder = "Selecione...") {
+        if (!selectEl) return;
+        const opts = ['<option value="">' + placeholder + "</option>"]
+            .concat(
+                (rows || []).map(
+                    (r) =>
+                        `<option value="${String(r[valueKey])}">${String(
+                            r[labelKey]
+                        )}</option>`
+                )
+            )
+            .join("");
+        selectEl.innerHTML = opts;
+        selectEl.disabled = false;
+    }
+
+    function getTipoEventoSelecionado() {
+        const radio = document.querySelector('input[name="tipo_evento"]:checked');
+        if (!radio) return "operacao";
+        return (radio.value || "operacao").toLowerCase();
+    }
+
+    function setTipoEventoSelecionado(tipo) {
+        const radios = $$('input[name="tipo_evento"]');
+        let found = false;
+        radios.forEach((r) => {
+            if ((r.value || "").toLowerCase() === (tipo || "").toLowerCase()) {
+                r.checked = true;
+                found = true;
+            }
+        });
+        if (!found && radios.length) {
+            radios[0].checked = true;
+        }
+    }
+
+    function ensureHojeEmDataOperacao() {
+        if (!dataOperacaoInput) return;
+        if (!dataOperacaoInput.value) {
+            const hoje = new Date();
+            try {
+                dataOperacaoInput.valueAsDate = hoje;
+            } catch {
+                const yyyy = hoje.getFullYear();
+                const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+                const dd = String(hoje.getDate()).padStart(2, "0");
+                dataOperacaoInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+        }
+    }
+
+    // Limpa o formulário depois de salvar / ao clicar em "Limpar",
+    // mantendo sala e tipo de evento selecionados.
+    function resetFormMantendoSalaETipo() {
+        if (!form) return;
+        const salaValue = salaSelect ? salaSelect.value : "";
+        const tipoValor = getTipoEventoSelecionado();
+
+        form.reset();
+
+        if (salaSelect) {
+            salaSelect.value = salaValue;
+        }
+        setTipoEventoSelecionado(tipoValor);
+
+        ensureHojeEmDataOperacao();
+        atualizarTipoEventoUI();
+    }
+
+    // ====== Cabeçalhos (topo da tela) ======
+
+    // Atualiza o cabeçalho de operadores da sessão (lado esquerdo)
     function atualizarCabecalhoOperadoresSessao() {
         const headerEl = document.getElementById("info-operadores-sessao");
-        if (!headerEl) return;
+        if (!headerEl) {
+            atualizarIndicadorModoEdicao();
+            return;
+        }
 
         // Se não há estado carregado ou não há sessão aberta, esconde o cabeçalho
         if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
             headerEl.style.display = "none";
             headerEl.textContent = "";
+            atualizarIndicadorModoEdicao();
             return;
         }
 
@@ -67,7 +150,7 @@
             ? estadoSessao.entradas_sessao.slice()
             : [];
 
-        // Se não vierem entradas_sessao, cai no fallback usando nomes_operadores_sessao
+        // Fallback com nomes_operadores_sessao, caso não venham as entradas
         if (!entradas.length) {
             const nomesFallback = Array.isArray(estadoSessao.nomes_operadores_sessao)
                 ? estadoSessao.nomes_operadores_sessao
@@ -76,6 +159,7 @@
             if (!nomesFallback.length) {
                 headerEl.style.display = "none";
                 headerEl.textContent = "";
+                atualizarIndicadorModoEdicao();
                 return;
             }
 
@@ -112,7 +196,6 @@
             headerEl.innerHTML = linhasFallback.join("<br>");
             headerEl.style.display = "";
 
-            // Atualiza o texto "Editando Xº Registro" no cabeçalho direito
             atualizarIndicadorModoEdicao();
             return;
         }
@@ -178,16 +261,17 @@
         headerEl.innerHTML = linhas.join("<br>");
         headerEl.style.display = "";
 
-        // Atualiza o texto "Editando Xº Registro" no cabeçalho direito
         atualizarIndicadorModoEdicao();
     }
 
+    // Atualiza o indicador de modo edição (topo direito)
     function atualizarIndicadorModoEdicao() {
         const modoEl = document.getElementById("info-modo-edicao");
         if (!modoEl) return;
 
         // Se não há sessão aberta, esconde o indicador
         if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
+            modoEdicaoEntradaSeq = null;
             modoEl.style.display = "none";
             modoEl.textContent = "";
             return;
@@ -202,67 +286,6 @@
             // Fora do modo edição, some
             modoEl.textContent = "";
             modoEl.style.display = "none";
-        }
-    }
-
-
-    // ====== Helpers genéricos ======
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-
-    function safeJson(resp) {
-        return resp.json().catch(() => null);
-    }
-
-    function fillSelect(selectEl, rows, valueKey, labelKey, placeholder = "Selecione...") {
-        if (!selectEl) return;
-        const opts = ['<option value="">' + placeholder + "</option>"]
-            .concat(
-                (rows || []).map(
-                    (r) =>
-                        `<option value="${String(r[valueKey])}">${String(
-                            r[labelKey]
-                        )}</option>`
-                )
-            )
-            .join("");
-        selectEl.innerHTML = opts;
-        selectEl.disabled = false;
-    }
-
-    function getTipoEventoSelecionado() {
-        const radio = document.querySelector('input[name="tipo_evento"]:checked');
-        if (!radio) return "operacao";
-        return (radio.value || "operacao").toLowerCase();
-    }
-
-    function setTipoEventoSelecionado(tipo) {
-        const radios = $$('input[name="tipo_evento"]');
-        let found = false;
-        radios.forEach((r) => {
-            if ((r.value || "").toLowerCase() === (tipo || "").toLowerCase()) {
-                r.checked = true;
-                found = true;
-            }
-        });
-        if (!found && radios.length) {
-            radios[0].checked = true;
-        }
-    }
-
-    function ensureHojeEmDataOperacao() {
-        if (!dataOperacaoInput) return;
-        if (!dataOperacaoInput.value) {
-            const hoje = new Date();
-            // valueAsDate funciona bem na maioria dos browsers modernos
-            try {
-                dataOperacaoInput.valueAsDate = hoje;
-            } catch {
-                const yyyy = hoje.getFullYear();
-                const mm = String(hoje.getMonth() + 1).padStart(2, "0");
-                const dd = String(hoje.getDate()).padStart(2, "0");
-                dataOperacaoInput.value = `${yyyy}-${mm}-${dd}`;
-            }
         }
     }
 
@@ -294,7 +317,6 @@
             salaSelect.innerHTML =
                 '<option value="">Falha ao carregar salas</option>';
         } finally {
-            // Libera seleção (o estado da sessão depois pode travar de novo)
             salaSelect.disabled = false;
         }
     }
@@ -405,6 +427,7 @@
         }
     }
 
+    // ====== Tipo de evento / Anormalidade / Plenário ======
     function atualizarTipoEventoUI() {
         if (!sectionAnormalidade) return;
 
@@ -462,126 +485,25 @@
             delete salaSelect.dataset.salaOriginalOutros;
 
             // Fora do "Outros Eventos", o combobox da sala fica livre.
-            // (Se não houver sala, o bloqueio dos demais campos é feito em aplicarBloqueioPorSala.)
             salaSelect.disabled = false;
         }
-    }
-
-    function atualizarCabecalhoSessao(ctx) {
-        var textos = [];
-
-        if (!ctx || !ctx.existe_sessao_aberta) {
-            textos.push(
-                "<strong>Nenhuma sessão aberta para esta sala.</strong> Ao salvar, você irá iniciar o registro desta operação."
-            );
-        } else {
-            // ==== Parte 1: Cabeçalho com operadores em ordem cronológica ====
-            var entradas = ctx.entradas_sessao || [];
-            if (entradas.length > 0) {
-                // Garante ordenação por ordem (e depois pelo id, como fallback)
-                entradas = entradas
-                    .slice()
-                    .sort(function (a, b) {
-                        var oa =
-                            typeof a.ordem === "number" ? a.ordem : parseInt(a.ordem || 9999, 10);
-                        var ob =
-                            typeof b.ordem === "number" ? b.ordem : parseInt(b.ordem || 9999, 10);
-                        if (oa !== ob) return oa - ob;
-                        var ea = a.entrada_id || a.id || 0;
-                        var eb = b.entrada_id || b.id || 0;
-                        return ea - eb;
-                    });
-
-                // 1ª linha: Registro aberto por <Nome 1>
-                var primeira = entradas[0];
-                var nomePrimeiro = primeira.operador_nome || "—";
-                textos.push(
-                    "<strong>Registro aberto por " + nomePrimeiro + ".</strong>"
-                );
-
-                // Demais linhas: sempre dois registros por linha
-                if (entradas.length > 1) {
-                    var ordinais = {
-                        2: "Segundo",
-                        3: "Terceiro",
-                        4: "Quarto",
-                        5: "Quinto",
-                        6: "Sexto",
-                        7: "Sétimo",
-                        8: "Oitavo",
-                        9: "Nono",
-                        10: "Décimo",
-                    };
-
-                    var descricoes = [];
-                    for (var i = 1; i < entradas.length; i++) {
-                        var entrada = entradas[i];
-                        var posicao = i + 1; // 2, 3, 4...
-                        var prefixo = ordinais[posicao] || posicao + "º";
-                        var nome = entrada.operador_nome || "—";
-                        descricoes.push(prefixo + " registro feito por " + nome);
-                    }
-
-                    // Monta linhas com no máximo 2 descrições por linha
-                    for (var j = 0; j < descricoes.length; j += 2) {
-                        if (j + 1 < descricoes.length) {
-                            textos.push(descricoes[j] + " • " + descricoes[j + 1]);
-                        } else {
-                            textos.push(descricoes[j]);
-                        }
-                    }
-                }
-            } else {
-                // Fallback: se, por algum motivo, não vierem as entradas
-                var nomes = ctx.nomes_operadores_sessao || [];
-                if (nomes.length) {
-                    textos.push(
-                        "<strong>Sessão aberta para esta sala.</strong> Operadores na sessão: " +
-                        nomes.join(", ")
-                    );
-                } else {
-                    textos.push("<strong>Sessão aberta para esta sala.</strong>");
-                }
-            }
-
-            // ==== Parte 2: Situação do operador nessa sessão ====
-            var situ = ctx.situacao_operador || "sem_entrada";
-            if (situ === "sem_entrada") {
-                textos.push("Você ainda não registrou nenhuma entrada nesta sessão.");
-            } else if (situ === "uma_entrada") {
-                textos.push("Você já possui <strong>1 entrada</strong> nesta sessão.");
-            } else if (situ === "duas_entradas") {
-                textos.push(
-                    "Você já possui <strong>2 entradas</strong> nesta sessão (limite máximo)."
-                );
-            }
-        }
-
-        // ==== Parte 3: Resumo do tipo de evento / data / nome ====
-        if (ctx && ctx.tipo_evento) {
-            var tipoLabel;
-            if (ctx.tipo_evento === "operacao") tipoLabel = "Operação Comum";
-            else if (ctx.tipo_evento === "cessao") tipoLabel = "Cessão de Sala";
-            else tipoLabel = "Outros Eventos";
-            textos.push("Tipo do evento: <strong>" + tipoLabel + "</strong>.");
-        }
-
-        if (ctx && ctx.data) {
-            textos.push("Data da operação: <strong>" + ctx.data + "</strong>.");
-        }
-        if (ctx && ctx.nome_evento) {
-            textos.push("Evento: <strong>" + ctx.nome_evento + "</strong>.");
-        }
-
-        // Quebra em várias linhas, como na especificação do cabeçalho
-        setHeaderText(textos.join("<br>"));
     }
 
     function bindTipoEventoLogic() {
         const radios = $$('input[name="tipo_evento"]');
         radios.forEach((r) => {
             r.addEventListener("change", function () {
+                const oldSala = salaSelect ? salaSelect.value : null;
+
                 atualizarTipoEventoUI();
+
+                // BUG 2: se mudar para "Outros Eventos" (força Plenário) ou voltar
+                // para Operação/Cessão (restaura sala original), o valor da sala muda.
+                // Quando isso acontecer, precisamos recarregar o estado da sessão da
+                // NOVA sala para atualizar o cabeçalho "Registro aberto por...".
+                if (salaSelect && salaSelect.value && salaSelect.value !== oldSala) {
+                    carregarEstadoSessao(salaSelect.value);
+                }
             });
         });
         atualizarTipoEventoUI();
@@ -658,17 +580,27 @@
 
         const temSala = !!salaSelect.value;
 
-        // 1) Campos: tudo visível, mas read-only sem sala
+        // 1) Campos: tudo visível, mas travado sem sala
         const campos = form.querySelectorAll("input, select, textarea");
         campos.forEach((el) => {
             // A sala nunca é desabilitada aqui
             if (el === salaSelect) {
                 el.disabled = false;
+                if ("readOnly" in el) {
+                    el.readOnly = false;
+                }
                 return;
             }
 
-            // Sem sala -> desabilita; com sala -> libera
-            el.disabled = !temSala;
+            const disabled = !temSala;
+            el.disabled = disabled;
+
+            // BUG 3: ao sair de uma sala onde o operador tem 2 entradas,
+            // os campos estavam ficando readOnly mesmo em outra sala.
+            // Se estamos habilitando o campo, garantimos que readOnly seja falso.
+            if (!disabled && "readOnly" in el) {
+                el.readOnly = false;
+            }
         });
 
         // 2) Botões: só Voltar funciona sem sala
@@ -703,10 +635,8 @@
             }
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
-                // a lógica de sessão ainda pode mudar texto/habilitação
             }
             if (btnSalvarEdicao) {
-                // visibilidade/habilitação fina fica com aplicarEstadoSessaoNaUI
                 btnSalvarEdicao.disabled = false;
             }
             if (btnFinalizarSessao) {
@@ -720,7 +650,7 @@
     }
 
     function aplicarEstadoSessaoNaUI() {
-        // 0) Sempre começar escondendo os botões de edição
+        // 0) Sempre começar escondendo os botões de edição / cancelar
         if (btnEditarEntrada1) {
             btnEditarEntrada1.style.display = "none";
             btnEditarEntrada1.disabled = false;
@@ -740,14 +670,17 @@
         }
 
         // Se não houver sala selecionada, não segue com nada
-        // (mas os botões de edição já foram escondidos no passo 0)
         if (!salaSelect || !salaSelect.value) {
+            estadoSessao = null;
+            uiState.situacao_operador = "sem_sessao";
+            uiState.sessaoAberta = false;
+            atualizarCabecalhoOperadoresSessao();
             return;
         }
 
         const estado = estadoSessao;
 
-        // 2) Reset básico de botões (estado "neutro" com sala escolhida)
+        // 2) Reset básico de botões (estado neutro com sala escolhida)
         if (btnSalvarRegistro) {
             btnSalvarRegistro.style.display = "";
             btnSalvarRegistro.disabled = false;
@@ -758,6 +691,7 @@
             btnSalvarEdicao.disabled = false;
         }
         if (btnFinalizarSessao) {
+            btnFinalizarSessao.style.display = "";
             btnFinalizarSessao.disabled = true;
         }
 
@@ -766,13 +700,6 @@
             uiState.situacao_operador = "sem_sessao";
             uiState.sessaoAberta = false;
 
-            // Sala livre; Tipo do Evento totalmente liberado
-            if (salaSelect) {
-                salaSelect.disabled = false;
-            }
-
-            // NÃO mexe em data/horários/tipo/nome_evento:
-            // ficam em branco ou como o usuário preencheu
             atualizarTipoEventoUI();
             atualizarCabecalhoOperadoresSessao();
             return;
@@ -789,20 +716,11 @@
             r.disabled = false;
         });
 
-        // Combo de sala só é travado pela regra de "Outros Eventos" (Plenário).
-        // Aqui deixamos habilitado; o bloqueio base cuida de "sem sala".
-        if (salaSelect) {
-            salaSelect.disabled = false;
-        }
-
         // Regras de "Houve anormalidade?" e "Outros Eventos" -> Plenário
         atualizarTipoEventoUI();
 
         // Controle dos botões conforme situação do operador
         const situacao = uiState.situacao_operador;
-        const entradasOperador = Array.isArray(estado.entradas_operador)
-            ? estado.entradas_operador
-            : [];
 
         // Se há sessão, já podemos habilitar o botão de finalizar
         if (btnFinalizarSessao && sessaoAberta) {
@@ -811,7 +729,6 @@
 
         if (!sessaoAberta) {
             // Ainda não existe sessão aberta para essa sala
-            // -> Operador A chegando no Caso A (vai inaugurar a sessão)
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
                 btnSalvarRegistro.textContent = "Salvar registro / Iniciar sessão";
@@ -851,9 +768,9 @@
             // Botões esperados:
             // - Voltar
             // - Limpar
-            // - Salvar Novo Registro (2ª entrada)
+            // - Novo registro (2ª entrada)
             // - Editar 1ª Entrada
-            // - Finalizar Registro da Sala/Operação (já habilitado acima)
+            // - Finalizar Registro da Sala/Operação
 
             if (btnSalvarRegistro) {
                 btnSalvarRegistro.style.display = "";
@@ -948,87 +865,10 @@
         }
     }
 
-    function entrarModoEdicaoEntrada(seq) {
-        if (!estadoSessao || !Array.isArray(estadoSessao.entradas_operador)) {
-            alert("Não foi possível localizar as entradas do operador nessa sessão.");
-            return;
-        }
-
-        const entrada = estadoSessao.entradas_operador.find((e) => e.seq === seq);
-        if (!entrada) {
-            alert(`Não encontrei a ${seq}ª entrada para edição.`);
-            return;
-        }
-
-        // Habilita campos para edição (mantendo a sala editável)
-        if (form) {
-            const campos = form.querySelectorAll("input, textarea, select");
-            campos.forEach((el) => {
-                if (el === salaSelect) return;
-                el.disabled = false;
-                el.readOnly = false;
-            });
-        }
-
-        // Preenche o formulário com os dados da entrada
-        preencherFormularioComEntrada(entrada);
-
-        // Marca em qual entrada estamos editando (1ª ou 2ª)
-        modoEdicaoEntradaSeq = seq;
-
-        // Ajusta botões para modo edição: "Cancelar Edição", "Limpar", "Salvar Edição"
-        if (typeof btnSalvarRegistro !== "undefined" && btnSalvarRegistro) {
-            btnSalvarRegistro.style.display = "none";
-        }
-        if (typeof btnEditarEntrada1 !== "undefined" && btnEditarEntrada1) {
-            btnEditarEntrada1.style.display = "none";
-        }
-        if (typeof btnEditarEntrada2 !== "undefined" && btnEditarEntrada2) {
-            btnEditarEntrada2.style.display = "none";
-        }
-        if (typeof btnFinalizarSessao !== "undefined" && btnFinalizarSessao) {
-            btnFinalizarSessao.style.display = "none";
-        }
-
-        // NOVO: mostrar o "Cancelar Edição"
-        if (typeof btnCancelarEdicao !== "undefined" && btnCancelarEdicao) {
-            btnCancelarEdicao.style.display = "";
-            btnCancelarEdicao.disabled = false;
-        }
-
-        if (typeof btnLimpar !== "undefined" && btnLimpar) {
-            btnLimpar.style.display = "";
-            btnLimpar.disabled = false;
-        }
-
-        if (typeof btnSalvarEdicao !== "undefined" && btnSalvarEdicao) {
-            btnSalvarEdicao.style.display = "";
-            btnSalvarEdicao.disabled = false;
-            btnSalvarEdicao.textContent = "Salvar Edição";
-        }
-
-        // (Cabeçalho "Editando 1º/2º Registro" a gente acerta depois, junto com a função de cabeçalho)
-        if (typeof atualizarCabecalhoOperadoresSessao === "function") {
-            atualizarCabecalhoOperadoresSessao();
-        }
-    }
-
-    function cancelarEdicaoEntrada() {
-        // Sai do modo edição
-        modoEdicaoEntradaSeq = null;
-        // Opcional: limpa o formulário (para não ficar com dados da entrada)
-        if (typeof limparFormulario === "function") {
-            limparFormulario();
-        }
-        // Reaplica o estado normal da UI para a sala+operador atuais
-        aplicarEstadoSessaoNaUI();
-    }
-
     function preencherFormularioComEntrada(entrada) {
         if (!entrada) return;
 
         // 1) Data da operação
-        // A data é um atributo da sessão, não da entrada, mas se vier em entrada usamos também.
         const inputData = document.querySelector('input[name="data_operacao"]');
         if (inputData) {
             const dataValor =
@@ -1040,12 +880,12 @@
             }
         }
 
-        // 2) Campos que batem diretamente com as chaves da entrada
+        // 2) Campos diretos
         const mapDiretos = {
             horario_pauta: 'input[name="horario_pauta"]',
             nome_evento: 'input[name="nome_evento"]',
-            usb_01: 'input[name="usb_01"]',     // era select, mas no HTML é input
-            usb_02: 'input[name="usb_02"]',     // idem
+            usb_01: 'input[name="usb_01"]',
+            usb_02: 'input[name="usb_02"]',
             observacoes: 'textarea[name="observacoes"]'
         };
 
@@ -1056,8 +896,7 @@
             }
         });
 
-        // 3) Horários: o back manda horario_inicio / horario_termino,
-        // o HTML usa hora_inicio / hora_fim.
+        // 3) Horários
         const inputHoraInicio = document.querySelector('input[name="hora_inicio"]');
         if (inputHoraInicio && "horario_inicio" in entrada) {
             inputHoraInicio.value = entrada.horario_inicio || "";
@@ -1090,9 +929,79 @@
         }
 
         // 6) Reaplica regras visuais de tipo de evento (anormalidade + Plenário)
-        if (typeof atualizarTipoEventoUI === "function") {
-            atualizarTipoEventoUI();
+        atualizarTipoEventoUI();
+    }
+
+    function entrarModoEdicaoEntrada(seq) {
+        if (!estadoSessao || !Array.isArray(estadoSessao.entradas_operador)) {
+            alert("Não foi possível localizar as entradas do operador nessa sessão.");
+            return;
         }
+
+        const entrada = estadoSessao.entradas_operador.find((e) => e.seq === seq);
+        if (!entrada) {
+            alert(`Não encontrei a ${seq}ª entrada para edição.`);
+            return;
+        }
+
+        // Habilita campos para edição (mantendo a sala editável)
+        if (form) {
+            const campos = form.querySelectorAll("input, textarea, select");
+            campos.forEach((el) => {
+                if (el === salaSelect) return;
+                el.disabled = false;
+                if ("readOnly" in el) {
+                    el.readOnly = false;
+                }
+            });
+        }
+
+        // Preenche o formulário com os dados da entrada
+        preencherFormularioComEntrada(entrada);
+
+        // Marca em qual entrada estamos editando (1ª ou 2ª)
+        modoEdicaoEntradaSeq = seq;
+
+        // Ajusta botões para modo edição: "Cancelar Edição", "Limpar", "Salvar Edição"
+        if (typeof btnSalvarRegistro !== "undefined" && btnSalvarRegistro) {
+            btnSalvarRegistro.style.display = "none";
+        }
+        if (typeof btnEditarEntrada1 !== "undefined" && btnEditarEntrada1) {
+            btnEditarEntrada1.style.display = "none";
+        }
+        if (typeof btnEditarEntrada2 !== "undefined" && btnEditarEntrada2) {
+            btnEditarEntrada2.style.display = "none";
+        }
+        if (typeof btnFinalizarSessao !== "undefined" && btnFinalizarSessao) {
+            btnFinalizarSessao.style.display = "none";
+        }
+
+        if (typeof btnCancelarEdicao !== "undefined" && btnCancelarEdicao) {
+            btnCancelarEdicao.style.display = "";
+            btnCancelarEdicao.disabled = false;
+        }
+
+        if (typeof btnLimpar !== "undefined" && btnLimpar) {
+            btnLimpar.style.display = "";
+            btnLimpar.disabled = false;
+        }
+
+        if (typeof btnSalvarEdicao !== "undefined" && btnSalvarEdicao) {
+            btnSalvarEdicao.style.display = "";
+            btnSalvarEdicao.disabled = false;
+            btnSalvarEdicao.textContent = "Salvar Edição";
+        }
+
+        atualizarCabecalhoOperadoresSessao();
+    }
+
+    function cancelarEdicaoEntrada() {
+        // Sai do modo edição
+        modoEdicaoEntradaSeq = null;
+
+        // Limpa o formulário, mantendo sala/tipo, e volta para o estado padrão da sala
+        resetFormMantendoSalaETipo();
+        aplicarEstadoSessaoNaUI();
     }
 
     // ====== Salvar entrada (criação/edição) ======
@@ -1158,7 +1067,6 @@
             houve_anormalidade: houveAnormalidadeRaw
         };
 
-
         // Em modo edição, define qual entrada_id será editada
         if (modo === "edicao" && estadoSessao) {
             const entradasOperador = Array.isArray(estadoSessao.entradas_operador)
@@ -1172,19 +1080,21 @@
                 return;
             }
 
-            let entradaId = null;
+            // BUG 4: remover o prompt antigo e usar o modoEdicaoEntradaSeq
+            // para saber qual entrada está sendo editada.
+            let entrada = null;
 
-            if (entradasOperador.length === 1) {
-                entradaId = entradasOperador[0].entrada_id;
-            } else {
-                const escolha = window.prompt(
-                    "Você possui 2 entradas nesta sessão.\nDigite 1 para editar a 1ª entrada ou 2 para editar a 2ª:"
-                );
-                const idx = escolha === "1" ? 0 : 1;
-                const entrada = entradasOperador[idx] || entradasOperador[0];
-                entradaId = entrada.entrada_id;
+            if (modoEdicaoEntradaSeq === 1 || modoEdicaoEntradaSeq === 2) {
+                entrada = entradasOperador.find((e) => e.seq === modoEdicaoEntradaSeq) || null;
             }
 
+            // Fallback: se por algum motivo não estivermos com seq setado,
+            // usa a primeira entrada do operador.
+            if (!entrada) {
+                entrada = entradasOperador[0];
+            }
+
+            const entradaId = entrada && entrada.entrada_id;
             if (!entradaId) {
                 alert("Não foi possível determinar qual entrada editar.");
                 return;
@@ -1195,7 +1105,7 @@
 
         // Desabilita botões durante o envio
         const btnPrincipal =
-            modo === "edicao" ? btnSalvarEdicao || btnSalvarRegistro : btnSalvarRegistro;
+            modo === "edicao" ? (btnSalvarEdicao || btnSalvarRegistro) : btnSalvarRegistro;
         let originalText = btnPrincipal ? btnPrincipal.textContent : "";
 
         try {
@@ -1262,6 +1172,12 @@
                 return;
             }
 
+            // BUG 1 e BUG 5:
+            // - Limpar o formulário após salvar (mantendo sala/tipo).
+            // - Sair do modo edição para não ficar "grudado" o texto "Editando Xº Registro".
+            modoEdicaoEntradaSeq = null;
+            resetFormMantendoSalaETipo();
+
             // Caso contrário, recarrega o estado da sessão para refletir a nova situação
             await carregarEstadoSessao(salaId);
         } catch (e) {
@@ -1309,17 +1225,15 @@
             return;
         }
 
-        // Regra importante:
+        // Regra:
         // - Se NÃO há sessão aberta ainda (sem_sessao),
         // - ou se o operador ainda não tem nenhuma entrada (sem_entrada),
-        // então "Finalizar" precisa PRIMEIRO salvar a entrada atual (criar a entrada)
+        // então "Finalizar" precisa PRIMEIRO salvar a entrada atual
         // e SÓ DEPOIS encerrar a sessão.
         if (!sessaoAbertaAntes || situacaoAntes === "sem_entrada") {
-            // Tenta salvar a entrada atual como criação de nova entrada.
             await salvarEntrada("criacao");
 
             // Recarrega o estado para ver se a entrada foi realmente salva
-            // e se a sessão foi criada/atualizada.
             await carregarEstadoSessao(salaId);
 
             const sessaoAbertaDepois =
@@ -1332,8 +1246,6 @@
                 situacaoDepois = uiState.situacao_operador;
             }
 
-            // Se mesmo depois de tentar salvar continuamos sem sessão aberta
-            // ou sem nenhuma entrada do operador, não faz sentido finalizar.
             if (!sessaoAbertaDepois || situacaoDepois === "sem_entrada") {
                 alert(
                     "Não foi possível salvar sua entrada antes de finalizar a sessão.\n" +
@@ -1389,7 +1301,9 @@
             }
 
             alert("Registro da Sala/Operação finalizado com sucesso.");
+
             // Depois de finalizar, recarrega o estado da sessão (que agora deve vir como "sem sessão")
+            modoEdicaoEntradaSeq = null;
             await carregarEstadoSessao(salaId);
         } catch (e) {
             console.error("Erro inesperado ao finalizar sessão:", e);
@@ -1402,7 +1316,6 @@
             }
         }
     }
-
 
     // ====== Bootstrap ======
     document.addEventListener("DOMContentLoaded", async function () {
@@ -1432,7 +1345,6 @@
         btnEditarEntrada2 = document.getElementById("btnEditarEntrada2");
         btnFinalizarSessao = document.getElementById("btnFinalizarSessao");
 
-
         sectionAnormalidade = document.getElementById("section-anormalidade");
 
         if (btnEditarEntrada1) {
@@ -1452,7 +1364,6 @@
                 cancelarEdicaoEntrada();
             });
         }
-
 
         // Botão Voltar -> volta para a página anterior
         if (btnVoltar) {
@@ -1484,7 +1395,7 @@
         // Carrega lookups (salas + operadores)
         await Promise.all([loadSalas(), loadOperadores()]);
 
-        // Libera sala para escolha inicial (regras de sessão e tipo-evento podem travar depois)
+        // Libera sala para escolha inicial
         if (salaSelect && !salaSelect.disabled) {
             salaSelect.disabled = false;
         }
@@ -1499,6 +1410,11 @@
 
             salaSelect.addEventListener("change", function () {
                 const val = salaSelect.value;
+
+                // BUG 5: ao trocar de sala, sair do modo edição para não
+                // "carregar" o texto "Editando Xº Registro" indevidamente.
+                modoEdicaoEntradaSeq = null;
+
                 if (!val) {
                     estadoSessao = null;
                     uiState.situacao_operador = "sem_sessao";
@@ -1519,19 +1435,10 @@
             aplicarEstadoSessaoNaUI();
         }
 
-        // Botão Limpar: apenas limpa o formulário, mas mantém sala/tipo-evento
+        // Botão Limpar: limpa o formulário, mas mantém sala/tipo
         if (btnLimpar && form) {
             btnLimpar.addEventListener("click", function () {
-                const salaValue = salaSelect ? salaSelect.value : "";
-                const tipoValor = getTipoEventoSelecionado();
-
-                form.reset();
-
-                if (salaSelect) salaSelect.value = salaValue;
-                setTipoEventoSelecionado(tipoValor);
-
-                ensureHojeEmDataOperacao();
-                atualizarTipoEventoUI();
+                resetFormMantendoSalaETipo();
             });
         }
 
