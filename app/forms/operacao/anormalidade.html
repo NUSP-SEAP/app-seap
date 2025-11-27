@@ -19,45 +19,62 @@
       <form id="form-raoa" novalidate>
         <!-- IDs e referências -->
         <input type="hidden" id="registro_id" name="registro_id" />
+        <input type="hidden" id="entrada_id" name="entrada_id" />
 
         <!-- 1) Referência ao Registro de Operação -->
         <div class="section-title">1) Referência ao Registro de Operação</div>
         <div class="grid grid-3">
           <div>
-            <div>
-              <label class="required" for="data">Data</label>
-              <input type="date" id="data" name="data" required />
-            </div>
+            <label class="required" for="data">Data</label>
+            <input type="date" id="data" name="data" required readonly />
           </div>
           <div>
-            <label class="required" for="sala_id">Local do Evento</label>
-            <select id="sala_id" name="sala_id" required disabled>
+            <label class="required" for="sala_id_display">Local do Evento</label>
+            <select id="sala_id_display" disabled>
               <option value="">Carregando...</option>
             </select>
+            <!-- Valor real que será enviado no POST -->
+            <input type="hidden" id="sala_id" name="sala_id" />
           </div>
           <div>
-            <label class="required" for="nome_evento">Nome do Evento</label>
-            <input type="text" id="nome_evento" name="nome_evento" required />
+            <label class="required" for="nome_evento_display">Nome do Evento</label>
+            <input type="text" id="nome_evento_display" disabled />
+            <input type="hidden" id="nome_evento" name="nome_evento" />
           </div>
         </div>
 
+
+
         <!-- 2) Detalhes da Anormalidade -->
         <div class="section-title">2) Detalhes da Anormalidade</div>
-        <div class="grid grid-3">
-          <div>
-            <label class="required" for="hora_inicio_anormalidade">Horário de início da anormalidade</label>
-            <input type="time" id="hora_inicio_anormalidade" name="hora_inicio_anormalidade" required />
-          </div>
-          <div>
-            <label for="data_solucao">Data da solução da anormalidade</label>
-            <input type="date" id="data_solucao" name="data_solucao" />
-          </div>
-          <div>
-            <label for="hora_solucao">Hora da solução da anormalidade</label>
-            <input type="time" id="hora_solucao" name="hora_solucao" />
+
+        <div>
+          <label class="required" for="hora_inicio_anormalidade">Horário de início da anormalidade</label>
+          <input type="time" id="hora_inicio_anormalidade" name="hora_inicio_anormalidade" required />
+        </div>
+
+        <div style="margin-top: 8px;">
+          <label class="required">A anormalidade foi solucionada?</label>
+          <div class="field-inline">
+            <label><input type="radio" name="anormalidade_solucionada" value="nao" checked /> Não</label>
+            <label><input type="radio" name="anormalidade_solucionada" value="sim" /> Sim</label>
           </div>
         </div>
-        <div>
+
+        <div id="grp_solucao" class="hidden" style="margin-top: 8px;">
+          <div class="grid grid-2">
+            <div>
+              <label for="data_solucao">Data da solução da anormalidade</label>
+              <input type="date" id="data_solucao" name="data_solucao" />
+            </div>
+            <div>
+              <label for="hora_solucao">Hora da solução da anormalidade</label>
+              <input type="time" id="hora_solucao" name="hora_solucao" />
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px;">
           <label class="required" for="descricao_anormalidade">Descrição da anormalidade</label>
           <textarea id="descricao_anormalidade" name="descricao_anormalidade" required></textarea>
         </div>

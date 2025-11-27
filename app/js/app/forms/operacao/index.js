@@ -1183,32 +1183,46 @@
             }
 
             const registroId = json.registro_id;
+            const entradaId = json.entrada_id;
+
             const houveAnomalia =
                 json.houve_anormalidade === true || json.houve_anormalidade === "true";
             const tipoEventoEfetivo =
                 (json.tipo_evento || tipoEvento || "operacao").toLowerCase();
             const isEdicao = !!json.is_edicao;
 
+            // Só abre RAOA automaticamente em NOVO registro, não em edição
+            const deveAbrirAnomalia =
+                houveAnomalia &&
+                tipoEventoEfetivo === "operacao" &&
+                !isEdicao;
+
             let msgBase = isEdicao
                 ? "Edição salva com sucesso."
                 : "Registro salvo com sucesso.";
-            if (houveAnomalia && tipoEventoEfetivo === "operacao") {
+
+            if (deveAbrirAnomalia) {
                 msgBase +=
                     "\n\nEm seguida será aberto o formulário de Registro de Anormalidade.";
             }
 
             alert(msgBase);
 
-            // Se houve anormalidade em Operação Comum, redireciona para o formulário de anormalidade
-            if (houveAnomalia && tipoEventoEfetivo === "operacao" && registroId) {
-                const urlAnom =
-                    "/forms/operacao/anormalidade.html?registro_id=" +
-                    encodeURIComponent(String(registroId));
+            // Se houve anormalidade em Operação Comum e é novo registro: abre RAOA
+            if (deveAbrirAnomalia && registroId) {
+                const params = new URLSearchParams();
+                params.set("registro_id", String(registroId));
+
+                if (entradaId) {
+                    params.set("entrada_id", String(entradaId));
+                    params.set("modo", "novo");
+                }
+
+                const urlAnom = "/forms/operacao/anormalidade.html?" + params.toString();
                 window.location.href = urlAnom;
                 return;
             }
 
-            // BUG 1 e BUG 5:
             // - Limpar o formulário após salvar (mantendo sala/tipo).
             // - Sair do modo edição para não ficar "grudado" o texto "Editando Xº Registro".
             modoEdicaoEntradaSeq = null;
