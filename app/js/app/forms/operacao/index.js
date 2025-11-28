@@ -1194,8 +1194,7 @@
             // Só abre RAOA automaticamente em NOVO registro, não em edição
             const deveAbrirAnomalia =
                 houveAnomalia &&
-                tipoEventoEfetivo === "operacao" &&
-                !isEdicao;
+                tipoEventoEfetivo === "operacao";
 
             let msgBase = isEdicao
                 ? "Edição salva com sucesso."
