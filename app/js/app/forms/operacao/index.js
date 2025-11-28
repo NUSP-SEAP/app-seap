@@ -1343,6 +1343,21 @@
 
     // ====== Bootstrap ======
     document.addEventListener("DOMContentLoaded", async function () {
+        // Garante que, ao voltar do RAOA / histórico, o botão não fique preso em "Salvando..."
+        window.addEventListener("pageshow", function () {
+            const btnEdicao = document.getElementById("btnSalvarEdicao");
+            const btnRegistro = document.getElementById("btnSalvarRegistro");
+
+            if (btnEdicao && btnEdicao.textContent.trim() === "Salvando...") {
+                btnEdicao.disabled = false;
+                btnEdicao.textContent = "Salvar Edição";
+            }
+
+            if (btnRegistro && btnRegistro.textContent.trim() === "Salvando...") {
+                btnRegistro.disabled = false;
+                btnRegistro.textContent = "Salvar registro";
+            }
+        });
         // Referências de DOM
         form = document.getElementById("form-roa");
 

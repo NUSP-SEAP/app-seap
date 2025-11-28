@@ -15,7 +15,8 @@ const AppConfig = {
         },
 
         admin: {
-            novoOperador: "/webhook/admin/operadores/novo"
+            novoOperador: "/webhook/admin/operadores/novo",
+            novoAdmin: "/webhook/admin/admins/novo"
         },
 
         // Rotas de consulta (usadas para preencher <select>)
