@@ -7,8 +7,12 @@
     <title>Admin | Senado NUSP</title>
 
     <link rel="stylesheet" href="/css/app/admin/index.css">
+    <link rel="stylesheet" href="/css/app/admin/dashboard.css">
+
     <script src="/js/config.js"></script>
+    <script src="/js/auth_jwt.js"></script>
     <script src="/js/session-autoload.js" defer></script>
+    <script src="/js/app/admin/index.js" defer></script>
 </head>
 
 <body>
@@ -29,6 +33,61 @@
                 Escala Semanal
                 <div class="muted">Gerenciar a escala dos operadores</div>
             </a>
+            <a class="card" href="/admin/operacoes_audio.html">
+                Operações de Áudio
+                <div class="muted">Gerenciar sessões, entradas e anormalidades</div>
+            </a>
+        </div>
+        <div class="section-header">
+            <h2>Operadores de Áudio</h2>
+        </div>
+        <div class="table-container">
+            <table class="data-table" id="tb-operadores">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>No Senado?</th>
+                        <th>Entrada</th>
+                        <th>Saída</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5" class="empty-state">Carregando operadores...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="pag-operadores" class="pagination-controls"></div>
+
+        <div class="section-header">
+            <h2>Verificação de Salas</h2>
+        </div>
+        <div class="table-container">
+            <table class="data-table" id="tb-checklists">
+                <thead>
+                    <tr>
+                        <th style="width: 20px;"></th>
+                        <th>Sala</th>
+                        <th>Data</th>
+                        <th>Verificado por</th>
+                        <th>Início</th>
+                        <th>Término</th>
+                        <th>Duração</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="empty-state">Carregando checklists...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="table-container">
+                <table class="data-table" id="tb-checklists">...</table>
+            </div>
+            <div id="pag-checklists" class="pagination-controls"></div>
         </div>
     </main>
 </body>

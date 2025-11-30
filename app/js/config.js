@@ -19,6 +19,15 @@ const AppConfig = {
             novoAdmin: "/webhook/admin/admins/novo"
         },
 
+        // --- NOVOS ENDPOINTS DO DASHBOARD ---
+        adminDashboard: {
+            operadores: "/webhook/admin/dashboard/operadores",
+            checklists: "/webhook/admin/dashboard/checklists",
+            operacoes: "/webhook/admin/dashboard/operacoes",
+            detalheOperacao: "/webhook/admin/operacao/detalhe",
+            detalheChecklist: "/webhook/admin/checklist/detalhe"
+        },
+
         // Rotas de consulta (usadas para preencher <select>)
         lookups: {
             salas: "/webhook/forms/lookup/salas",

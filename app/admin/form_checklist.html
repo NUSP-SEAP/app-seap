@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>Detalhe do Checklist | Admin</title>
+
+    <link rel="stylesheet" href="/css/app/forms/checklist/index.css">
+    <link rel="stylesheet" href="/css/app/admin/form_checklist.css">
+</head>
+
+<body>
+    <main>
+        <div class="card">
+            <span class="read-only-badge">Apenas Leitura</span>
+            <h1>Detalhe da Verificação de Sala</h1>
+            <p class="subtitle">
+                Visualização administrativa do checklist nº <span id="display-id">--</span>.
+            </p>
+
+            <form id="form-checklist-readonly">
+                <!-- 1) Identificação -->
+                <div class="section-title">1) Identificação</div>
+                <div class="grid grid-3">
+                    <div>
+                        <label for="data_operacao">Data da operação</label>
+                        <input type="text" id="data_operacao" readonly />
+                    </div>
+                    <div>
+                        <label for="sala_nome">Local do Evento</label>
+                        <input type="text" id="sala_nome" readonly />
+                    </div>
+                    <div>
+                        <label for="turno">Turno</label>
+                        <input type="text" id="turno" readonly />
+                    </div>
+                </div>
+
+                <!-- Horários -->
+                <div class="grid grid-3" style="margin-top: 10px;">
+                    <div>
+                        <label for="hora_inicio">Início</label>
+                        <input type="text" id="hora_inicio" readonly />
+                    </div>
+                    <div>
+                        <label for="hora_termino">Término</label>
+                        <input type="text" id="hora_termino" readonly />
+                    </div>
+                    <div>
+                        <label for="duracao">Duração</label>
+                        <input type="text" id="duracao" readonly />
+                    </div>
+                </div>
+
+                <!-- 2) Itens do teste -->
+                <div class="section-title">2) Itens do teste</div>
+                <div id="checklist-items-container" class="checklist">
+                    <!-- Itens serão injetados aqui via JS -->
+                    <div class="muted">Carregando itens...</div>
+                </div>
+
+                <!-- 3) Recursos/Parâmetros -->
+                <div class="section-title">3) Recursos/Parâmetros</div>
+                <div class="grid grid-2">
+                    <div>
+                        <label for="usb_01">USB 01</label>
+                        <input type="text" id="usb_01" readonly />
+                    </div>
+                    <div>
+                        <label for="usb_02">USB 02</label>
+                        <input type="text" id="usb_02" readonly />
+                    </div>
+                </div>
+
+                <!-- 4) Observações -->
+                <div class="section-title">4) Observações</div>
+                <div>
+                    <label for="observacoes">Anotações gerais</label>
+                    <textarea id="observacoes" readonly></textarea>
+                </div>
+
+                <!-- 5) Responsável -->
+                <div class="section-title">5) Responsável</div>
+                <div>
+                    <label for="operador_nome">Verificado por</label>
+                    <input type="text" id="operador_nome" readonly />
+                </div>
+
+                <!-- Ações -->
+                <div class="actions" style="justify-content: space-between; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="window.close()">Fechar Aba</button>
+                    <button type="button" class="btn btn-primary" disabled title="Funcionalidade futura">Imprimir
+                        🖨️</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth_jwt.js"></script>
+    <script src="/js/session-autoload.js" defer></script>
+    <script src="/js/app/admin/form_checklist.js" defer></script>
+</body>
+
+</html>
