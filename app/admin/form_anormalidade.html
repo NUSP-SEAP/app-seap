@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Detalhe da Anormalidade | Admin</title>
+    <link rel="stylesheet" href="/css/app/admin/form_anormalidade.css">
+</head>
+
+<body>
+    <main>
+        <div class="card">
+            <span class="read-only-badge">Apenas Leitura</span>
+            <h1>Detalhe da Anormalidade</h1>
+            <p class="subtitle">
+                Visualização administrativa do registro nº <span id="display-id">--</span>.
+            </p>
+
+            <form id="form-raoa-readonly">
+                <div class="section-title">1) Dados do Evento</div>
+                <div class="grid grid-3">
+                    <div>
+                        <label>Data</label>
+                        <input type="text" id="data" readonly />
+                    </div>
+                    <div>
+                        <label>Local</label>
+                        <input type="text" id="sala_nome" readonly />
+                    </div>
+                    <div>
+                        <label>Evento</label>
+                        <input type="text" id="nome_evento" readonly />
+                    </div>
+                </div>
+
+                <div class="section-title">2) Detalhes do Ocorrido</div>
+                <div>
+                    <label>Horário de início</label>
+                    <input type="time" id="hora_inicio_anormalidade" readonly style="max-width: 150px;" />
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <label>Descrição</label>
+                    <textarea id="descricao_anormalidade" readonly></textarea>
+                </div>
+
+                <div class="section-title">3) Solução</div>
+                <div class="grid grid-2">
+                    <div>
+                        <label>Foi solucionada?</label>
+                        <input type="text" id="foi_solucionada" readonly />
+                    </div>
+                    <div id="grp_solucao" class="hidden">
+                        <label>Data/Hora Solução</label>
+                        <input type="text" id="data_hora_solucao" readonly />
+                    </div>
+                </div>
+
+                <div class="section-title">4) Impactos e Procedimentos</div>
+
+                <div class="field-group">
+                    <label>Houve prejuízo?</label>
+                    <input type="text" id="houve_prejuizo" readonly />
+                    <div id="grp_prejuizo" class="hidden" style="margin-top: 5px;">
+                        <textarea id="descricao_prejuizo" readonly></textarea>
+                    </div>
+                </div>
+
+                <div class="field-group" style="margin-top: 10px;">
+                    <label>Houve reclamação?</label>
+                    <input type="text" id="houve_reclamacao" readonly />
+                    <div id="grp_reclamacao" class="hidden" style="margin-top: 5px;">
+                        <textarea id="autores_conteudo_reclamacao" readonly></textarea>
+                    </div>
+                </div>
+
+                <div class="field-group" style="margin-top: 10px;">
+                    <label>Acionou manutenção?</label>
+                    <input type="text" id="acionou_manutencao" readonly />
+                    <div id="grp_manutencao" class="hidden" style="margin-top: 5px;">
+                        <label>Hora acionamento:</label>
+                        <input type="time" id="hora_acionamento_manutencao" readonly style="max-width: 150px;" />
+                    </div>
+                </div>
+
+                <div class="field-group" style="margin-top: 10px;">
+                    <label>Resolvida pelo operador?</label>
+                    <input type="text" id="resolvida_pelo_operador" readonly />
+                    <div id="grp_procedimentos" class="hidden" style="margin-top: 5px;">
+                        <textarea id="procedimentos_adotados" readonly></textarea>
+                    </div>
+                </div>
+
+                <div class="section-title">5) Responsáveis</div>
+                <div class="grid grid-2">
+                    <div>
+                        <label>Registrado por (Operador)</label>
+                        <input type="text" id="registrado_por" readonly />
+                    </div>
+                    <div>
+                        <label>Responsável do Evento</label>
+                        <input type="text" id="responsavel_evento" readonly />
+                    </div>
+                </div>
+
+                <div class="actions" style="justify-content: space-between; margin-top: 30px;">
+                    <button type="button" class="btn-secondary" onclick="window.close()">Fechar Aba</button>
+                    <button type="button" class="btn-primary" disabled title="Funcionalidade futura">Imprimir
+                        🖨️</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth_jwt.js"></script>
+    <script src="/js/session-autoload.js"></script>
+    <script src="/js/app/admin/form_anormalidade.js" defer></script>
+</body>
+
+</html>

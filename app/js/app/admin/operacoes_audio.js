@@ -191,9 +191,175 @@
         renderPaginationControls("pag-operacoes", meta, loadOperacoes);
     }
 
+    // =================================================================
+    // --- LÓGICA DA TABELA DE ANORMALIDADES (AGRUPADA POR SALA) ---
+    // =================================================================
+
+    // 1. Carrega a lista de salas (Linhas Mestre)
+    async function loadSalasComAnormalidades() {
+        const endpoint = AppConfig.endpoints.adminDashboard.anormalidades.salas;
+        const url = AppConfig.apiUrl(endpoint);
+
+        const resp = await fetchJson(url);
+        const tbody = document.querySelector("#tb-anormalidades tbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const data = resp.data || [];
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="2" class="empty-state">Nenhuma anormalidade registrada no sistema.</td></tr>`;
+            return;
+        }
+
+        data.forEach(sala => {
+            // Linha Pai (Sala)
+            const trParent = document.createElement("tr");
+            trParent.className = "accordion-parent";
+            trParent.dataset.salaId = sala.id; // Guarda ID para lazy load
+            trParent.dataset.loaded = "false"; // Flag para carregar só na 1ª vez
+
+            trParent.innerHTML = `
+                <td><span class="toggle-icon">▶</span></td>
+                <td><strong>${sala.nome}</strong></td>
+            `;
+
+            // Linha Filha (Container da Tabela Interna)
+            const trChild = document.createElement("tr");
+            trChild.className = "accordion-child";
+            trChild.id = `child-sala-${sala.id}`;
+            trChild.innerHTML = `
+                <td colspan="2">
+                    <div class="sub-table-wrap">
+                        <div id="container-anom-${sala.id}" style="min-height:50px;">
+                            <span class="muted">Carregando histórico...</span>
+                        </div>
+                        <div id="pag-anom-sala-${sala.id}" class="pagination-controls" style="margin-top:8px;"></div>
+                    </div>
+                </td>
+            `;
+
+            // Evento de Click na Sala
+            trParent.addEventListener("click", () => {
+                const isOpen = trParent.classList.contains("open");
+
+                // Toggle visual
+                trParent.classList.toggle("open");
+                if (!isOpen) {
+                    trChild.classList.add("visible");
+                    // Lazy Load: Se nunca carregou, busca a página 1 agora
+                    if (trParent.dataset.loaded === "false") {
+                        loadAnormalidadesDaSala(sala.id, 1);
+                        trParent.dataset.loaded = "true";
+                    }
+                } else {
+                    trChild.classList.remove("visible");
+                }
+            });
+
+            tbody.appendChild(trParent);
+            tbody.appendChild(trChild);
+        });
+    }
+
+    // 2. Carrega as Anormalidades de uma Sala Específica (Paginado)
+    async function loadAnormalidadesDaSala(salaId, page = 1) {
+        const limit = 10;
+        const endpoint = AppConfig.endpoints.adminDashboard.anormalidades.lista;
+        const url = `${AppConfig.apiUrl(endpoint)}?sala_id=${salaId}&page=${page}&limit=${limit}`;
+
+        const container = document.getElementById(`container-anom-${salaId}`);
+        const pagContainerId = `pag-anom-sala-${salaId}`;
+
+        // Feedback visual de carregamento (opcional, suave)
+        container.style.opacity = "0.5";
+
+        const resp = await fetchJson(url);
+
+        container.style.opacity = "1";
+
+        const data = resp.data || [];
+        const meta = resp.meta || { page: 1, pages: 1, total: 0 };
+
+        if (data.length === 0) {
+            container.innerHTML = `<div class="empty-state" style="padding:10px;">Nenhum registro encontrado nesta página.</div>`;
+            return;
+        }
+
+        // Renderiza Tabela Interna
+        let html = `
+            <table class="sub-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Registrado por</th>
+                        <th>Descrição</th>
+                        <th>Solucionada</th>
+                        <th>Prejuízo</th>
+                        <th>Reclamação</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.forEach(row => {
+            const dateStr = fmtDate(row.data);
+
+            // Tratamento de badges/cores
+            const solucaoBadge = row.solucionada
+                ? `<span class="text-green bold">Sim</span>`
+                : `<span class="text-red">Não</span>`;
+
+            const prejText = row.houve_prejuizo ? "Sim" : "Não";
+            const prejClass = row.houve_prejuizo ? "text-red bold" : "text-gray";
+
+            const reclText = row.houve_reclamacao ? "Sim" : "Não";
+            const reclClass = row.houve_reclamacao ? "text-red bold" : "text-gray";
+
+            // Descrição truncada se for muito longa
+            const desc = row.descricao && row.descricao.length > 60
+                ? row.descricao.substring(0, 60) + "..."
+                : (row.descricao || "");
+
+            html += `
+                <tr>
+                    <td>${dateStr}</td>
+                    <td>${row.registrado_por}</td>
+                    <td>${desc}</td>
+                    <td>${solucaoBadge}</td>
+                    <td class="${prejClass}">${prejText}</td>
+                    <td class="${reclClass}">${reclText}</td>
+                    <td>
+                        <button class="btn-xs btn-ver-anom" data-id="${row.id}">Formulário 📄</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+        // Renderiza Paginação Interna (recursiva para esta mesma função)
+        renderPaginationControls(pagContainerId, meta, (newPage) => {
+            loadAnormalidadesDaSala(salaId, newPage);
+        });
+
+        // Bind dos botões "Formulário" recém-criados
+        container.querySelectorAll(".btn-ver-anom").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation(); // Evita fechar o accordion
+                const id = btn.dataset.id;
+                // Abre a página de detalhes (que implementaremos a seguir)
+                window.open(`/admin/form_anormalidade.html?id=${id}`, '_blank');
+            });
+        });
+    }
+
     // --- Inicialização ---
     document.addEventListener("DOMContentLoaded", () => {
         loadOperacoes(1); // Inicia na página 1
+        loadSalasComAnormalidades(); // Carrega a segunda tabela (Anormalidades)
     });
 
 })();

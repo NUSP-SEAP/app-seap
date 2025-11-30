@@ -25,7 +25,14 @@ const AppConfig = {
             checklists: "/webhook/admin/dashboard/checklists",
             operacoes: "/webhook/admin/dashboard/operacoes",
             detalheOperacao: "/webhook/admin/operacao/detalhe",
-            detalheChecklist: "/webhook/admin/checklist/detalhe"
+            detalheChecklist: "/webhook/admin/checklist/detalhe",
+
+            // --- Novos Endpoints de Anormalidade ---
+            anormalidades: {
+                salas: "/webhook/admin/dashboard/anormalidades/salas",
+                lista: "/webhook/admin/dashboard/anormalidades/lista",
+                detalhe: "/webhook/admin/anormalidade/detalhe"
+            }
         },
 
         // Rotas de consulta (usadas para preencher <select>)
