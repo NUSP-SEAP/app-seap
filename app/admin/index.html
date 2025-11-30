@@ -38,15 +38,20 @@
                 <div class="muted">Gerenciar sessões, entradas e anormalidades</div>
             </a>
         </div>
+
         <div class="section-header">
             <h2>Operadores de Áudio</h2>
+            <div class="toolbar">
+                <input type="text" id="search-operadores" class="search-input"
+                    placeholder="Buscar por nome ou e-mail...">
+            </div>
         </div>
         <div class="table-container">
             <table class="data-table" id="tb-operadores">
                 <thead>
                     <tr>
-                        <th>Nome</th>
-                        <th>E-mail</th>
+                        <th class="sortable" data-sort="nome">Nome</th>
+                        <th class="sortable" data-sort="email">E-mail</th>
                         <th>No Senado?</th>
                         <th>Entrada</th>
                         <th>Saída</th>
@@ -63,18 +68,22 @@
 
         <div class="section-header">
             <h2>Verificação de Salas</h2>
+            <div class="toolbar">
+                <input type="text" id="search-checklists" class="search-input"
+                    placeholder="Buscar por sala ou operador...">
+            </div>
         </div>
         <div class="table-container">
             <table class="data-table" id="tb-checklists">
                 <thead>
                     <tr>
                         <th style="width: 20px;"></th>
-                        <th>Sala</th>
-                        <th>Data</th>
-                        <th>Verificado por</th>
+                        <th class="sortable" data-sort="sala">Sala</th>
+                        <th class="sortable" data-sort="data">Data</th>
+                        <th class="sortable" data-sort="operador">Verificado por</th>
                         <th>Início</th>
                         <th>Término</th>
-                        <th>Duração</th>
+                        <th class="sortable" data-sort="duracao">Duração</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -84,11 +93,8 @@
                     </tr>
                 </tbody>
             </table>
-            <div class="table-container">
-                <table class="data-table" id="tb-checklists">...</table>
-            </div>
-            <div id="pag-checklists" class="pagination-controls"></div>
         </div>
+        <div id="pag-checklists" class="pagination-controls"></div>
     </main>
 </body>
 

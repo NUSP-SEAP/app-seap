@@ -1,6 +1,15 @@
 (function () {
     "use strict";
 
+    // --- Estado da Tabela de Operações ---
+    const stateOps = {
+        page: 1,
+        limit: 10,
+        search: "",
+        sort: "data", // Ordenação padrão por data
+        dir: "desc"   // Mais recentes primeiro
+    };
+
     // --- Helpers de Data/Hora ---
     const fmtDate = (d) => {
         if (!d) return "--";
@@ -14,13 +23,20 @@
         return t.substring(0, 5);
     };
 
+    // --- Helper Debounce (para a busca) ---
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
     // --- Helper de Paginação ---
-    // (Incluído aqui para garantir que funcione nesta página isolada)
     function renderPaginationControls(containerId, meta, onPageChange) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        // Se não houver meta ou total for 0, limpa e sai
         if (!meta || !meta.total) {
             container.innerHTML = "";
             return;
@@ -40,7 +56,6 @@
             </div>
         `;
 
-        // Bind dos eventos
         const btnPrev = document.getElementById(`prev-${containerId}`);
         const btnNext = document.getElementById(`next-${containerId}`);
 
@@ -48,7 +63,7 @@
         if (btnNext) btnNext.onclick = () => onPageChange(current + 1);
     }
 
-    // --- Fetch Autenticado que retorna o JSON completo ---
+    // --- Fetch Autenticado ---
     async function fetchJson(url) {
         if (!window.Auth || typeof Auth.authFetch !== 'function') {
             console.error("Auth não carregado");
@@ -57,38 +72,75 @@
         try {
             const resp = await Auth.authFetch(url);
             if (!resp.ok) throw new Error("HTTP " + resp.status);
-            // Retorna o objeto inteiro: { ok: true, data: [...], meta: {...} }
             return await resp.json();
         } catch (e) {
             console.error(e);
-            return { ok: false, data: [] }; // Retorno seguro em caso de erro
+            return { ok: false, data: [] };
         }
     }
 
-    // --- Carregar Operações (Paginado) ---
-    async function loadOperacoes(page = 1) {
-        // Monta a URL com ?page=X&limit=10
+    // --- Gerenciamento Visual de Ordenação ---
+    function updateHeaderIcons(tableId, state) {
+        const headers = document.querySelectorAll(`#${tableId} th.sortable`);
+        headers.forEach(th => {
+            th.classList.remove("asc", "desc");
+            if (th.dataset.sort === state.sort) {
+                th.classList.add(state.dir);
+            }
+        });
+    }
+
+    function bindSortHeaders(tableId, stateObj, loadFunc) {
+        const headers = document.querySelectorAll(`#${tableId} th.sortable`);
+        headers.forEach(th => {
+            th.addEventListener("click", () => {
+                const col = th.dataset.sort;
+
+                if (stateObj.sort === col) {
+                    stateObj.dir = stateObj.dir === "asc" ? "desc" : "asc";
+                } else {
+                    stateObj.sort = col;
+                    stateObj.dir = "asc";
+                }
+                stateObj.page = 1;
+                loadFunc();
+            });
+        });
+    }
+
+    // =================================================================
+    // --- LÓGICA DA TABELA DE OPERAÇÕES (SESSÕES) ---
+    // =================================================================
+
+    async function loadOperacoes() {
+        updateHeaderIcons("tb-operacoes", stateOps);
+
         const endpoint = AppConfig.endpoints.adminDashboard.operacoes;
-        const url = `${AppConfig.apiUrl(endpoint)}?page=${page}&limit=10`;
+        // Envia parâmetros de busca e ordenação
+        const params = new URLSearchParams({
+            page: stateOps.page,
+            limit: stateOps.limit,
+            search: stateOps.search,
+            sort: stateOps.sort,
+            dir: stateOps.dir
+        });
 
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
-        const tbody = document.querySelector("#tb-operacoes tbody");
 
+        const tbody = document.querySelector("#tb-operacoes tbody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
-        // Extrai dados e meta
         const data = resp.data || [];
         const meta = resp.meta || { page: 1, pages: 1, total: 0 };
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Nenhum registro de operação encontrado.</td></tr>`;
-            const pagContainer = document.getElementById("pag-operacoes");
-            if (pagContainer) pagContainer.innerHTML = "";
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Nenhum registro encontrado.</td></tr>`;
+            renderPaginationControls("pag-operacoes", null, null);
             return;
         }
 
-        // Renderiza as linhas
         data.forEach(sessao => {
             // 1. Linha Pai (Sessão)
             const trParent = document.createElement("tr");
@@ -162,7 +214,7 @@
                 </td>
             `;
 
-            // 3. Eventos
+            // Eventos
             trParent.addEventListener("click", () => {
                 trParent.classList.toggle("open");
                 if (trParent.classList.contains("open")) {
@@ -187,13 +239,18 @@
             tbody.appendChild(trChild);
         });
 
-        // 4. Renderiza Paginação (Chamada CRUCIAL)
-        renderPaginationControls("pag-operacoes", meta, loadOperacoes);
+        renderPaginationControls("pag-operacoes", meta, (newPage) => {
+            stateOps.page = newPage;
+            loadOperacoes();
+        });
     }
 
     // =================================================================
     // --- LÓGICA DA TABELA DE ANORMALIDADES (AGRUPADA POR SALA) ---
     // =================================================================
+    // Obs: Esta lógica permanece 'estática' quanto à busca geral por enquanto.
+    // A busca dinâmica em cascata (Filtro Global -> Sala -> Anormalidade) 
+    // será implementada no Chat 3.
 
     // 1. Carrega a lista de salas (Linhas Mestre)
     async function loadSalasComAnormalidades() {
@@ -213,18 +270,16 @@
         }
 
         data.forEach(sala => {
-            // Linha Pai (Sala)
             const trParent = document.createElement("tr");
             trParent.className = "accordion-parent";
-            trParent.dataset.salaId = sala.id; // Guarda ID para lazy load
-            trParent.dataset.loaded = "false"; // Flag para carregar só na 1ª vez
+            trParent.dataset.salaId = sala.id;
+            trParent.dataset.loaded = "false";
 
             trParent.innerHTML = `
                 <td><span class="toggle-icon">▶</span></td>
                 <td><strong>${sala.nome}</strong></td>
             `;
 
-            // Linha Filha (Container da Tabela Interna)
             const trChild = document.createElement("tr");
             trChild.className = "accordion-child";
             trChild.id = `child-sala-${sala.id}`;
@@ -239,15 +294,11 @@
                 </td>
             `;
 
-            // Evento de Click na Sala
             trParent.addEventListener("click", () => {
                 const isOpen = trParent.classList.contains("open");
-
-                // Toggle visual
                 trParent.classList.toggle("open");
                 if (!isOpen) {
                     trChild.classList.add("visible");
-                    // Lazy Load: Se nunca carregou, busca a página 1 agora
                     if (trParent.dataset.loaded === "false") {
                         loadAnormalidadesDaSala(sala.id, 1);
                         trParent.dataset.loaded = "true";
@@ -271,7 +322,6 @@
         const container = document.getElementById(`container-anom-${salaId}`);
         const pagContainerId = `pag-anom-sala-${salaId}`;
 
-        // Feedback visual de carregamento (opcional, suave)
         container.style.opacity = "0.5";
 
         const resp = await fetchJson(url);
@@ -286,7 +336,6 @@
             return;
         }
 
-        // Renderiza Tabela Interna
         let html = `
             <table class="sub-table">
                 <thead>
@@ -305,8 +354,6 @@
 
         data.forEach(row => {
             const dateStr = fmtDate(row.data);
-
-            // Tratamento de badges/cores
             const solucaoBadge = row.solucionada
                 ? `<span class="text-green bold">Sim</span>`
                 : `<span class="text-red">Não</span>`;
@@ -317,7 +364,6 @@
             const reclText = row.houve_reclamacao ? "Sim" : "Não";
             const reclClass = row.houve_reclamacao ? "text-red bold" : "text-gray";
 
-            // Descrição truncada se for muito longa
             const desc = row.descricao && row.descricao.length > 60
                 ? row.descricao.substring(0, 60) + "..."
                 : (row.descricao || "");
@@ -340,26 +386,39 @@
         html += `</tbody></table>`;
         container.innerHTML = html;
 
-        // Renderiza Paginação Interna (recursiva para esta mesma função)
         renderPaginationControls(pagContainerId, meta, (newPage) => {
             loadAnormalidadesDaSala(salaId, newPage);
         });
 
-        // Bind dos botões "Formulário" recém-criados
         container.querySelectorAll(".btn-ver-anom").forEach(btn => {
             btn.addEventListener("click", (e) => {
-                e.stopPropagation(); // Evita fechar o accordion
+                e.stopPropagation();
                 const id = btn.dataset.id;
-                // Abre a página de detalhes (que implementaremos a seguir)
                 window.open(`/admin/form_anormalidade.html?id=${id}`, '_blank');
             });
         });
     }
 
+    // =========================================================
     // --- Inicialização ---
+    // =========================================================
     document.addEventListener("DOMContentLoaded", () => {
-        loadOperacoes(1); // Inicia na página 1
-        loadSalasComAnormalidades(); // Carrega a segunda tabela (Anormalidades)
+        // 1. Bind Busca Operações
+        const searchOps = document.getElementById("search-operacoes");
+        if (searchOps) {
+            searchOps.addEventListener("input", debounce((e) => {
+                stateOps.search = e.target.value.trim();
+                stateOps.page = 1;
+                loadOperacoes();
+            }, 400));
+        }
+
+        // 2. Bind Header Ordenação
+        bindSortHeaders("tb-operacoes", stateOps, loadOperacoes);
+
+        // 3. Carga Inicial
+        loadOperacoes();
+        loadSalasComAnormalidades();
     });
 
 })();

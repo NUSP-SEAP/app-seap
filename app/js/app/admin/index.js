@@ -1,7 +1,25 @@
 (function () {
     "use strict";
 
-    // --- Helpers de Data/Hora ---
+    // --- Estado das Tabelas ---
+    const stateOp = {
+        page: 1,
+        limit: 10,
+        search: "",
+        sort: "nome", // Padrão definido no backend
+        dir: "asc"
+    };
+
+    const stateChk = {
+        page: 1,
+        limit: 10,
+        search: "",
+        sort: "data", // Padrão definido no backend
+        dir: "desc"
+    };
+
+    // --- Helpers Genéricos ---
+
     const fmtDate = (d) => {
         if (!d) return "--";
         const parts = d.split('-');
@@ -14,7 +32,19 @@
         return t.substring(0, 5);
     };
 
-    // --- Helper de Paginação ---
+    /**
+     * Função Debounce: Executa 'func' apenas após 'wait' milissegundos
+     * sem novos eventos. Usada para o input de busca.
+     */
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    // --- Renderização de Paginação ---
     function renderPaginationControls(containerId, meta, onPageChange) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -61,11 +91,58 @@
         }
     }
 
-    // --- 1. Tabela Operadores ---
-    async function loadOperadores(page = 1) {
-        const endpoint = AppConfig.endpoints.adminDashboard.operadores;
-        const url = `${AppConfig.apiUrl(endpoint)}?page=${page}&limit=10`;
+    // --- Gerenciamento Visual de Ordenação ---
+    function updateHeaderIcons(tableId, state) {
+        const headers = document.querySelectorAll(`#${tableId} th.sortable`);
+        headers.forEach(th => {
+            th.classList.remove("asc", "desc"); // Remove classes anteriores
+            if (th.dataset.sort === state.sort) {
+                th.classList.add(state.dir); // Adiciona a direção atual na coluna ativa
+            }
+        });
+    }
 
+    function bindSortHeaders(tableId, stateObj, loadFunc) {
+        const headers = document.querySelectorAll(`#${tableId} th.sortable`);
+        headers.forEach(th => {
+            th.addEventListener("click", () => {
+                const col = th.dataset.sort;
+
+                // Se clicou na mesma coluna, inverte a direção
+                if (stateObj.sort === col) {
+                    stateObj.dir = stateObj.dir === "asc" ? "desc" : "asc";
+                } else {
+                    // Nova coluna: define como ativa e reseta para ASC (ou padrão desejado)
+                    stateObj.sort = col;
+                    stateObj.dir = "asc";
+                }
+
+                // Volta para a página 1 ao reordenar
+                stateObj.page = 1;
+
+                loadFunc(); // Recarrega os dados
+            });
+        });
+    }
+
+    // =========================================================
+    // --- 1. Lógica de Operadores ---
+    // =========================================================
+
+    async function loadOperadores() {
+        updateHeaderIcons("tb-operadores", stateOp);
+
+        const endpoint = AppConfig.endpoints.adminDashboard.operadores;
+        // Monta QueryString com search, sort e dir
+        const params = new URLSearchParams({
+            page: stateOp.page,
+            limit: stateOp.limit,
+            search: stateOp.search,
+            sort: stateOp.sort,
+            dir: stateOp.dir
+        });
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
 
         const tbody = document.querySelector("#tb-operadores tbody");
@@ -77,8 +154,7 @@
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Nenhum operador encontrado.</td></tr>`;
-            const pagContainer = document.getElementById("pag-operadores");
-            if (pagContainer) pagContainer.innerHTML = "";
+            renderPaginationControls("pag-operadores", null, null);
             return;
         }
 
@@ -87,32 +163,45 @@
             tr.innerHTML = `
                 <td><strong>${op.nome_completo}</strong></td>
                 <td>${op.email}</td>
-                <td><span class="badge gray">${op.status_local}</span></td>
+                <td><span class="text-gray">${op.status_local}</span></td>
                 <td>${op.hora_entrada}</td>
                 <td>${op.hora_saida}</td>
             `;
-
             tr.style.cursor = "pointer";
             tr.title = "Dê um duplo-clique para ver detalhes (Em breve)";
-
             tr.addEventListener("dblclick", () => {
+                // Futuro: window.location.href = `/admin/info_operador.html?id=${op.id}`;
                 alert("Detalhes do operador: Funcionalidade futura.");
             });
-
             tbody.appendChild(tr);
         });
 
-        renderPaginationControls("pag-operadores", meta, loadOperadores);
+        renderPaginationControls("pag-operadores", meta, (newPage) => {
+            stateOp.page = newPage;
+            loadOperadores();
+        });
     }
 
-    // --- 2. Tabela Checklists ---
-    async function loadChecklists(page = 1) {
+    // =========================================================
+    // --- 2. Lógica de Checklists ---
+    // =========================================================
+
+    async function loadChecklists() {
+        updateHeaderIcons("tb-checklists", stateChk);
+
         const endpoint = AppConfig.endpoints.adminDashboard.checklists;
-        const url = `${AppConfig.apiUrl(endpoint)}?page=${page}&limit=10`;
+        const params = new URLSearchParams({
+            page: stateChk.page,
+            limit: stateChk.limit,
+            search: stateChk.search,
+            sort: stateChk.sort,
+            dir: stateChk.dir
+        });
 
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
-        const tbody = document.querySelector("#tb-checklists tbody");
 
+        const tbody = document.querySelector("#tb-checklists tbody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
@@ -121,8 +210,7 @@
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Nenhum checklist encontrado.</td></tr>`;
-            const pagContainer = document.getElementById("pag-checklists");
-            if (pagContainer) pagContainer.innerHTML = "";
+            renderPaginationControls("pag-checklists", null, null);
             return;
         }
 
@@ -184,6 +272,7 @@
                 </td>
             `;
 
+            // Toggle Accordion
             trParent.addEventListener("click", (e) => {
                 if (e.target.closest('.btn-form')) return;
                 trParent.classList.toggle("open");
@@ -194,7 +283,7 @@
                 }
             });
 
-            // --- AÇÃO DO BOTÃO FORMULÁRIO (Atualizado) ---
+            // Botão Formulário
             const btnForm = trParent.querySelector(".btn-form");
             btnForm.addEventListener("click", (e) => {
                 e.stopPropagation();
@@ -207,13 +296,43 @@
             tbody.appendChild(trChild);
         });
 
-        renderPaginationControls("pag-checklists", meta, loadChecklists);
+        renderPaginationControls("pag-checklists", meta, (newPage) => {
+            stateChk.page = newPage;
+            loadChecklists();
+        });
     }
 
+    // =========================================================
     // --- Inicialização ---
+    // =========================================================
     document.addEventListener("DOMContentLoaded", () => {
-        loadOperadores(1);
-        loadChecklists(1);
+        // 1. Bind Busca Operadores
+        const searchOp = document.getElementById("search-operadores");
+        if (searchOp) {
+            searchOp.addEventListener("input", debounce((e) => {
+                stateOp.search = e.target.value.trim();
+                stateOp.page = 1; // Reseta para a primeira página ao buscar
+                loadOperadores();
+            }, 400)); // Aguarda 400ms após parar de digitar
+        }
+
+        // 2. Bind Busca Checklists
+        const searchChk = document.getElementById("search-checklists");
+        if (searchChk) {
+            searchChk.addEventListener("input", debounce((e) => {
+                stateChk.search = e.target.value.trim();
+                stateChk.page = 1;
+                loadChecklists();
+            }, 400));
+        }
+
+        // 3. Bind Header Clicks (Ordenação)
+        bindSortHeaders("tb-operadores", stateOp, loadOperadores);
+        bindSortHeaders("tb-checklists", stateChk, loadChecklists);
+
+        // 4. Carga Inicial
+        loadOperadores();
+        loadChecklists();
     });
 
 })();

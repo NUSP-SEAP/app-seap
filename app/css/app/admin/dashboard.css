@@ -15,12 +15,36 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    /* Permite quebrar linha em mobile */
+    gap: 12px;
 }
 
 .section-header h2 {
     font-size: 1.25rem;
     color: #1e293b;
     margin: 0;
+}
+
+/* --- Barra de Ferramentas (Busca) --- */
+.toolbar {
+    display: flex;
+    gap: 10px;
+}
+
+.search-input {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    width: 250px;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 /* --- Tabelas de Dados --- */
@@ -50,6 +74,43 @@ table.data-table th {
     font-weight: 600;
     color: #475569;
     white-space: nowrap;
+    user-select: none;
+    /* Evita selecionar texto ao clicar repetidamente */
+}
+
+/* Cabeçalhos Ordenáveis */
+th.sortable {
+    cursor: pointer;
+    position: relative;
+    padding-right: 24px;
+    /* Espaço para a seta */
+}
+
+th.sortable:hover {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+/* Ícones de Ordenação (Pseudo-elementos) */
+th.sortable::after {
+    content: '↕';
+    position: absolute;
+    right: 8px;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    opacity: 0.5;
+}
+
+th.sortable.asc::after {
+    content: '↑';
+    color: #2563eb;
+    opacity: 1;
+}
+
+th.sortable.desc::after {
+    content: '↓';
+    color: #2563eb;
+    opacity: 1;
 }
 
 table.data-table tbody tr:last-child td {

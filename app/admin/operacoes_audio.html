@@ -24,17 +24,21 @@
 
         <div class="section-header">
             <h2>Registros de Operação (Sessões)</h2>
+            <div class="toolbar">
+                <input type="text" id="search-operacoes" class="search-input"
+                    placeholder="Buscar por sala, operador ou data...">
+            </div>
         </div>
         <div class="table-container">
             <table class="data-table" id="tb-operacoes">
                 <thead>
                     <tr>
                         <th style="width: 20px;"></th>
-                        <th>Sala</th>
-                        <th>Data</th>
-                        <th>1º Registro por</th>
+                        <th class="sortable" data-sort="sala">Sala</th>
+                        <th class="sortable" data-sort="data">Data</th>
+                        <th class="sortable" data-sort="autor">1º Registro por</th>
                         <th>Checklist?</th>
-                        <th>Em Aberto?</th>
+                        <th class="sortable" data-sort="em_aberto">Em Aberto?</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,6 +52,10 @@
 
         <div class="section-header">
             <h2>Relatórios de Anormalidades (Por Sala)</h2>
+            <div class="toolbar">
+                <input type="text" id="search-anormalidades" class="search-input"
+                    placeholder="Buscar anormalidade (Em breve)...">
+            </div>
         </div>
         <div class="table-container">
             <table class="data-table" id="tb-anormalidades">
