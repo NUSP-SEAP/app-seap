@@ -1,13 +1,22 @@
 (function () {
     "use strict";
 
-    // --- Estado da Tabela de Operações ---
+    // --- Estado da Tabela de Operações (Sessões) ---
     const stateOps = {
         page: 1,
         limit: 10,
         search: "",
-        sort: "data", // Ordenação padrão por data
-        dir: "desc"   // Mais recentes primeiro
+        sort: "data",
+        dir: "desc"
+    };
+
+    // --- Novo Estado da Tabela de Anormalidades (Master-Detail) ---
+    const anomState = {
+        // paginação é controlada individualmente por sala (scoped pagination),
+        // então não guardamos 'page' global aqui.
+        search: "",       // Filtro global em cascata
+        sort: "data",     // Ordenação padrão da sub-tabela
+        dir: "desc"       // Direção padrão
     };
 
     // --- Helpers de Data/Hora ---
@@ -23,7 +32,7 @@
         return t.substring(0, 5);
     };
 
-    // --- Helper Debounce (para a busca) ---
+    // --- Helper Debounce ---
     function debounce(func, wait) {
         let timeout;
         return function (...args) {
@@ -46,6 +55,9 @@
         const totalPages = meta.pages;
         const totalRecords = meta.total;
 
+        // Se só tem 1 página e poucos registros, às vezes nem precisa mostrar, 
+        // mas vamos manter para consistência.
+
         container.innerHTML = `
             <span class="pagination-info">
                 Página <strong>${current}</strong> de <strong>${totalPages || 1}</strong> (Total: ${totalRecords})
@@ -59,8 +71,14 @@
         const btnPrev = document.getElementById(`prev-${containerId}`);
         const btnNext = document.getElementById(`next-${containerId}`);
 
-        if (btnPrev) btnPrev.onclick = () => onPageChange(current - 1);
-        if (btnNext) btnNext.onclick = () => onPageChange(current + 1);
+        if (btnPrev) btnPrev.onclick = (e) => {
+            e.stopPropagation(); // Evita fechar o accordion se o clique vazar
+            onPageChange(current - 1);
+        };
+        if (btnNext) btnNext.onclick = (e) => {
+            e.stopPropagation();
+            onPageChange(current + 1);
+        };
     }
 
     // --- Fetch Autenticado ---
@@ -79,7 +97,7 @@
         }
     }
 
-    // --- Gerenciamento Visual de Ordenação ---
+    // --- Gerenciamento Visual de Ordenação (Tabelas Estáticas/Principais) ---
     function updateHeaderIcons(tableId, state) {
         const headers = document.querySelectorAll(`#${tableId} th.sortable`);
         headers.forEach(th => {
@@ -95,14 +113,13 @@
         headers.forEach(th => {
             th.addEventListener("click", () => {
                 const col = th.dataset.sort;
-
                 if (stateObj.sort === col) {
                     stateObj.dir = stateObj.dir === "asc" ? "desc" : "asc";
                 } else {
                     stateObj.sort = col;
                     stateObj.dir = "asc";
                 }
-                stateObj.page = 1;
+                if (stateObj.page) stateObj.page = 1; // Reseta página se existir no state
                 loadFunc();
             });
         });
@@ -116,7 +133,6 @@
         updateHeaderIcons("tb-operacoes", stateOps);
 
         const endpoint = AppConfig.endpoints.adminDashboard.operacoes;
-        // Envia parâmetros de busca e ordenação
         const params = new URLSearchParams({
             page: stateOps.page,
             limit: stateOps.limit,
@@ -224,7 +240,6 @@
                 }
             });
 
-            // Duplo clique na sublinha
             const entryRows = trChild.querySelectorAll(".entry-row");
             entryRows.forEach(row => {
                 row.addEventListener("dblclick", (e) => {
@@ -248,14 +263,17 @@
     // =================================================================
     // --- LÓGICA DA TABELA DE ANORMALIDADES (AGRUPADA POR SALA) ---
     // =================================================================
-    // Obs: Esta lógica permanece 'estática' quanto à busca geral por enquanto.
-    // A busca dinâmica em cascata (Filtro Global -> Sala -> Anormalidade) 
-    // será implementada no Chat 3.
 
-    // 1. Carrega a lista de salas (Linhas Mestre)
+    // 1. Carrega a lista de salas (Linhas Mestre) - COM FILTRO
     async function loadSalasComAnormalidades() {
         const endpoint = AppConfig.endpoints.adminDashboard.anormalidades.salas;
-        const url = AppConfig.apiUrl(endpoint);
+        // Passa o termo de busca para filtrar quais salas aparecem
+        const params = new URLSearchParams();
+        if (anomState.search) {
+            params.set("search", anomState.search);
+        }
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
 
         const resp = await fetchJson(url);
         const tbody = document.querySelector("#tb-anormalidades tbody");
@@ -265,14 +283,19 @@
         const data = resp.data || [];
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="2" class="empty-state">Nenhuma anormalidade registrada no sistema.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="2" class="empty-state">Nenhuma anormalidade encontrada com este filtro.</td></tr>`;
             return;
         }
+
+        // Se houver busca ativa, podemos optar por abrir as salas automaticamente
+        // mas vamos manter fechado para não poluir, a menos que seja 1 só.
+        const shouldAutoOpen = (data.length === 1 && anomState.search.length > 0);
 
         data.forEach(sala => {
             const trParent = document.createElement("tr");
             trParent.className = "accordion-parent";
             trParent.dataset.salaId = sala.id;
+            // "loaded" indica se já buscamos o detalhe dessa sala com o filtro atual
             trParent.dataset.loaded = "false";
 
             trParent.innerHTML = `
@@ -294,33 +317,53 @@
                 </td>
             `;
 
-            trParent.addEventListener("click", () => {
+            // Função toggle
+            const toggleFn = () => {
                 const isOpen = trParent.classList.contains("open");
                 trParent.classList.toggle("open");
                 if (!isOpen) {
                     trChild.classList.add("visible");
-                    if (trParent.dataset.loaded === "false") {
-                        loadAnormalidadesDaSala(sala.id, 1);
-                        trParent.dataset.loaded = "true";
-                    }
+                    // Se não foi carregado OU se tem busca ativa (pra atualizar filtro interno), recarrega
+                    // Na prática, sempre que abrir com busca diferente, deveria recarregar.
+                    // Vamos simplificar: ao abrir, chama loadAnormalidadesDaSala passando o state atual.
+                    loadAnormalidadesDaSala(sala.id, 1);
                 } else {
                     trChild.classList.remove("visible");
                 }
-            });
+            };
+
+            trParent.addEventListener("click", toggleFn);
 
             tbody.appendChild(trParent);
             tbody.appendChild(trChild);
+
+            if (shouldAutoOpen) {
+                toggleFn();
+            }
         });
     }
 
-    // 2. Carrega as Anormalidades de uma Sala Específica (Paginado)
+    // 2. Carrega as Anormalidades de uma Sala Específica (Paginado + Filtrado + Ordenado)
     async function loadAnormalidadesDaSala(salaId, page = 1) {
         const limit = 10;
         const endpoint = AppConfig.endpoints.adminDashboard.anormalidades.lista;
-        const url = `${AppConfig.apiUrl(endpoint)}?sala_id=${salaId}&page=${page}&limit=${limit}`;
+
+        // Passa estado global de Anormalidades para a sub-query
+        const params = new URLSearchParams({
+            sala_id: salaId,
+            page: page,
+            limit: limit,
+            search: anomState.search,
+            sort: anomState.sort,
+            dir: anomState.dir
+        });
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
 
         const container = document.getElementById(`container-anom-${salaId}`);
         const pagContainerId = `pag-anom-sala-${salaId}`;
+
+        if (!container) return;
 
         container.style.opacity = "0.5";
 
@@ -332,18 +375,26 @@
         const meta = resp.meta || { page: 1, pages: 1, total: 0 };
 
         if (data.length === 0) {
-            container.innerHTML = `<div class="empty-state" style="padding:10px;">Nenhum registro encontrado nesta página.</div>`;
+            container.innerHTML = `<div class="empty-state" style="padding:10px;">Nenhum registro encontrado.</div>`;
+            renderPaginationControls(pagContainerId, null, null);
             return;
         }
 
+        // Renderiza sub-tabela com headers ordenáveis
+        // Helper para setar classe de icone
+        const getSortClass = (col) => {
+            if (anomState.sort === col) return "sortable " + anomState.dir;
+            return "sortable";
+        };
+
         let html = `
-            <table class="sub-table">
+            <table class="sub-table" id="subtable-${salaId}">
                 <thead>
                     <tr>
-                        <th>Data</th>
-                        <th>Registrado por</th>
-                        <th>Descrição</th>
-                        <th>Solucionada</th>
+                        <th class="${getSortClass('data')}" data-col="data">Data</th>
+                        <th class="${getSortClass('registrado_por')}" data-col="registrado_por">Registrado por</th>
+                        <th class="${getSortClass('descricao')}" data-col="descricao">Descrição</th>
+                        <th class="${getSortClass('solucionada')}" data-col="solucionada">Solucionada</th>
                         <th>Prejuízo</th>
                         <th>Reclamação</th>
                         <th>Ação</th>
@@ -364,6 +415,7 @@
             const reclText = row.houve_reclamacao ? "Sim" : "Não";
             const reclClass = row.houve_reclamacao ? "text-red bold" : "text-gray";
 
+            // Corta descrição longa
             const desc = row.descricao && row.descricao.length > 60
                 ? row.descricao.substring(0, 60) + "..."
                 : (row.descricao || "");
@@ -372,7 +424,7 @@
                 <tr>
                     <td>${dateStr}</td>
                     <td>${row.registrado_por}</td>
-                    <td>${desc}</td>
+                    <td title="${row.descricao}">${desc}</td>
                     <td>${solucaoBadge}</td>
                     <td class="${prejClass}">${prejText}</td>
                     <td class="${reclClass}">${reclText}</td>
@@ -386,15 +438,45 @@
         html += `</tbody></table>`;
         container.innerHTML = html;
 
+        // Renderiza paginação "local" da sala
         renderPaginationControls(pagContainerId, meta, (newPage) => {
             loadAnormalidadesDaSala(salaId, newPage);
         });
 
+        // Bind botões de formulário
         container.querySelectorAll(".btn-ver-anom").forEach(btn => {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const id = btn.dataset.id;
                 window.open(`/admin/form_anormalidade.html?id=${id}`, '_blank');
+            });
+        });
+
+        // Bind Headers da Sub-tabela (Ordenação Dinâmica)
+        bindDynamicSortHeaders(salaId);
+    }
+
+    // Helper para bindar eventos nos headers recém-criados na sub-tabela
+    function bindDynamicSortHeaders(salaId) {
+        const table = document.getElementById(`subtable-${salaId}`);
+        if (!table) return;
+
+        const headers = table.querySelectorAll("th.sortable");
+        headers.forEach(th => {
+            th.addEventListener("click", (e) => {
+                e.stopPropagation(); // Não fechar o accordion
+                const col = th.dataset.col;
+
+                if (anomState.sort === col) {
+                    anomState.dir = anomState.dir === "asc" ? "desc" : "asc";
+                } else {
+                    anomState.sort = col;
+                    anomState.dir = "asc";
+                }
+
+                // Recarrega a tabela desta sala com a nova ordenação
+                // Volta para página 1 ao reordenar
+                loadAnormalidadesDaSala(salaId, 1);
             });
         });
     }
@@ -403,7 +485,7 @@
     // --- Inicialização ---
     // =========================================================
     document.addEventListener("DOMContentLoaded", () => {
-        // 1. Bind Busca Operações
+        // 1. Tabela de Operações (Busca e Ordenação)
         const searchOps = document.getElementById("search-operacoes");
         if (searchOps) {
             searchOps.addEventListener("input", debounce((e) => {
@@ -412,9 +494,20 @@
                 loadOperacoes();
             }, 400));
         }
-
-        // 2. Bind Header Ordenação
         bindSortHeaders("tb-operacoes", stateOps, loadOperacoes);
+
+        // 2. Tabela de Anormalidades (Busca Cascata)
+        const searchAnom = document.getElementById("search-anormalidades");
+        if (searchAnom) {
+            searchAnom.addEventListener("input", debounce((e) => {
+                const val = e.target.value.trim();
+                // Se mudou a busca, reseta state para default
+                anomState.search = val;
+                // Recarrega a lista Mestre (Salas) filtrada
+                loadSalasComAnormalidades();
+            }, 400));
+        }
+        // Nota: A ordenação de Anormalidades é bindada dinamicamente dentro de loadAnormalidadesDaSala
 
         // 3. Carga Inicial
         loadOperacoes();
