@@ -39,6 +39,7 @@ const AppConfig = {
         lookups: {
             salas: "/webhook/forms/lookup/salas",
             operadores: "/webhook/forms/lookup/operadores",
+            comissoes: "/webhook/forms/lookup/comissoes",
             registroOperacao: "/webhook/forms/lookup/registro-operacao"
         },
 

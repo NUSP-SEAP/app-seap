@@ -9,6 +9,8 @@
     const SALAS_URL = AppConfig.apiUrl(AppConfig.endpoints.lookups.salas);
     const OPERADORES_URL = AppConfig.apiUrl(AppConfig.endpoints.lookups.operadores);
 
+    const COMISSOES_URL = AppConfig.apiUrl(AppConfig.endpoints.lookups.comissoes);
+
     const ESTADO_SESSAO_URL = AppConfig.apiUrl(AppConfig.endpoints.operacaoAudio.estadoSessao);
     const SALVAR_ENTRADA_URL = AppConfig.apiUrl(AppConfig.endpoints.operacaoAudio.salvarEntrada);
     const FINALIZAR_SESSAO_URL = AppConfig.apiUrl(AppConfig.endpoints.operacaoAudio.finalizarSessao);
@@ -24,6 +26,9 @@
     let usb01Input;
     let usb02Input;
     let observacoesInput;
+
+    let comissaoSelect;
+    let responsavelEventoInput;
 
     let operador1Select;
     let operador2Select;
@@ -74,25 +79,55 @@
         selectEl.disabled = false;
     }
 
+    // Agora o "tipo_evento" é derivado do Local do Evento + dropdown "Tipo":
+    // - Auditório => "outros"
+    // - Plenário  => "operacao"
+    // - Outras salas:
+    //     - Tipo = "Cessão de Sala" => "cessao"
+    //     - Qualquer outro          => "operacao"
     function getTipoEventoSelecionado() {
-        const radio = document.querySelector('input[name="tipo_evento"]:checked');
-        if (!radio) return "operacao";
-        return (radio.value || "operacao").toLowerCase();
+        if (!salaSelect || !salaSelect.value) {
+            return "operacao";
+        }
+
+        const optSala = salaSelect.options[salaSelect.selectedIndex] || null;
+        const textoSala = (
+            (optSala && (optSala.textContent || optSala.innerText || optSala.label)) ||
+            ""
+        ).toLowerCase();
+
+        const isAuditorio = /audit[oó]rio/.test(textoSala);
+        const isPlenario = /plen[áa]rio/.test(textoSala);
+
+        if (isAuditorio) {
+            return "outros";
+        }
+
+        if (isPlenario) {
+            return "operacao";
+        }
+
+        // Demais salas: depende do "Tipo" (dropdown comissao_id)
+        if (comissaoSelect && comissaoSelect.value) {
+            const optTipo = comissaoSelect.options[comissaoSelect.selectedIndex] || null;
+            const textoTipo = (
+                (optTipo && (optTipo.textContent || optTipo.innerText || optTipo.label)) ||
+                ""
+            ).toLowerCase();
+
+            if (textoTipo.includes("cessão de sala") || textoTipo.includes("cessao de sala")) {
+                return "cessao";
+            }
+        }
+
+        return "operacao";
     }
 
-    function setTipoEventoSelecionado(tipo) {
-        const radios = $$('input[name="tipo_evento"]');
-        let found = false;
-        radios.forEach((r) => {
-            if ((r.value || "").toLowerCase() === (tipo || "").toLowerCase()) {
-                r.checked = true;
-                found = true;
-            }
-        });
-        if (!found && radios.length) {
-            radios[0].checked = true;
-        }
+    function setTipoEventoSelecionado(_tipo) {
+        // Mantida apenas por compatibilidade: não há mais rádios de "tipo_evento" na UI.
+        // A lógica de tipo agora é derivada de sala + dropdown "Tipo".
     }
+
 
     function ensureHojeEmDataOperacao() {
         if (!dataOperacaoInput) return;
@@ -109,23 +144,28 @@
         }
     }
 
-    // Limpa o formulário depois de salvar / ao clicar em "Limpar",
-    // mantendo sala e tipo de evento selecionados.
     function resetFormMantendoSalaETipo() {
         if (!form) return;
+
         const salaValue = salaSelect ? salaSelect.value : "";
-        const tipoValor = getTipoEventoSelecionado();
+        const comissaoValue = comissaoSelect ? comissaoSelect.value : "";
 
         form.reset();
 
         if (salaSelect) {
             salaSelect.value = salaValue;
         }
-        setTipoEventoSelecionado(tipoValor);
+        if (comissaoSelect) {
+            comissaoSelect.value = comissaoValue;
+        }
 
         ensureHojeEmDataOperacao();
         atualizarTipoEventoUI();
+        if (typeof atualizarVisibilidadeTipoPorSala === "function") {
+            atualizarVisibilidadeTipoPorSala();
+        }
     }
+
 
     // ====== Cabeçalhos (topo da tela) ======
 
@@ -321,6 +361,42 @@
         }
     }
 
+    async function loadComissoes() {
+        if (!comissaoSelect) return;
+
+        comissaoSelect.disabled = true;
+        comissaoSelect.innerHTML = '<option value="">Carregando...</option>';
+
+        try {
+            let resp;
+            if (window.Auth && typeof Auth.authFetch === "function") {
+                resp = await Auth.authFetch(COMISSOES_URL, { method: "GET" });
+            } else {
+                resp = await fetch(COMISSOES_URL, { method: "GET" });
+            }
+
+            const json = await safeJson(resp);
+            if (!resp.ok || !json || json.ok === false || !Array.isArray(json.data)) {
+                console.error("Falha ao carregar comissões:", json);
+                comissaoSelect.innerHTML =
+                    '<option value="">Falha ao carregar tipos</option>';
+                return;
+            }
+
+            // Usa a função auxiliar já existente para preencher selects
+            fillSelect(comissaoSelect, json.data, "id", "nome", "Selecione o tipo");
+        } catch (e) {
+            console.error("Erro inesperado ao carregar comissões:", e);
+            comissaoSelect.innerHTML =
+                '<option value="">Falha ao carregar tipos</option>';
+        } finally {
+            comissaoSelect.disabled = false;
+            if (typeof atualizarVisibilidadeTipoPorSala === "function") {
+                atualizarVisibilidadeTipoPorSala();
+            }
+        }
+    }
+
     async function loadOperadores() {
         const selects = [operador1Select, operador2Select, operador3Select].filter(
             Boolean
@@ -427,65 +503,23 @@
         }
     }
 
-    // ====== Tipo de evento / Anormalidade / Plenário ======
     function atualizarTipoEventoUI() {
+        // Nova regra: "Houve anormalidade?" sempre visível.
         if (!sectionAnormalidade) return;
 
-        const tipoSelecionado = getTipoEventoSelecionado();
-        const tipoEfetivo = (tipoSelecionado || "operacao").toLowerCase();
+        sectionAnormalidade.style.display = "";
 
-        // --- Regra de anormalidade ---
-        // Só mostra "Houve anormalidade?" quando tipo = operação
-        if (tipoEfetivo === "operacao") {
-            sectionAnormalidade.style.display = "";
-        } else {
-            sectionAnormalidade.style.display = "none";
+        // Garante que haja sempre um valor selecionado (padrão = "não")
+        const radioSelecionado = document.querySelector(
+            'input[name="houve_anormalidade"]:checked'
+        );
+        if (!radioSelecionado) {
             const radioNao = document.querySelector(
                 'input[name="houve_anormalidade"][value="nao"]'
             );
-            if (radioNao) radioNao.checked = true;
-        }
-
-        // --- Regra especial: "Outros Eventos" => sala obrigatoriamente Plenário ---
-        if (!salaSelect) return;
-
-        if (tipoEfetivo === "outros") {
-            // Guarda a sala atual, se ainda não tiver guardado,
-            // para conseguir voltar a ela depois
-            if (!salaSelect.dataset.salaOriginalOutros) {
-                salaSelect.dataset.salaOriginalOutros = salaSelect.value || "";
+            if (radioNao) {
+                radioNao.checked = true;
             }
-
-            // Procura uma opção cujo texto contenha "plenário"
-            let plenOpt = null;
-            Array.from(salaSelect.options || []).forEach((opt) => {
-                const txt =
-                    (opt.textContent || opt.innerText || opt.label || "").toLowerCase();
-                if (!plenOpt && /plen[áa]rio/.test(txt)) {
-                    plenOpt = opt;
-                }
-            });
-            if (plenOpt) {
-                salaSelect.value = plenOpt.value;
-            }
-            // Enquanto for "Outros Eventos", o Local do Evento fica travado
-            salaSelect.disabled = true;
-        } else {
-            // Voltou para Operação Comum ou Cessão de Sala:
-            // restaura a sala que o usuário tinha escolhido antes de "Outros"
-            const original = salaSelect.dataset.salaOriginalOutros;
-            if (typeof original === "string") {
-                const hasOriginal = Array.from(salaSelect.options || []).some(
-                    (opt) => opt.value === original
-                );
-                if (hasOriginal) {
-                    salaSelect.value = original;
-                }
-            }
-            delete salaSelect.dataset.salaOriginalOutros;
-
-            // Fora do "Outros Eventos", o combobox da sala fica livre.
-            salaSelect.disabled = false;
         }
     }
 
@@ -574,6 +608,50 @@
         }
     }
 
+    function atualizarVisibilidadeTipoPorSala() {
+        if (!comissaoSelect || !salaSelect) return;
+
+        // Container externo do bloco "Tipo"
+        const divTipo = document.getElementById("div-tipo-comissao");
+
+        const temSala = !!salaSelect.value;
+
+        // Sem sala selecionada: esconde o bloco e limpa valor
+        if (!temSala) {
+            if (divTipo) divTipo.classList.add("hidden");
+            comissaoSelect.value = "";
+            comissaoSelect.disabled = true;
+            return;
+        }
+
+        // Sala selecionada: decide se mostra ou não baseado em Auditório / Plenário
+        const optSala =
+            salaSelect.options[salaSelect.selectedIndex] || null;
+        const textoSala = (
+            (optSala && (optSala.textContent || optSala.innerText || optSala.label)) ||
+            ""
+        ).toLowerCase();
+
+        const isAuditorio = /audit[oó]rio/.test(textoSala);
+        const isPlenario = /plen[áa]rio/.test(textoSala);
+
+        if (isAuditorio || isPlenario) {
+            // Auditório ou Plenário → "Tipo" fica oculto e desabilitado
+            if (divTipo) divTipo.classList.add("hidden");
+            comissaoSelect.value = "";
+            comissaoSelect.disabled = true;
+        } else {
+            // Qualquer outra sala → "Tipo" é obrigatório e visível
+            if (divTipo) divTipo.classList.remove("hidden");
+            comissaoSelect.disabled = false;
+        }
+
+        // O tipo_evento depende de sala + comissão,
+        // então sempre recalculamos a UI pela regra nova.
+        atualizarTipoEventoUI();
+    }
+
+
     // ====== Bloqueio da tela enquanto não houver sala selecionada ======
     function aplicarBloqueioPorSala() {
         if (!form || !salaSelect) return;
@@ -646,6 +724,11 @@
                 btnVoltar.style.display = "";
                 btnVoltar.disabled = false;
             }
+        }
+
+        // Atualiza a visibilidade do campo "Tipo" de acordo com a sala
+        if (typeof atualizarVisibilidadeTipoPorSala === "function") {
+            atualizarVisibilidadeTipoPorSala();
         }
     }
 
@@ -912,7 +995,8 @@
             nome_evento: 'input[name="nome_evento"]',
             usb_01: 'input[name="usb_01"]',
             usb_02: 'input[name="usb_02"]',
-            observacoes: 'textarea[name="observacoes"]'
+            observacoes: 'textarea[name="observacoes"]',
+            responsavel_evento: 'input[name="responsavel_evento"]'
         };
 
         Object.entries(mapDiretos).forEach(([campo, seletor]) => {
@@ -921,6 +1005,11 @@
                 el.value = entrada[campo] || "";
             }
         });
+
+        // 3b) Tipo (comissão) – se o back-end já retornar comissao_id
+        if (comissaoSelect && Object.prototype.hasOwnProperty.call(entrada, "comissao_id")) {
+            comissaoSelect.value = entrada.comissao_id || "";
+        }
 
         // 3) Horários
         const inputHoraInicio = document.querySelector('input[name="hora_inicio"]');
@@ -952,6 +1041,10 @@
             if (radioHouve) {
                 radioHouve.checked = true;
             }
+        }
+
+        if (typeof atualizarVisibilidadeTipoPorSala === "function") {
+            atualizarVisibilidadeTipoPorSala();
         }
 
         // 6) Reaplica regras visuais de tipo de evento (anormalidade + Plenário)
@@ -1054,6 +1147,27 @@
 
         const salaId = salaSelect.value;
 
+        // Validação extra: "Tipo" obrigatório para salas que não sejam Auditório nem Plenário
+        if (comissaoSelect && salaSelect && salaId) {
+            const optSala = salaSelect.options[salaSelect.selectedIndex] || null;
+            const textoSala = (
+                (optSala && (optSala.textContent || optSala.innerText || optSala.label)) ||
+                ""
+            ).toLowerCase();
+
+            const isAuditorio = /audit[oó]rio/.test(textoSala);
+            const isPlenario = /plen[áa]rio/.test(textoSala);
+            const exigeTipo = !isAuditorio && !isPlenario;
+
+            if (exigeTipo && !comissaoSelect.value) {
+                if (!suprimirValidacaoHtml5) {
+                    alert("Selecione o Tipo antes de salvar o registro.");
+                    comissaoSelect.focus();
+                }
+                return;
+            }
+        }
+
         // Tipo do evento é sempre por ENTRADA, não mais “herdado” da sessão
         let tipoEvento = (getTipoEventoSelecionado() || "operacao").toLowerCase();
 
@@ -1097,6 +1211,12 @@
             observacoes: observacoesInput ? observacoesInput.value : "",
             usb_01: usb01Input ? usb01Input.value : "",
             usb_02: usb02Input ? usb02Input.value : "",
+            responsavel_evento: responsavelEventoInput
+                ? responsavelEventoInput.value
+                : "",
+            comissao_id: comissaoSelect && !comissaoSelect.disabled
+                ? comissaoSelect.value
+                : null,
             tipo_evento: tipoEvento,
             houve_anormalidade: houveAnormalidadeRaw
         };
@@ -1371,6 +1491,9 @@
         usb02Input = document.getElementById("usb_02");
         observacoesInput = document.getElementById("observacoes");
 
+        comissaoSelect = document.getElementById("comissao_id");
+        responsavelEventoInput = document.getElementById("responsavel_evento");
+
         operador1Select = document.getElementById("operador_1");
         operador2Select = document.getElementById("operador_2");
         operador3Select = document.getElementById("operador_3");
@@ -1432,7 +1555,7 @@
         bindTipoEventoLogic();
 
         // Carrega lookups (salas + operadores)
-        await Promise.all([loadSalas(), loadOperadores()]);
+        await Promise.all([loadSalas(), loadOperadores(), loadComissoes()]);
 
         // Libera sala para escolha inicial
         if (salaSelect && !salaSelect.disabled) {
@@ -1450,8 +1573,6 @@
             salaSelect.addEventListener("change", function () {
                 const val = salaSelect.value;
 
-                // BUG 5: ao trocar de sala, sair do modo edição para não
-                // "carregar" o texto "Editando Xº Registro" indevidamente.
                 modoEdicaoEntradaSeq = null;
 
                 if (!val) {
@@ -1459,17 +1580,30 @@
                     uiState.situacao_operador = "sem_sessao";
                     uiState.sessaoAberta = false;
                     aplicarEstadoSessaoNaUI();
+
+                    if (typeof atualizarVisibilidadeTipoPorSala === "function") {
+                        atualizarVisibilidadeTipoPorSala();
+                    }
                     return;
                 }
+
+                if (typeof atualizarVisibilidadeTipoPorSala === "function") {
+                    atualizarVisibilidadeTipoPorSala();
+                }
+
                 carregarEstadoSessao(val);
             });
 
-            // Se já tiver algo pré-selecionado, já busca estado da sessão
             if (salaSelect.value) {
                 await carregarEstadoSessao(salaSelect.value);
             } else {
                 aplicarEstadoSessaoNaUI();
             }
+
+            if (typeof atualizarVisibilidadeTipoPorSala === "function") {
+                atualizarVisibilidadeTipoPorSala();
+            }
+
         } else {
             aplicarEstadoSessaoNaUI();
         }

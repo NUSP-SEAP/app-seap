@@ -204,3 +204,7 @@ button {
 #info-modo-edicao {
     text-align: right;
 }
+
+.hidden {
+    display: none !important;
+}
