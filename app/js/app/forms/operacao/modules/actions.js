@@ -304,6 +304,7 @@ export async function salvarEntrada(modo, elements, opcoes) {
         alert(msgBase);
 
         if (deveAbrirAnomalia && registroId) {
+            resetFormMantendoSalaETipo(elements);
             const params = new URLSearchParams();
             params.set("registro_id", String(registroId));
             if (entradaId) {

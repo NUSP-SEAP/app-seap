@@ -83,6 +83,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             elements.btnSalvarRegistro.disabled = false;
             elements.btnSalvarRegistro.textContent = "Salvar registro";
         }
+        if (elements.salaSelect && elements.salaSelect.value) {
+            carregarEstadoSessao(elements.salaSelect.value, elements);
+        }
     });
 
     // Impede submit padrão do form

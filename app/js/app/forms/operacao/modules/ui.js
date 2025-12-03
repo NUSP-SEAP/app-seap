@@ -148,15 +148,11 @@ export function resetFormMantendoSalaETipo(elements) {
     if (!form) return;
 
     const salaValue = salaSelect ? salaSelect.value : "";
-    const comissaoValue = comissaoSelect ? comissaoSelect.value : "";
 
     form.reset();
 
     if (salaSelect) {
         salaSelect.value = salaValue;
-    }
-    if (comissaoSelect) {
-        comissaoSelect.value = comissaoValue;
     }
 
     ensureHojeEmDataOperacao(dataOperacaoInput);
