@@ -176,6 +176,10 @@ export function atualizarIndicadorModoEdicao(modoEl, estadoSessao, modoEdicaoEnt
 
     // Se não há sessão aberta, esconde o indicador
     if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
+        // Espelha o comportamento do index.js original:
+        // sai do modo edição quando não há sessão.
+        globalState.modoEdicaoEntradaSeq = null;
+
         modoEl.style.display = "none";
         modoEl.textContent = "";
         return;
@@ -367,28 +371,34 @@ export function aplicarModoOperadorComDuasEntradas(elements) {
 
 export function aplicarEstadoSessaoNaUI(elements, state) {
     const {
-        salaSelect, btnEditarEntrada1, btnEditarEntrada2, btnCancelarEdicao,
-        btnSalvarRegistro, btnSalvarEdicao, btnFinalizarSessao, headerOperadores, modoEdicaoInfo, sectionAnormalidade
+        salaSelect, btnEditarEntrada1, btnEditarEntrada2, btnCancelarEdicao, btnSalvarRegistro,
+        btnSalvarEdicao, btnFinalizarSessao, headerOperadores, modoEdicaoInfo, sectionAnormalidade
     } = elements;
 
-    // 0) Esconde botões de edição/cancelar por padrão
+    // 0) Esconde botões de edição / cancelar por padrão
     if (btnEditarEntrada1) { btnEditarEntrada1.style.display = "none"; btnEditarEntrada1.disabled = false; }
     if (btnEditarEntrada2) { btnEditarEntrada2.style.display = "none"; btnEditarEntrada2.disabled = false; }
     if (btnCancelarEdicao) { btnCancelarEdicao.style.display = "none"; btnCancelarEdicao.disabled = false; }
 
-    // 1) Bloqueio base
+    // 1) Bloqueio base por sala
     aplicarBloqueioPorSala(elements);
 
-    // Se não há sala
+    // Se não há sala selecionada
     if (!salaSelect || !salaSelect.value) {
-        // Atualiza cabeçalho vazio
+        // espelha o comportamento do index.js original
+        state.estadoSessao = null;
+        if (state.uiState) {
+            state.uiState.situacao_operador = "sem_sessao";
+            state.uiState.sessaoAberta = false;
+        }
+
         atualizarCabecalhoOperadoresSessao(headerOperadores, modoEdicaoInfo, null, null);
         return;
     }
 
     const { estadoSessao } = state;
 
-    // 2) Reset botões base
+    // 2) Reset de botões base
     if (btnSalvarRegistro) {
         btnSalvarRegistro.style.display = "";
         btnSalvarRegistro.disabled = false;
@@ -397,72 +407,114 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
     if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
     if (btnFinalizarSessao) { btnFinalizarSessao.style.display = ""; btnFinalizarSessao.disabled = true; }
 
-    // 3) Sem estado
+    // 3) Não há estado conhecido ainda para essa sala
     if (!estadoSessao) {
+        if (state.uiState) {
+            state.uiState.situacao_operador = "sem_sessao";
+            state.uiState.sessaoAberta = false;
+        }
         atualizarTipoEventoUI(sectionAnormalidade);
-        atualizarCabecalhoOperadoresSessao(headerOperadores, modoEdicaoInfo, null, null);
+        atualizarCabecalhoOperadoresSessao(
+            headerOperadores,
+            modoEdicaoInfo,
+            null,
+            null
+        );
         return;
     }
 
-    // 4) Deriva situação
+    // 4) Deriva situação do operador e se a sessão está aberta
     const situacao = derivarSituacaoOperador(estadoSessao);
     const sessaoAberta = !!estadoSessao.existe_sessao_aberta;
 
-    // Habilita rádios tipo
+    if (state.uiState) { state.uiState.situacao_operador = situacao; state.uiState.sessaoAberta = sessaoAberta; }
+
+    // Rádios de tipo sempre habilitados
     const radiosTipo = document.querySelectorAll('input[name="tipo_evento"]');
-    radiosTipo.forEach(r => r.disabled = false);
+    radiosTipo.forEach((r) => { r.disabled = false; });
     atualizarTipoEventoUI(sectionAnormalidade);
 
-    if (btnFinalizarSessao) btnFinalizarSessao.disabled = !sessaoAberta;
+    // Botão finalizar habilitado apenas se existir sessão aberta
+    if (btnFinalizarSessao) { btnFinalizarSessao.disabled = !sessaoAberta; }
 
-    // === CASO 1: sem_sessao ===
+    // === CASO 1: ainda NÃO existe sessão (sem_sessao) ===
     if (situacao === "sem_sessao") {
         if (btnSalvarRegistro) {
             btnSalvarRegistro.style.display = "";
             btnSalvarRegistro.disabled = false;
             btnSalvarRegistro.textContent = "Salvar registro / Iniciar sessão";
         }
-        if (btnSalvarEdicao) btnSalvarEdicao.style.display = "none";
-        if (btnFinalizarSessao) btnFinalizarSessao.disabled = true;
-        atualizarCabecalhoOperadoresSessao(headerOperadores, modoEdicaoInfo, estadoSessao, state.modoEdicaoEntradaSeq);
+        if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
+        if (btnFinalizarSessao) { btnFinalizarSessao.disabled = true; }
+
+        atualizarCabecalhoOperadoresSessao(
+            headerOperadores,
+            modoEdicaoInfo,
+            estadoSessao,
+            state.modoEdicaoEntradaSeq
+        );
         return;
     }
 
-    // === CASO 2: sem_entrada ===
+    // === CASO 2: sessão existe, operador ainda sem entrada ===
     if (situacao === "sem_entrada") {
         if (btnSalvarRegistro) {
             btnSalvarRegistro.style.display = "";
+            btnSalvarRegistro.disabled = false;
             btnSalvarRegistro.textContent = "Salvar registro";
         }
-        if (btnSalvarEdicao) btnSalvarEdicao.style.display = "none";
-        if (btnEditarEntrada1) btnEditarEntrada1.style.display = "none";
-        if (btnEditarEntrada2) btnEditarEntrada2.style.display = "none";
-        atualizarCabecalhoOperadoresSessao(headerOperadores, modoEdicaoInfo, estadoSessao, state.modoEdicaoEntradaSeq);
+        if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
+        if (btnEditarEntrada1) { btnEditarEntrada1.style.display = "none"; }
+        if (btnEditarEntrada2) { btnEditarEntrada2.style.display = "none"; }
+
+        atualizarCabecalhoOperadoresSessao(
+            headerOperadores,
+            modoEdicaoInfo,
+            estadoSessao,
+            state.modoEdicaoEntradaSeq
+        );
         return;
     }
 
-    // === CASO 3: uma_entrada ===
+    // === CASO 3: operador com 1ª entrada ===
     if (situacao === "uma_entrada") {
         if (btnSalvarRegistro) {
             btnSalvarRegistro.style.display = "";
+            btnSalvarRegistro.disabled = false;
             btnSalvarRegistro.textContent = "Novo registro (2ª entrada)";
         }
-        if (btnSalvarEdicao) btnSalvarEdicao.style.display = "none";
-        if (btnEditarEntrada1) {
-            btnEditarEntrada1.style.display = "";
-            btnEditarEntrada1.disabled = false;
-        }
-        if (btnEditarEntrada2) btnEditarEntrada2.style.display = "none";
-        atualizarCabecalhoOperadoresSessao(headerOperadores, modoEdicaoInfo, estadoSessao, state.modoEdicaoEntradaSeq);
+        if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
+        if (btnEditarEntrada1) { btnEditarEntrada1.style.display = ""; btnEditarEntrada1.disabled = false; }
+        if (btnEditarEntrada2) { btnEditarEntrada2.style.display = "none"; }
+
+        atualizarCabecalhoOperadoresSessao(
+            headerOperadores,
+            modoEdicaoInfo,
+            estadoSessao,
+            state.modoEdicaoEntradaSeq
+        );
         return;
     }
 
-    // === CASO 4: duas_entradas ===
+    // === CASO 4: operador com 2 entradas ===
     if (situacao === "duas_entradas") {
         aplicarModoOperadorComDuasEntradas(elements);
-        atualizarCabecalhoOperadoresSessao(headerOperadores, modoEdicaoInfo, estadoSessao, state.modoEdicaoEntradaSeq);
+        atualizarCabecalhoOperadoresSessao(
+            headerOperadores,
+            modoEdicaoInfo,
+            estadoSessao,
+            state.modoEdicaoEntradaSeq
+        );
         return;
     }
+
+    // Fallback de segurança
+    atualizarCabecalhoOperadoresSessao(
+        headerOperadores,
+        modoEdicaoInfo,
+        estadoSessao,
+        state.modoEdicaoEntradaSeq
+    );
 }
 
 // =============================================================================

@@ -461,6 +461,28 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        // --- VALIDAÇÃO FRONT-END EXTRA: DATA DA SOLUÇÃO ---
+        const dtOcorrencia = document.getElementById("data").value; // YYYY-MM-DD
+        const dtSolucao = document.getElementById("data_solucao").value; // YYYY-MM-DD
+        const hrInicio = document.getElementById("hora_inicio_anormalidade").value; // HH:MM
+        const hrSolucao = document.getElementById("hora_solucao").value; // HH:MM
+
+        if (dtSolucao) {
+            // Se data da solução é menor que data da ocorrência
+            if (dtSolucao < dtOcorrencia) {
+                alert("Data da solução da anormalidade não pode ser anterior à data da ocorrência.");
+                return;
+            }
+            // Se data é igual, hora da solução não pode ser menor que início
+            if (dtSolucao === dtOcorrencia && hrSolucao && hrInicio) {
+                if (hrSolucao < hrInicio) {
+                    alert("Hora da solução não pode ser anterior ao início da anormalidade.");
+                    return;
+                }
+            }
+        }
+        // --------------------------------------------------
+
         try {
             const resp = await authFetch(REGISTRO_ANORMALIDADE_URL, {
                 method: "POST",
