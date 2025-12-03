@@ -1,12 +1,12 @@
 <header class="site-header">
     <div class="site-header__inner">
 
-        <div class="header-spacer"></div>
-
+        <!-- Logo à esquerda -->
         <div class="logo-container">
-            <img class="site-logo" src="/imgs/header-senado.png" alt="Brasão do Senado Federal">
+            <img class="site-logo" src="/imgs/header-senado.png" alt="Logo Senado Federal">
         </div>
 
+        <!-- Área da direita: saudação + logout -->
         <div class="site-header__right">
             <span id="user-greeting" style="display: none;"></span>
             <a id="btn-logout" href="#" class="btn-logout" style="display: none;">Sair</a>
@@ -16,81 +16,102 @@
 </header>
 
 <style>
-    /* ===== Layout idêntico ao seu header antigo ===== */
+    /* ====== Header com faixas azul / amarelo / verde ====== */
     .site-header {
-        background: #fff;
-        display: flex;
-        justify-content: center;
         width: 100%;
-        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+        background: linear-gradient(to bottom,
+                #003B63 0%,
+                /* azul */
+                #003B63 86%,
+                #F2C94C 86%,
+                /* amarelo */
+                #F2C94C 93%,
+                #009739 93%,
+                /* verde */
+                #009739 100%);
+        color: #ffffff;
     }
 
     .site-header__inner {
+        /* ocupa a largura toda, com um pequeno padding nas laterais */
         width: 100%;
-        max-width: 980px;
-        padding: 10px 16px;
+        margin: 0;
+        padding: 0 16px;
+        box-sizing: border-box;
+
         display: flex;
         align-items: center;
-        /* justify-content: space-between; (mantido como antes: sem usar) */
+        /* centraliza verticalmente na faixa azul */
+        justify-content: space-between;
+        /* logo grudada à esquerda, usuário à direita */
+
+        height: 54px;
+        /* altura da faixa azul */
+    }
+
+    /* ====== Logo à esquerda ====== */
+    .logo-container {
+        display: flex;
+        align-items: center;
+        flex: 0 0 auto;
     }
 
     .site-logo {
-        height: 150px;
-        /* mesmo tamanho grande do seu header antigo */
+        height: 26px;
+        /* ajusta se quiser maior/menor */
         width: auto;
+        max-width: 100%;
         object-fit: contain;
     }
 
-    /* 3 colunas com o mesmo tamanho (como no antigo) */
-    .header-spacer,
-    .logo-container,
-    .site-header__right {
-        flex: 1;
+    @media (min-width: 1024px) {
+        .site-logo {
+            height: 45px;
+        }
     }
 
-    .logo-container {
-        display: flex;
-        justify-content: center;
-        /* centraliza o brasão */
-    }
-
+    /* ====== Área direita (usuário + botão sair) ====== */
     .site-header__right {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        /* nome + botão à direita */
+        gap: 10px;
+        flex: 0 0 auto;
     }
 
     #user-greeting {
-        opacity: .9;
-        font-size: 16px;
-        /* mesmo ajuste do antigo */
+        opacity: .95;
+        font-size: 14px;
         font-weight: 700;
-        /* negrito */
-        color: #0f172a;
-        margin-right: 10px;
+        color: #ffffff;
+        margin-right: 4px;
+        white-space: nowrap;
     }
 
-    /* ===== Botão “Sair” — versão moderna que você aprovou ===== */
+    /* ====== Botão Sair com tonalidade avermelhada ====== */
     .btn-logout {
         display: inline-block;
-        padding: 6px 12px;
-        border-radius: 8px;
+        padding: 4px 14px;
+        border-radius: 999px;
         text-decoration: none;
         font-weight: 600;
-        border: 1px solid #fecaca;
-        /* borda vermelho-claro */
-        background: #fee2e2;
-        /* fundo vermelho-claro */
-        color: #991b1b;
-        /* texto vermelho-escuro */
-        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
-        transition: background .15s ease, border-color .15s ease;
+        font-size: 13px;
+
+        border: 1px solid #FCA5A5;
+        /* borda avermelhada clara */
+        background: #7F1D1D;
+        /* fundo vinho/avermelhado */
+        color: #FEE2E2;
+        /* texto rosado claro */
+
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+        transition: background .15s ease, border-color .15s ease, transform .1s ease;
     }
 
     .btn-logout:hover {
-        background: #fecaca;
-        /* um pouco mais forte no hover */
-        border-color: #fca5a5;
+        background: #B91C1C;
+        /* vermelho mais forte no hover */
+        border-color: #F87171;
+        transform: translateY(-1px);
     }
 </style>
