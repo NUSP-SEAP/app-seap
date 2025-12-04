@@ -22,11 +22,12 @@
         <input type="hidden" id="registro_id" name="registro_id" />
         <input type="hidden" id="entrada_id" name="entrada_id" />
 
-        <!-- Cabeçalho / Identificação -->
+        <!-- 1) Referência ao Registro de Operação -->
+        <div class="section-title">1) Referência ao Registro de Operação</div>
         <div class="grid grid-3">
           <div>
             <label class="required" for="data">Data</label>
-            <input type="date" id="data" name="data" required readonly disabled />
+            <input type="date" id="data" name="data" required readonly />
           </div>
           <div>
             <label class="required" for="sala_id_display">Local do Evento</label>
@@ -43,80 +44,112 @@
           </div>
         </div>
 
-        <div class="grid grid-2">
-          <div>
-            <label class="required" for="responsavel_evento">Responsável do evento (Comissão/Mesa/Organização)</label>
-            <input type="text" id="responsavel_evento" name="responsavel_evento" required
-              placeholder="Nome do responsável" />
-          </div>
-        </div>
 
-        <!-- Formulário de Anormalidade -->
-        <!-- Removidos estilos inline (margin-top) para controle via CSS -->
+
+        <!-- 2) Detalhes da Anormalidade -->
+        <div class="section-title">2) Detalhes da Anormalidade</div>
 
         <div>
-          <div class="section-title">Horário da Anormalidade</div>
+          <label class="required" for="hora_inicio_anormalidade">Horário de início da anormalidade</label>
           <input type="time" id="hora_inicio_anormalidade" name="hora_inicio_anormalidade" required />
         </div>
 
-        <div>
-          <div class="section-title">Descrição da anormalidade</div>
+        <div style="margin-top: 8px;">
+          <label class="required">A anormalidade foi solucionada?</label>
+          <div class="field-inline">
+            <label><input type="radio" name="anormalidade_solucionada" value="nao" checked /> Não</label>
+            <label><input type="radio" name="anormalidade_solucionada" value="sim" /> Sim</label>
+          </div>
+        </div>
+
+        <div id="grp_solucao" class="hidden" style="margin-top: 8px;">
+          <div class="grid grid-2">
+            <div>
+              <label for="data_solucao">Data da solução da anormalidade</label>
+              <input type="date" id="data_solucao" name="data_solucao" />
+            </div>
+            <div>
+              <label for="hora_solucao">Hora da solução da anormalidade</label>
+              <input type="time" id="hora_solucao" name="hora_solucao" />
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px;">
+          <label class="required" for="descricao_anormalidade">Descrição da anormalidade</label>
           <textarea id="descricao_anormalidade" name="descricao_anormalidade" required></textarea>
         </div>
 
+        <!-- 3) Impactos e Reclamações (mantido) -->
+        <div class="section-title">3) Impactos e Reclamações</div>
         <div class="grid grid-2">
           <div>
-            <div class="section-title">Houve prejuízo ao andamento?</div>
+            <label class="required">Houve prejuízo ao andamento?</label>
             <div class="field-inline">
               <label><input type="radio" name="houve_prejuizo" value="nao" checked /> Não</label>
               <label><input type="radio" name="houve_prejuizo" value="sim" /> Sim</label>
             </div>
           </div>
           <div id="grp_descricao_prejuizo" class="hidden">
-            <div class="section-title">Descrição do prejuízo</div>
-            <textarea id="descricao_prejuizo" name="descricao_prejuizo"></textarea>
+            <label for="descricao_prejuizo">Descrição do prejuízo (opcional)</label>
+            <textarea id="descricao_prejuizo" name="descricao_prejuizo"
+              placeholder="Se houve, descreva brevemente o prejuízo."></textarea>
           </div>
         </div>
 
         <div class="grid grid-2">
           <div>
-            <div class="section-title">Houve reclamação?</div>
+            <label class="required">Houve reclamação?</label>
             <div class="field-inline">
               <label><input type="radio" name="houve_reclamacao" value="nao" checked /> Não</label>
               <label><input type="radio" name="houve_reclamacao" value="sim" /> Sim</label>
             </div>
           </div>
           <div id="grp_autores_conteudo_reclamacao" class="hidden">
-            <div class="section-title">Autor(es) e conteúdo resumido da(s) reclamação(ões)</div>
+            <label for="autores_conteudo_reclamacao">Autor(es) e conteúdo resumido da(s) reclamação(ões)
+              (opcional)</label>
             <textarea id="autores_conteudo_reclamacao" name="autores_conteudo_reclamacao"></textarea>
           </div>
         </div>
 
+        <!-- 4) Manutenção (mantido) -->
+        <div class="section-title">4) Manutenção</div>
+
         <div class="grid grid-2">
           <div>
-            <div class="section-title">Foi necessário acionar manutenção?</div>
+            <label class="required">Foi necessário acionar manutenção?</label>
             <div class="field-inline">
               <label><input type="radio" name="acionou_manutencao" value="nao" checked /> Não</label>
               <label><input type="radio" name="acionou_manutencao" value="sim" /> Sim</label>
             </div>
           </div>
           <div id="grp_hora_acionamento" class="hidden">
-            <div class="section-title">Indicar o horário</div>
+            <label for="hora_acionamento_manutencao">Hora do acionamento da manutenção (opcional)</label>
             <input type="time" id="hora_acionamento_manutencao" name="hora_acionamento_manutencao" />
           </div>
         </div>
 
         <div class="grid grid-2">
           <div>
-            <div class="section-title">Anormalidade resolvida durante o evento?</div>
+            <label class="required">Anormalidade resolvida pelo próprio operador?</label>
             <div class="field-inline">
               <label><input type="radio" name="resolvida_pelo_operador" value="nao" checked /> Não</label>
               <label><input type="radio" name="resolvida_pelo_operador" value="sim" /> Sim</label>
             </div>
           </div>
           <div id="grp_procedimentos_adotados" class="hidden">
-            <div class="section-title">Descrição dos procedimentos adotados</div>
+            <label for="procedimentos_adotados">Descrição sucinta dos procedimentos adotados (opcional)</label>
             <textarea id="procedimentos_adotados" name="procedimentos_adotados"></textarea>
+          </div>
+        </div>
+
+        <!-- 5) Responsáveis (sem "Operador responsável pelo registro") -->
+        <div class="section-title">5) Responsáveis</div>
+        <div class="grid grid-2">
+          <div>
+            <label class="required" for="responsavel_evento">Responsável do evento (Comissão/Mesa/Organização)</label>
+            <input type="text" id="responsavel_evento" name="responsavel_evento" required
+              placeholder="Nome do responsável" />
           </div>
         </div>
 
