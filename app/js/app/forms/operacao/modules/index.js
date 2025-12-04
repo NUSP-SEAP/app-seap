@@ -175,6 +175,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             const val = elements.salaSelect.value;
             globalState.modoEdicaoEntradaSeq = null; // Reseta modo edição ao trocar sala
 
+            resetFormMantendoSalaETipo(elements);
+
             if (!val) {
                 // Sala vazia -> Limpa estado
                 globalState.estadoSessao = null;

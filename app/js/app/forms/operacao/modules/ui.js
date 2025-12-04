@@ -439,7 +439,7 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
         if (btnSalvarRegistro) {
             btnSalvarRegistro.style.display = "";
             btnSalvarRegistro.disabled = false;
-            btnSalvarRegistro.textContent = "Salvar registro / Iniciar sessão";
+            btnSalvarRegistro.textContent = "Salvar registro";
         }
         if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
         if (btnFinalizarSessao) { btnFinalizarSessao.disabled = true; }
@@ -578,7 +578,7 @@ export function preencherFormularioComEntrada(elements, entrada, estadoSessao) {
 function bloquearCabecalhoSeSessaoAberta(elements, estadoSessao) {
     const {
         dataOperacaoInput, horarioPautaInput, horaInicioInput,
-        nomeEventoInput, responsavelEventoInput
+        nomeEventoInput, responsavelEventoInput, comissaoSelect
     } = elements;
 
     // Se existe sessão, usamos os dados dela e travamos
@@ -603,11 +603,17 @@ function bloquearCabecalhoSeSessaoAberta(elements, estadoSessao) {
             horaInicioInput.value = estadoSessao.horario_inicio || "";
             horaInicioInput.readOnly = true;
         }
+        if (comissaoSelect) {
+            const val = estadoSessao.comissao_id;
+            comissaoSelect.value = (val !== null && val !== undefined) ? String(val) : "";
+            comissaoSelect.disabled = true;
+        }
     } else {
         // Se não, destrava (para o primeiro operador preencher)
         // Nota: dataOperacaoInput pode ter lógica específica de "hoje", 
         // mas aqui garantimos que seja editável se não houver sessão.
         [nomeEventoInput, responsavelEventoInput, dataOperacaoInput, horarioPautaInput, horaInicioInput]
             .forEach(el => { if (el) el.readOnly = false; });
+        if (comissaoSelect) comissaoSelect.disabled = false;
     }
 }
