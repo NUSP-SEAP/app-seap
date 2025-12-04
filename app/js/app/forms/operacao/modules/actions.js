@@ -151,6 +151,12 @@ export async function salvarEntrada(modo, elements, opcoes) {
         observacoesInput, responsavelEventoInput, btnSalvarEdicao, btnSalvarRegistro
     } = elements;
 
+    const horaFimVal = elements.horaFimInput ? elements.horaFimInput.value : "";
+    if (!horaFimVal) {
+        const confirmou = confirm("Sem horário de término. Confirma evento em andamento?");
+        if (!confirmou) return; // Cancela salvamento
+    }
+
     if (!form) return;
     if (!salaSelect || !salaSelect.value) {
         alert("Selecione uma sala antes de salvar o registro.");
@@ -298,12 +304,9 @@ export async function salvarEntrada(modo, elements, opcoes) {
         const deveAbrirAnomalia = houveAnomalia && (tipoEventoEfetivo === "operacao" || tipoEventoEfetivo === "outros");
 
         let msgBase = isEdicao ? "Edição salva com sucesso." : "Registro salvo com sucesso.";
-        if (deveAbrirAnomalia) {
-            msgBase += "\n\nEm seguida será aberto o formulário de Registro de Anormalidade.";
-        }
-        alert(msgBase);
 
-        if (deveAbrirAnomalia && registroId) {
+        if (deveAbrirAnomalia) {
+            alert(msgBase + "\n\nRedirecionando para Registro de Anormalidade.");
             resetFormMantendoSalaETipo(elements);
             const params = new URLSearchParams();
             params.set("registro_id", String(registroId));
@@ -312,12 +315,11 @@ export async function salvarEntrada(modo, elements, opcoes) {
                 params.set("modo", "novo");
             }
             window.location.href = "/forms/operacao/anormalidade.html?" + params.toString();
-            return;
+        } else {
+            // [ALTERADO] Redireciona para Home se não houver anormalidade
+            alert(msgBase);
+            window.location.href = "/home.html";
         }
-
-        globalState.modoEdicaoEntradaSeq = null;
-        resetFormMantendoSalaETipo(elements);
-        await carregarEstadoSessao(salaId, elements);
 
     } catch (e) {
         console.error("Erro inesperado ao salvar entrada de operação:", e);

@@ -239,3 +239,27 @@ button,
         padding: 20px;
     }
 }
+
+/* --- Cronômetro (Novo) --- */
+.timer-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.timer-display {
+    font-family: monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.btn-timer {
+    font-size: 0.9rem;
+    padding: 8px 16px;
+}

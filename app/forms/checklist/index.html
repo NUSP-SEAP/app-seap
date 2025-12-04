@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Testes Diários</title>
+    <title>Verificação de Salas</title>
     <meta name="robots" content="noindex,nofollow" />
     <link rel="stylesheet" href="/css/app/forms/checklist/index.css">
     <link rel="stylesheet" href="/css/app/body.css">
@@ -14,15 +14,20 @@
     <main>
         <div class="card">
             <h1>Verificação de Salas</h1>
-            <p class="muted">Preencha os dados e marque o status de cada item.</p>
+            <p class="muted">Inicie o cronômetro, verifique os itens e finalize para salvar.</p>
 
             <form id="form-checklist" novalidate>
-                <!-- Horários automáticos (campos ocultos) -->
                 <input type="hidden" id="hora_inicio_testes" name="hora_inicio_testes" />
                 <input type="hidden" id="hora_termino_testes" name="hora_termino_testes" />
 
-                <!-- 1) Identificação (Layout Limpo) -->
-                <div class="grid grid-3">
+                <div class="timer-container">
+                    <button type="button" id="btn-iniciar-testes" class="btn btn-primary btn-timer">
+                        ▶ Iniciar Testes
+                    </button>
+                    <span id="cronometro" class="timer-display">00:00</span>
+                </div>
+
+                <div class="grid grid-2">
                     <div>
                         <label class="required" for="data_operacao">Data</label>
                         <input type="date" id="data_operacao" name="data_operacao" required />
@@ -35,136 +40,14 @@
                     </div>
                 </div>
 
-                <!-- 2) Itens do teste -->
                 <div>
                     <div class="section-title">Itens Verificados</div>
-                    <div class="checklist">
 
-                        <!-- Item 1 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Sistema Zoom</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="sistemaZoom" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="sistemaZoom" value="Falha"> Falha</label>
-                            </div>
-                            <textarea id="falhaSistemaZoom" class="falha-descricao" name="falhaSistemaZoom"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 2 -->
-                        <div class="check-item">
-                            <span class="check-item-label">PC do Secretário</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="pcSecretario" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="pcSecretario" value="Falha">
-                                    Falha</label>
-                            </div>
-                            <textarea id="falhaPcSecretario" class="falha-descricao" name="falhaPcSecretario"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 3 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Vídeowall</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="videowall" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="videowall" value="Falha"> Falha</label>
-                            </div>
-                            <textarea id="falhaVideowall" class="falha-descricao" name="falhaVideowall"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 4 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Mic sem fio</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="micSemFio" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="micSemFio" value="Falha"> Falha</label>
-                            </div>
-                            <textarea id="falhaMicSemFio" class="falha-descricao" name="falhaMicSemFio"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 5 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Mic de bancada</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="micBancada" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="micBancada" value="Falha"> Falha</label>
-                            </div>
-                            <textarea id="falhaMicBancada" class="falha-descricao" name="falhaMicBancada"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 6 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Sinal TV Senado</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="sinalTVSenado" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="sinalTVSenado" value="Falha">
-                                    Falha</label>
-                            </div>
-                            <textarea id="falhaSinalTVSenado" class="falha-descricao" name="falhaSinalTVSenado"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 7 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Tablet Presidente</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="tabletPresidente" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="tabletPresidente" value="Falha">
-                                    Falha</label>
-                            </div>
-                            <textarea id="falhaTabletPresidente" class="falha-descricao" name="falhaTabletPresidente"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 8 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Tablet Secretária</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="tabletSecretaria" value="Ok" required>
-                                    Ok</label>
-                                <label class="radio"><input type="radio" name="tabletSecretaria" value="Falha">
-                                    Falha</label>
-                            </div>
-                            <textarea id="falhaTabletSecretaria" class="falha-descricao" name="falhaTabletSecretaria"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 9 -->
-                        <div class="check-item">
-                            <span class="check-item-label">Relógio (sincronismo)</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="relogio" value="Ok" required> Ok</label>
-                                <label class="radio"><input type="radio" name="relogio" value="Falha"> Falha</label>
-                            </div>
-                            <textarea id="falhaRelogio" class="falha-descricao" name="falhaRelogio"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
-
-                        <!-- Item 10 -->
-                        <div class="check-item">
-                            <span class="check-item-label">VIP</span>
-                            <div class="check-item-controls">
-                                <label class="radio"><input type="radio" name="vip" value="Ok" required> Ok</label>
-                                <label class="radio"><input type="radio" name="vip" value="Falha"> Falha</label>
-                            </div>
-                            <textarea id="falhaVip" class="falha-descricao" name="falhaVip"
-                                placeholder="Descreva a falha."></textarea>
-                        </div>
+                    <div id="itens-container" class="checklist">
+                        <div class="muted">Carregando itens de verificação...</div>
                     </div>
                 </div>
 
-                <!-- 3) Recursos/Parâmetros -->
                 <div class="grid grid-2">
                     <div>
                         <div class="section-title">Trilha do Gravador 01</div>
@@ -176,25 +59,28 @@
                     </div>
                 </div>
 
-                <!-- 4) Observações -->
                 <div>
                     <div class="section-title">Observações</div>
                     <textarea id="observacoes" name="observacoes"></textarea>
                 </div>
 
-                <!-- Ações -->
-                <div class="actions">
+                <div class="actions" style="flex-wrap: wrap; gap: 10px;">
                     <a href="/home.html" class="btn btn-secondary">Voltar</a>
-                    <button type="submit" class="btn btn-primary">Salvar</button>
+
+                    <button type="button" id="btn-finalizar-testes" class="btn btn-secondary" disabled>
+                        ⏹ Finalizar Testes
+                    </button>
+
+                    <button type="submit" class="btn btn-primary">Salvar verificação</button>
                 </div>
 
-                <!-- feedback -->
                 <div id="msg" class="card hidden" style="margin-top:12px;"></div>
             </form>
         </div>
     </main>
 
     <script src="/js/config.js"></script>
+    <script src="/js/auth_jwt.js"></script>
     <script src="/js/session-autoload.js" defer></script>
     <script src="/js/app/forms/checklist/index.js" defer></script>
 </body>

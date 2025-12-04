@@ -47,6 +47,7 @@ const AppConfig = {
         forms: {
             cessaoSala: "/webhook/forms/cessao-sala",
             checklist: "/webhook/forms/checklist/registro",
+            checklistItensTipo: "/webhook/forms/checklist/itens-tipo",
             operacao: "/webhook/operacao/registro",
             anormalidade: "/webhook/operacao/anormalidade/registro"
         },

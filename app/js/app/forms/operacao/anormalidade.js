@@ -24,7 +24,7 @@ function getToken() {
 }
 
 /**
- * fetch com Authorization: Bearer <token>, usando Auth.authFetch se existir
+ * fetch com Authorization
  */
 async function authFetch(url, options = {}) {
     if (window.Auth && typeof Auth.authFetch === "function") {
@@ -38,39 +38,17 @@ async function authFetch(url, options = {}) {
 }
 
 /**
- * Lê registro_id da querystring (apenas números positivos)
+ * Lê IDs da querystring
  */
-function getRegistroIdFromQuery() {
+function getQueryId(paramName) {
     try {
         const params = new URLSearchParams(window.location.search);
-        const rid = params.get("registro_id");
-        if (!rid) return null;
-        const n = Number(rid);
+        const val = params.get(paramName);
+        if (!val) return null;
+        const n = Number(val);
         if (!Number.isFinite(n) || n <= 0) return null;
         return String(n);
     } catch (e) {
-        console.error("Erro ao ler registro_id da URL:", e);
-        return null;
-    }
-}
-
-/**
- * Lê entrada_id da querystring.
- * Hoje é bigint, mas se um dia virar UUID, devolvemos string mesmo assim.
- */
-function getEntradaIdFromQuery() {
-    try {
-        const params = new URLSearchParams(window.location.search);
-        const eid = params.get("entrada_id");
-        if (!eid) return null;
-
-        const n = Number(eid);
-        if (Number.isFinite(n) && n > 0) {
-            return String(n);
-        }
-        return eid;
-    } catch (e) {
-        console.error("Erro ao ler entrada_id da URL:", e);
         return null;
     }
 }
@@ -90,15 +68,7 @@ async function loadSalas(prefId = null) {
         const r = await authFetch(SALAS_URL, { method: "GET" });
         const json = await r.json().catch(() => ({}));
 
-        const rows = Array.isArray(json?.data)
-            ? json.data
-            : Array.isArray(json?.salas)
-                ? json.salas
-                : Array.isArray(json)
-                    ? json
-                    : [];
-
-        if (!rows.length) throw new Error("lista vazia");
+        const rows = Array.isArray(json?.data) ? json.data : [];
 
         sel.innerHTML =
             '<option value="">Selecione...</option>' +
@@ -111,137 +81,76 @@ async function loadSalas(prefId = null) {
             if (hidden) hidden.value = sel.value || "";
         }
 
-        // A sala vem travada (apenas leitura)
-        sel.disabled = true;
+        sel.disabled = true; // Sempre travado nesta tela
     } catch (e) {
-        console.error("Falha ao carregar salas:", e);
         sel.innerHTML = '<option value="">[Erro ao carregar]</option>';
-        sel.disabled = true;
-        if (hidden) hidden.value = "";
     }
 }
 
 /**
- * Busca dados básicos do registro de operação para o cabeçalho da RAOA
- * (data, sala, nome_evento).
- *
- * Usa entrada_id quando disponível, para pegar o nome_evento correto daquela entrada.
+ * Busca dados básicos do registro de operação para o cabeçalho
  */
 async function loadRegistroOperacao(registroId, entradaId) {
     try {
         const params = new URLSearchParams();
         params.set("id", String(registroId));
-        if (entradaId) {
-            params.set("entrada_id", String(entradaId));
-        }
+        if (entradaId) params.set("entrada_id", String(entradaId));
 
         const url = `${REGISTRO_LOOKUP_URL}?${params.toString()}`;
-
         const resp = await authFetch(url, { method: "GET" });
         const json = await resp.json().catch(() => ({}));
 
-        if (!resp.ok || json.ok === false) {
-            console.error("Falha ao buscar registro de operação para anormalidade:", json);
+        if (!resp.ok || json.ok === false || !json.data) {
             return null;
         }
-
-        if (!json.data) {
-            return null;
-        }
-
-        // Esperado: { id, data, sala_id, nome_evento }
         return json.data;
     } catch (e) {
-        console.error("Erro inesperado ao buscar registro de operação:", e);
+        console.error("Erro inesperado ao buscar registro:", e);
         return null;
     }
 }
 
 /**
  * Tenta carregar uma anormalidade existente para a entrada_id informada.
- * - 404 => não existe ainda (modo "novo")
- * - 200 + data => preenche o formulário e devolve o objeto
  */
 async function loadAnormalidadeExistente(entradaId) {
     if (!entradaId) return null;
-
     try {
         const url = `${REGISTRO_ANORMALIDADE_URL}?entrada_id=${encodeURIComponent(entradaId)}`;
         const resp = await authFetch(url, { method: "GET" });
 
-        if (resp.status === 404) {
-            // Não há registro ainda para esta entrada
-            return null;
-        }
+        if (resp.status === 404) return null;
 
         const json = await resp.json().catch(() => ({}));
-
-        if (!resp.ok || json.ok === false) {
-            console.error("Falha ao buscar anormalidade existente:", json);
-            return null;
-        }
+        if (!resp.ok || json.ok === false) return null;
 
         const data = json.data || json;
-        if (!data || typeof data !== "object") {
-            return null;
-        }
-
         preencherFormularioAnormalidade(data);
         return data;
     } catch (e) {
-        console.error("Erro inesperado ao carregar anormalidade existente:", e);
         return null;
     }
 }
 
 /**
- * Preenche o formulário da RAOA com os dados retornados do backend
- * (modo edição) e injeta o hidden "id" para UPDATE.
+ * Preenche o formulário (Edição)
  */
 function preencherFormularioAnormalidade(data) {
     const setVal = (id, value) => {
-        if (typeof value === "undefined" || value === null) return;
         const el = document.getElementById(id);
-        if (!el) return;
-        if (
-            el.tagName === "INPUT" ||
-            el.tagName === "TEXTAREA" ||
-            el.tagName === "SELECT"
-        ) {
-            el.value = String(value);
-        }
+        if (el && value !== undefined && value !== null) el.value = String(value);
     };
 
-    const setRadioFromBoolLike = (name, value) => {
-        if (typeof value === "undefined" || value === null || value === "") return;
-
-        let v = value;
-        if (typeof v === "boolean") {
-            v = v ? "sim" : "nao";
-        } else {
-            const s = String(v).toLowerCase();
-            if (s === "sim" || s === "nao") {
-                v = s;
-            } else if (s === "true" || s === "t" || s === "1") {
-                v = "sim";
-            } else if (s === "false" || s === "f" || s === "0") {
-                v = "nao";
-            } else {
-                v = "nao";
-            }
-        }
-
-        const radio = document.querySelector(
-            `input[name="${name}"][value="${v}"]`
-        );
+    const setRadio = (name, val) => {
+        let v = val === true || val === "true" || val === "sim" || val === 1 ? "sim" : "nao";
+        const radio = document.querySelector(`input[name="${name}"][value="${v}"]`);
         if (radio) {
             radio.checked = true;
-            // dispara change para atualizar os grupos condicionais
-            radio.dispatchEvent(new Event("change", { bubbles: true }));
+            radio.dispatchEvent(new Event("change")); // Atualiza toggles
         }
     };
 
-    // Cabeçalho — se o backend devolver esses campos, mantemos coerência com o que está salvo
+    // Cabeçalho
     setVal("data", data.data);
     setVal("sala_id", data.sala_id);
     setVal("sala_id_display", data.sala_id);
@@ -251,35 +160,29 @@ function preencherFormularioAnormalidade(data) {
     // Campos principais
     setVal("hora_inicio_anormalidade", data.hora_inicio_anormalidade);
     setVal("descricao_anormalidade", data.descricao_anormalidade);
+    setVal("responsavel_evento", data.responsavel_evento);
 
-    // Radios + condicionais
-    setRadioFromBoolLike("houve_prejuizo", data.houve_prejuizo);
+    // Condicionais
+    setRadio("houve_prejuizo", data.houve_prejuizo);
     setVal("descricao_prejuizo", data.descricao_prejuizo);
 
-    setRadioFromBoolLike("houve_reclamacao", data.houve_reclamacao);
+    setRadio("houve_reclamacao", data.houve_reclamacao);
     setVal("autores_conteudo_reclamacao", data.autores_conteudo_reclamacao);
 
-    setRadioFromBoolLike("acionou_manutencao", data.acionou_manutencao);
+    setRadio("acionou_manutencao", data.acionou_manutencao);
     setVal("hora_acionamento_manutencao", data.hora_acionamento_manutencao);
 
-    setRadioFromBoolLike("resolvida_pelo_operador", data.resolvida_pelo_operador);
+    setRadio("resolvida_pelo_operador", data.resolvida_pelo_operador);
     setVal("procedimentos_adotados", data.procedimentos_adotados);
 
-    setRadioFromBoolLike("anormalidade_solucionada", data.anormalidade_solucionada);
-    setVal("data_solucao", data.data_solucao);
-    setVal("hora_solucao", data.hora_solucao);
-
-    setVal("responsavel_evento", data.responsavel_evento);
-    setVal("operador_responsavel_id", data.operador_responsavel_id);
-
-    // id da anormalidade (para UPDATE)
+    // ID para update
     const form = document.getElementById("form-raoa");
     if (form && data.id) {
         let hid = form.querySelector('input[name="id"]');
         if (!hid) {
             hid = document.createElement("input");
             hid.type = "hidden";
-            hid.name = "id"; // backend trata como chave para UPDATE
+            hid.name = "id";
             hid.id = "registro_anormalidade_id";
             form.appendChild(hid);
         }
@@ -288,37 +191,14 @@ function preencherFormularioAnormalidade(data) {
 }
 
 /**
- * Regras de exibição condicional (alinhadas com o HTML atual)
+ * Regras de exibição condicional
  */
 function bindToggles() {
     const toggles = [
-        // Impactos / Reclamações / Manutenção
-        {
-            name: "houve_prejuizo",
-            target: "grp_descricao_prejuizo",
-            required: ["descricao_prejuizo"],       // requerido quando "Sim"
-        },
-        {
-            name: "houve_reclamacao",
-            target: "grp_autores_conteudo_reclamacao",
-            required: ["autores_conteudo_reclamacao"], // requerido quando "Sim"
-        },
-        {
-            name: "acionou_manutencao",
-            target: "grp_hora_acionamento",
-            required: ["hora_acionamento_manutencao"], // requerido quando "Sim"
-        },
-        {
-            name: "resolvida_pelo_operador",
-            target: "grp_procedimentos_adotados",
-            required: [],                             // opcional mesmo quando "Sim"
-        },
-        // Nova pergunta: A anormalidade foi solucionada?
-        {
-            name: "anormalidade_solucionada",
-            target: "grp_solucao",
-            required: ["data_solucao", "hora_solucao"], // obrigatórios quando "Sim"
-        },
+        { name: "houve_prejuizo", target: "grp_descricao_prejuizo", required: ["descricao_prejuizo"] },
+        { name: "houve_reclamacao", target: "grp_autores_conteudo_reclamacao", required: ["autores_conteudo_reclamacao"] },
+        { name: "acionou_manutencao", target: "grp_hora_acionamento", required: ["hora_acionamento_manutencao"] },
+        { name: "resolvida_pelo_operador", target: "grp_procedimentos_adotados", required: [] }
     ];
 
     toggles.forEach((t) => {
@@ -326,134 +206,75 @@ function bindToggles() {
         if (!groupEl) return;
 
         const radios = document.querySelectorAll(`input[name="${t.name}"]`);
-        if (!radios.length) return;
 
         const apply = () => {
-            const yes = document.querySelector(
-                `input[name="${t.name}"][value="sim"]`
-            );
+            const yes = document.querySelector(`input[name="${t.name}"][value="sim"]`);
             const show = !!yes && yes.checked;
 
             groupEl.classList.toggle("hidden", !show);
 
             (t.required || []).forEach((fieldId) => {
                 const field = document.getElementById(fieldId);
-                if (!field) return;
-
-                if (show) {
-                    field.setAttribute("required", "required");
-                } else {
-                    field.removeAttribute("required");
-                    if ("value" in field) {
+                if (field) {
+                    if (show) field.setAttribute("required", "required");
+                    else {
+                        field.removeAttribute("required");
                         field.value = "";
                     }
                 }
             });
         };
 
-        radios.forEach((r) => {
-            r.addEventListener("change", apply);
-        });
-
-        // Estado inicial
+        radios.forEach((r) => r.addEventListener("change", apply));
         apply();
     });
 }
 
-// === Inicialização da página RAOA ===
+// === Inicialização ===
 document.addEventListener("DOMContentLoaded", async () => {
     bindToggles();
 
-    const registroId = getRegistroIdFromQuery();
-    const entradaId = getEntradaIdFromQuery();
+    const registroId = getQueryId("registro_id");
+    const entradaId = getQueryId("entrada_id");
 
-    // Inputs hidden
-    const registroIdInput = document.getElementById("registro_id");
-    const entradaIdInput = document.getElementById("entrada_id");
+    // Preenche hiddens
+    if (registroId) document.getElementById("registro_id").value = registroId;
+    if (entradaId) document.getElementById("entrada_id").value = entradaId;
 
-    if (registroIdInput && registroId) registroIdInput.value = registroId;
-    if (entradaIdInput && entradaId) entradaIdInput.value = entradaId;
-
-    // Texto de referência ao registro (HTML usa id="registro-ref")
-    const registroRef = document.getElementById("registro-ref");
-    if (registroId && registroRef) {
-        registroRef.textContent =
-            "Vinculado ao registro de operação nº " + registroId;
+    if (registroId) {
+        document.getElementById("registro-ref").textContent = "Vinculado ao registro de operação nº " + registroId;
     }
 
     let prefSalaId = null;
 
-    // Cabeçalho: busca dados do registro de operação
-    const dataInput = document.getElementById("data");
-    const salaDisplay = document.getElementById("sala_id_display");
-    const salaHidden = document.getElementById("sala_id");
-    const nomeEventoDisplay = document.getElementById("nome_evento_display");
-    const nomeEventoHidden = document.getElementById("nome_evento");
-
+    // Carrega dados do registro (cabeçalho)
     if (registroId) {
-        try {
-            const info = await loadRegistroOperacao(registroId, entradaId);
-            console.log("Registro de operação carregado na RAOA:", info);
-
-            if (info) {
-                if (dataInput && info.data) {
-                    // espera-se formato YYYY-MM-DD
-                    dataInput.value = info.data;
-                }
-                if (typeof info.nome_evento === "string") {
-                    if (nomeEventoDisplay) nomeEventoDisplay.value = info.nome_evento;
-                    if (nomeEventoHidden) nomeEventoHidden.value = info.nome_evento;
-                }
-                if (typeof info.sala_id !== "undefined" && info.sala_id !== null) {
-                    prefSalaId = info.sala_id;
-                    if (salaHidden) salaHidden.value = String(info.sala_id);
-                }
+        const info = await loadRegistroOperacao(registroId, entradaId);
+        if (info) {
+            if (info.data) document.getElementById("data").value = info.data;
+            if (info.nome_evento) {
+                document.getElementById("nome_evento_display").value = info.nome_evento;
+                document.getElementById("nome_evento").value = info.nome_evento;
             }
-        } catch (e) {
-            console.error("Erro ao carregar registro de operação:", e);
+            if (info.sala_id) {
+                prefSalaId = info.sala_id;
+                document.getElementById("sala_id").value = String(info.sala_id);
+            }
         }
     }
 
-    // Carrega lista de salas e seleciona a sala da operação
     await loadSalas(prefSalaId);
 
-    // Garante travamento visual dos campos de cabeçalho
-    if (dataInput) dataInput.readOnly = true;
-    if (nomeEventoDisplay) nomeEventoDisplay.readOnly = true;
-    if (salaDisplay) salaDisplay.disabled = true;
-
-    // Tenta carregar RAOA existente para esta entrada (se houver entrada_id)
+    // Verifica se já existe RAOA (Modo Edição)
     let modo = "novo";
-    let registroAnormalidade = null;
-
     if (entradaId) {
-        try {
-            registroAnormalidade = await loadAnormalidadeExistente(entradaId);
-            if (registroAnormalidade && registroAnormalidade.id) {
-                modo = "edicao";
-            }
-        } catch (e) {
-            console.error("Erro ao carregar anormalidade existente:", e);
-        }
+        const raoa = await loadAnormalidadeExistente(entradaId);
+        if (raoa && raoa.id) modo = "edicao";
     }
 
     const form = document.getElementById("form-raoa");
-    if (!form) return;
 
-    // Ajusta texto do botão de submit
-    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
-    if (submitBtn) {
-        const novoTxt = "Salvar registro de anormalidade";
-        const editTxt = "Salvar alterações do registro de anormalidade";
-
-        if (submitBtn.tagName === "BUTTON") {
-            submitBtn.textContent = modo === "edicao" ? editTxt : novoTxt;
-        } else if (submitBtn.tagName === "INPUT") {
-            submitBtn.value = modo === "edicao" ? editTxt : novoTxt;
-        }
-    }
-
-    // Enviar para o backend Django (INSERT ou UPDATE dependendo da presença de id)
+    // Submit
     form.addEventListener("submit", async (ev) => {
         ev.preventDefault();
         if (!form.checkValidity()) {
@@ -461,27 +282,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // --- VALIDAÇÃO FRONT-END EXTRA: DATA DA SOLUÇÃO ---
-        const dtOcorrencia = document.getElementById("data").value; // YYYY-MM-DD
-        const dtSolucao = document.getElementById("data_solucao").value; // YYYY-MM-DD
-        const hrInicio = document.getElementById("hora_inicio_anormalidade").value; // HH:MM
-        const hrSolucao = document.getElementById("hora_solucao").value; // HH:MM
-
-        if (dtSolucao) {
-            // Se data da solução é menor que data da ocorrência
-            if (dtSolucao < dtOcorrencia) {
-                alert("Data da solução da anormalidade não pode ser anterior à data da ocorrência.");
-                return;
-            }
-            // Se data é igual, hora da solução não pode ser menor que início
-            if (dtSolucao === dtOcorrencia && hrSolucao && hrInicio) {
-                if (hrSolucao < hrInicio) {
-                    alert("Hora da solução não pode ser anterior ao início da anormalidade.");
-                    return;
-                }
-            }
-        }
-        // --------------------------------------------------
+        const btn = form.querySelector('button[type="submit"]');
+        const oldTxt = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
 
         try {
             const resp = await authFetch(REGISTRO_ANORMALIDADE_URL, {
@@ -489,49 +293,29 @@ document.addEventListener("DOMContentLoaded", async () => {
                 body: new FormData(form),
             });
 
-            let data = {};
-            try {
-                data = await resp.json();
-            } catch (e) {
-                data = {};
-            }
+            const data = await resp.json().catch(() => ({}));
 
             if (!resp.ok || data.ok === false) {
-                let msg = "Erro ao salvar o formulário de anormalidade.";
-                if (data && data.errors) {
-                    msg += "\n\nDetalhes:\n" + JSON.stringify(data.errors, null, 2);
-                } else if (data && data.error) {
-                    msg += "\n\n" + data.error;
-                }
-                alert(msg);
+                const err = data.error || (data.errors ? JSON.stringify(data.errors) : "Erro desconhecido");
+                alert("Erro ao salvar: " + err);
+                btn.disabled = false;
+                btn.textContent = oldTxt;
                 return;
             }
 
-            const msgSucesso =
-                modo === "edicao"
-                    ? "Registro de anormalidade atualizado com sucesso!"
-                    : "Registro de anormalidade criado com sucesso!";
-
-            alert(msgSucesso);
-
-            // Após salvar RAOA → vai para a Home (conforme sua observação)
+            alert("Registro de anormalidade salvo com sucesso!");
             window.location.href = "/home.html";
+
         } catch (e) {
-            console.error("Falha inesperada ao salvar registro de anormalidade:", e);
-            alert("Erro inesperado ao salvar o formulário. Tente novamente.");
+            console.error(e);
+            alert("Erro de conexão ao salvar.");
+            btn.disabled = false;
+            btn.textContent = oldTxt;
         }
     });
 
-    // Botão Voltar — volta para a tela anterior (se houver) ou Home
-    const btnVoltar = document.getElementById("btn-voltar");
-    if (btnVoltar) {
-        btnVoltar.addEventListener("click", (ev) => {
-            ev.preventDefault();
-            if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                window.location.href = "/home.html";
-            }
-        });
-    }
+    // Botão Voltar
+    document.getElementById("btn-voltar").addEventListener("click", () => {
+        window.location.href = "/home.html";
+    });
 });

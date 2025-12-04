@@ -1,208 +1,296 @@
-// ====== Estado dos horários (não exibidos) ======
-let _entradaPagina = null; // Date da entrada
-function hhmmss(d) { const p = n => String(n).padStart(2, "0"); return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()); }
+(function () {
+    "use strict";
 
-// ====== UI helpers ======
-const $ = (sel) => document.querySelector(sel);
-function showMsg(html, ok = true) {
-    const box = $("#msg");
-    box.classList.remove("hidden");
-    box.style.borderColor = ok ? "#16a34a" : "#dc2626";
-    box.innerHTML = html;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-}
+    // ====== Variáveis de Estado ======
+    let _inicioTestes = null;
+    let _terminoTestes = null;
+    let _timerInterval = null;
 
-// Exibe/oculta textarea quando marcar "Falha"
-function bindConditionalFailures() {
-    const radios = document.querySelectorAll('.check-item input[type="radio"]');
-    radios.forEach(r => {
-        r.addEventListener('change', (e) => {
-            const name = e.target.name; // ex.: sistemaZoom
-            const area = document.getElementById('falha' + name.charAt(0).toUpperCase() + name.slice(1));
-            if (!area) return;
-            if (e.target.value === 'Falha' && e.target.checked) {
-                area.style.display = 'block';
-            } else {
-                area.style.display = 'none';
-                area.value = '';
+    // ====== UI Helpers ======
+    const $ = (id) => document.getElementById(id);
+
+    const pad2 = (n) => String(n).padStart(2, '0');
+
+    // Formata Date -> HH:MM:SS
+    const hhmmss = (d) => {
+        if (!d) return null;
+        return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    };
+
+    // Atualiza o display do cronômetro
+    function updateCronometro() {
+        if (!_inicioTestes) return;
+        const now = new Date();
+        const diff = Math.floor((now - _inicioTestes) / 1000); // segundos
+
+        const m = Math.floor(diff / 60);
+        const s = diff % 60;
+
+        const el = $("cronometro");
+        if (el) el.textContent = `${pad2(m)}:${pad2(s)}`;
+    }
+
+    // ====== Lógica de Dados ======
+
+    // Busca Salas
+    async function loadSalas() {
+        const url = AppConfig.apiUrl(AppConfig.endpoints.lookups.salas);
+        const sel = $("sala_id");
+        sel.innerHTML = '<option value="">Carregando...</option>';
+        try {
+            let resp;
+            if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(url, { method: 'GET' });
+            else {
+                // Fallback sem auth module (raro)
+                resp = await fetch(url, { method: 'GET' });
+            }
+            const json = await resp.json().catch(() => ({}));
+            const rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+
+            const opts = ['<option value="">Selecione...</option>'].concat(
+                rows.map(r => `<option value="${r.id}">${r.nome}</option>`)
+            ).join('');
+
+            sel.innerHTML = opts;
+            sel.disabled = false;
+        } catch (e) {
+            console.error(e);
+            sel.innerHTML = '<option value="">Falha ao carregar</option>';
+        }
+    }
+
+    // Busca Tipos de Item (NOVO)
+    async function loadItensTipo() {
+        const url = AppConfig.apiUrl(AppConfig.endpoints.forms.checklistItensTipo);
+        try {
+            let resp;
+            if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(url, { method: 'GET' });
+            else resp = await fetch(url, { method: 'GET' });
+
+            const json = await resp.json();
+            return Array.isArray(json.data) ? json.data : [];
+        } catch (e) {
+            console.error("Erro ao carregar itens de checklist:", e);
+            return [];
+        }
+    }
+
+    // Renderiza os itens na tela
+    function renderItens(listaItens) {
+        const container = $("itens-container");
+        container.innerHTML = "";
+
+        if (!listaItens.length) {
+            container.innerHTML = '<div class="muted">Nenhum item configurado no sistema.</div>';
+            return;
+        }
+
+        // Ordena por ordem definida no banco
+        listaItens.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+
+        listaItens.forEach(item => {
+            // Cria ID único para os radios
+            // Ex: item_1_ok, item_1_falha
+            const groupName = `item_${item.id}`;
+
+            const div = document.createElement("div");
+            div.className = "check-item";
+
+            div.innerHTML = `
+                <span class="check-item-label">${item.nome}</span>
+                <div class="check-item-controls">
+                    <label class="radio">
+                        <input type="radio" name="${groupName}" value="Ok"> Ok
+                    </label>
+                    <label class="radio">
+                        <input type="radio" name="${groupName}" value="Falha"> Falha
+                    </label>
+                </div>
+                <textarea class="falha-descricao" name="${groupName}_falha" placeholder="Descreva a falha..."></textarea>
+            `;
+
+            container.appendChild(div);
+
+            // Listener para mostrar/esconder textarea
+            const radios = div.querySelectorAll(`input[name="${groupName}"]`);
+            const area = div.querySelector("textarea");
+
+            radios.forEach(r => {
+                r.addEventListener("change", (e) => {
+                    if (e.target.value === "Falha") {
+                        area.style.display = "block";
+                        area.focus();
+                    } else {
+                        area.style.display = "none";
+                        area.value = "";
+                    }
+                });
+            });
+        });
+    }
+
+    // Lê o status dos itens da tela para enviar
+    function readItensValues() {
+        const itens = [];
+        const blocks = document.querySelectorAll("#itens-container .check-item");
+
+        blocks.forEach(block => {
+            const labelEl = block.querySelector(".check-item-label");
+            const nomeItem = labelEl ? labelEl.textContent.trim() : null;
+
+            const radio = block.querySelector("input[type=radio]:checked");
+            const status = radio ? radio.value : null;
+
+            const textarea = block.querySelector(".falha-descricao");
+            const desc = textarea && textarea.value.trim() ? textarea.value.trim() : null;
+
+            // Só adiciona se tiver nome (segurança)
+            if (nomeItem) {
+                itens.push({
+                    nome: nomeItem,
+                    status: status, // pode ser null se não marcado
+                    descricao_falha: desc
+                });
             }
         });
-    });
-}
-
-async function loadSalas() {
-    const url = AppConfig.apiUrl(AppConfig.endpoints.lookups.salas);
-    const sel = document.getElementById('sala_id');
-    sel.innerHTML = '<option value="">Carregando...</option>';
-    try {
-        let resp;
-        if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(url, { method: 'GET' });
-        else {
-            const headers = new Headers();
-            const tok = localStorage.getItem('auth_token') || '';
-            if (tok) headers.set('Authorization', 'Bearer ' + tok);
-            resp = await fetch(url, { method: 'GET', headers });
-        }
-        const json = await resp.json().catch(() => ({}));
-        const rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-        const opts = ['<option value="">Selecione...</option>'].concat(
-            rows.map(r => `<option value="${r.id}">${r.nome}</option>`)
-        ).join('');
-        sel.innerHTML = opts;
-        sel.disabled = false;
-    } catch (e) {
-        sel.innerHTML = '<option value="">Falha ao carregar</option>';
+        return itens;
     }
-}
 
-function readItens() {
-    // Nome exatamente como no catálogo (forms.checklist_item_tipo) para mapeamento no back-end.
-    const m = (name, label) => {
-        const v = (document.querySelector(`input[name="${name}"]:checked`) || {}).value || null;
-        const desc = (document.getElementById('falha' + name.charAt(0).toUpperCase() + name.slice(1)) || {}).value || null;
-        return { nome: label, status: v, descricao_falha: desc && desc.trim() ? desc.trim() : null };
-    };
-    return [
-        m('sistemaZoom', 'Sistema Zoom'),
-        m('pcSecretario', 'PC do Secretário'),
-        m('videowall', 'Vídeowall'),
-        m('micSemFio', 'Mic sem fio'),
-        m('micBancada', 'Mic de bancada'),
-        m('sinalTVSenado', 'Sinal TV Senado'),
-        m('tabletPresidente', 'Tablet Presidente'),
-        m('tabletSecretaria', 'Tablet Secretária'),
-        m('relogio', 'Relógio (sincronismo)'),
-        m('vip', 'VIP')
-    ];
-}
+    function buildPayload() {
+        const val = (id) => ($(id)?.value || "").trim();
+        const toNull = (v) => v || null;
 
-function buildPayload() {
-    const now = new Date();
-    const byId = (id) => (document.getElementById(id)?.value || "");
-    const toNull = (s) => {
-        const v = (s || "").trim();
-        return v ? v : null;
-    };
-    return {
-        // Cabeçalho
-        data_operacao: byId('data_operacao') || null,                           // YYYY-MM-DD
-        sala_id: parseInt(byId('sala_id') || "", 10) || null,                   // FK (smallint)
-        turno: byId('turno') || null,                                           // 'Matutino' | 'Vespertino'
+        return {
+            data_operacao: toNull(val('data_operacao')),
+            sala_id: parseInt(val('sala_id'), 10) || null,
+            hora_inicio_testes: _inicioTestes ? hhmmss(_inicioTestes) : null,
+            hora_termino_testes: _terminoTestes ? hhmmss(_terminoTestes) : null,
+            usb_01: toNull(val('usb_01')),
+            usb_02: toNull(val('usb_02')),
+            observacoes: toNull(val('observacoes')),
+            itens: readItensValues()
+        };
+    }
 
-        // Horários automáticos (sem inputs visíveis)
-        hora_inicio_testes: _entradaPagina ? hhmmss(_entradaPagina) : null,     // HH:MM:SS
-        hora_termino_testes: hhmmss(now),                                       // HH:MM:SS
+    // ====== Inicialização ======
+    document.addEventListener("DOMContentLoaded", async () => {
+        // 1. Data Padrão
+        $("data_operacao").valueAsDate = new Date();
 
-        // NOVO: Recursos/Parâmetros
-        usb_01: toNull(byId('usb_01')),                                         // opcional
-        usb_02: toNull(byId('usb_02')),                                         // opcional
+        // 2. Carregar Dados
+        await loadSalas();
+        const itensConfig = await loadItensTipo();
+        renderItens(itensConfig);
 
-        // Observações
-        observacoes: toNull(byId('observacoes')),                                // opcional
+        // 3. Cronômetro
+        const btnIniciar = $("btn-iniciar-testes");
+        const btnFinalizar = $("btn-finalizar-testes");
 
-        // Itens do teste
-        itens: readItens()                                                       // [{nome,status,descricao_falha}, ...]
-    };
-}
+        btnIniciar.addEventListener("click", () => {
+            if (_inicioTestes) return;
+            _inicioTestes = new Date();
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // 1) Define data padrão e captura horário de entrada (inicio dos testes)
-    document.getElementById('data_operacao').valueAsDate = new Date();
-    _entradaPagina = new Date();
+            btnIniciar.disabled = true;
+            btnIniciar.classList.remove("btn-primary");
+            btnIniciar.classList.add("btn-secondary");
 
-    // 2) Carrega salas
-    await loadSalas();
+            btnFinalizar.disabled = false;
+            btnFinalizar.classList.remove("btn-secondary");
+            btnFinalizar.classList.add("btn-danger"); // Destaque visual
 
-    // 3) Liga lógica de "Falha" -> textarea
-    bindConditionalFailures();
+            _timerInterval = setInterval(updateCronometro, 1000);
+        });
 
-    // 4) Submit (envia para o back-end Django)
-    document.getElementById('form-checklist').addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        const form = ev.currentTarget;
-        if (!form.checkValidity()) { form.reportValidity(); return; }
+        btnFinalizar.addEventListener("click", () => {
+            if (!_inicioTestes || _terminoTestes) return;
+            _terminoTestes = new Date();
 
-        const payload = buildPayload();
+            clearInterval(_timerInterval);
+            updateCronometro(); // Última atualização
 
-        const btn = form.querySelector('button[type="submit"]');
-        const old = btn ? btn.textContent : null;
-        if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+            btnFinalizar.disabled = true;
+            btnFinalizar.textContent = "Testes Finalizados";
+        });
 
-        try {
-            const url = AppConfig.apiUrl(AppConfig.endpoints.forms.checklist);
+        // 4. Submit
+        $("form-checklist").addEventListener("submit", async (ev) => {
+            ev.preventDefault();
 
-            let resp;
-            if (window.Auth && Auth.authFetch) {
-                resp = await Auth.authFetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-            } else {
-                const headers = new Headers({ 'Content-Type': 'application/json' });
-                const tok = localStorage.getItem('auth_token') || '';
-                if (tok) headers.set('Authorization', 'Bearer ' + tok);
-                resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
+            // Validações de Fluxo
+            if (!_inicioTestes) {
+                alert("Você precisa clicar em 'Iniciar Testes' antes de salvar.");
+                return;
             }
-
-            if (resp.status === 401 || resp.status === 403) {
-                alert('Sua sessão expirou ou você não tem permissão. Faça login novamente.');
-                window.location.href = '/index.html';
+            if (!_terminoTestes) {
+                alert("Você precisa clicar em 'Finalizar Testes' antes de salvar.");
                 return;
             }
 
-            const data = await resp.json().catch(() => ({}));
+            // Validação de Itens (Pelo menos um marcado)
+            const itensValores = readItensValues();
+            const algumMarcado = itensValores.some(it => it.status === "Ok" || it.status === "Falha");
 
-            if (resp.ok) {
-                // Sucesso: não exibe ID, só a mensagem simples
-                alert('Formulário enviado com sucesso!');
-                form.reset();
-                _entradaPagina = new Date(); // reinicia contador de entrada
-            } else {
-                const msg = data?.message || data?.error || ('Falha ao salvar (HTTP ' + resp.status + ')');
-                alert('Não foi possível salvar. ' + msg);
+            if (!algumMarcado) {
+                alert("Marque o status (Ok ou Falha) de pelo menos um item antes de salvar.");
+                return;
             }
-        } catch (e) {
-            console.error(e);
-            alert('Erro de rede ao tentar salvar o checklist.');
-        } finally {
-            if (btn) { btn.disabled = false; btn.textContent = old || 'Salvar'; }
-        }
+
+            // Se algum estiver marcado como Falha mas sem descrição (opcional, mas boa prática)
+            const falhaSemDesc = itensValores.find(it => it.status === "Falha" && !it.descricao_falha);
+            if (falhaSemDesc) {
+                alert(`O item "${falhaSemDesc.nome}" está marcado como Falha. Por favor, descreva o problema.`);
+                return;
+            }
+
+            // Envio
+            const btn = ev.target.querySelector('button[type="submit"]');
+            const originalTxt = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Salvando...";
+
+            try {
+                const url = AppConfig.apiUrl(AppConfig.endpoints.forms.checklist);
+                const payload = buildPayload();
+
+                let resp;
+                if (window.Auth && Auth.authFetch) {
+                    resp = await Auth.authFetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // fallback
+                    const h = { 'Content-Type': 'application/json' };
+                    const t = localStorage.getItem('auth_token');
+                    if (t) h['Authorization'] = 'Bearer ' + t;
+                    resp = await fetch(url, { method: 'POST', headers: h, body: JSON.stringify(payload) });
+                }
+
+                if (resp.status === 401 || resp.status === 403) {
+                    alert("Sessão expirada.");
+                    window.location.href = "/index.html";
+                    return;
+                }
+
+                const json = await resp.json().catch(() => ({}));
+
+                if (resp.ok && json.ok) {
+                    alert("Checklist salvo com sucesso!");
+                    window.location.href = "/home.html";
+                } else {
+                    const msg = json.message || json.error || "Erro ao salvar.";
+                    alert("Não foi possível salvar: " + msg);
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("Erro de conexão ao salvar.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalTxt;
+            }
+        });
     });
 
-});
-
-(function () {
-    // Referências do formulário e campos ocultos
-    const form = document.getElementById('form-checklist');
-    const inputInicio = document.getElementById('hora_inicio_testes');
-    const inputTermino = document.getElementById('hora_termino_testes');
-    const btnVoltar = document.getElementById('btn-voltar'); // se existir
-
-    // Utilitários de formatação "HH:MM:SS"
-    const pad2 = n => String(n).padStart(2, '0');
-    const fmtTime = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-
-    // 1) Grava o horário exato de ENTRADA na página
-    const pageEnter = new Date();
-    if (inputInicio) {
-        inputInicio.value = fmtTime(pageEnter);
-    }
-
-    // 2) No SUBMIT, grava o horário exato de TÉRMINO e deixa o navegador enviar
-    if (form) {
-        form.addEventListener('submit', function () {
-            if (inputTermino) {
-                inputTermino.value = fmtTime(new Date());
-            }
-        }, { capture: true }); // garante que rode antes de qualquer handler posterior
-    }
-
-    // 3) Botão "Voltar" para a Home (se o botão existir na página)
-    if (btnVoltar) {
-        btnVoltar.addEventListener('click', function (e) {
-            e.preventDefault();
-            window.location.href = '/home.html';
-        });
-    }
 })();

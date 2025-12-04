@@ -394,6 +394,7 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
 
     const { estadoSessao } = state;
 
+    bloquearCabecalhoSeSessaoAberta(elements, estadoSessao);
     // 2) Reset de botões base
     if (btnSalvarRegistro) {
         btnSalvarRegistro.style.display = "";
@@ -572,4 +573,41 @@ export function preencherFormularioComEntrada(elements, entrada, estadoSessao) {
         atualizarVisibilidadeTipoPorSala(salaSelect, comissaoSelect);
     }
     atualizarTipoEventoUI(sectionAnormalidade);
+}
+
+function bloquearCabecalhoSeSessaoAberta(elements, estadoSessao) {
+    const {
+        dataOperacaoInput, horarioPautaInput, horaInicioInput,
+        nomeEventoInput, responsavelEventoInput
+    } = elements;
+
+    // Se existe sessão, usamos os dados dela e travamos
+    if (estadoSessao && estadoSessao.existe_sessao_aberta) {
+        if (nomeEventoInput) {
+            nomeEventoInput.value = estadoSessao.nome_evento || "";
+            nomeEventoInput.readOnly = true;
+        }
+        if (responsavelEventoInput) {
+            responsavelEventoInput.value = estadoSessao.responsavel_evento || "";
+            responsavelEventoInput.readOnly = true;
+        }
+        if (dataOperacaoInput) {
+            dataOperacaoInput.value = estadoSessao.data || "";
+            dataOperacaoInput.readOnly = true;
+        }
+        if (horarioPautaInput) {
+            horarioPautaInput.value = estadoSessao.horario_pauta || "";
+            horarioPautaInput.readOnly = true;
+        }
+        if (horaInicioInput) {
+            horaInicioInput.value = estadoSessao.horario_inicio || "";
+            horaInicioInput.readOnly = true;
+        }
+    } else {
+        // Se não, destrava (para o primeiro operador preencher)
+        // Nota: dataOperacaoInput pode ter lógica específica de "hoje", 
+        // mas aqui garantimos que seja editável se não houver sessão.
+        [nomeEventoInput, responsavelEventoInput, dataOperacaoInput, horarioPautaInput, horaInicioInput]
+            .forEach(el => { if (el) el.readOnly = false; });
+    }
 }

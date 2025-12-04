@@ -132,10 +132,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         elements.btnSalvarEdicao.addEventListener("click", () => salvarEntrada("edicao", elements));
     }
 
-    if (elements.btnFinalizarSessao) {
-        elements.btnFinalizarSessao.addEventListener("click", () => finalizarSessao(elements));
-    }
-
     // =========================================================================
     // 4. Lógica de UI e Lookups
     // =========================================================================

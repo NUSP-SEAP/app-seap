@@ -13,55 +13,53 @@
 <body>
   <main>
     <div class="card">
-      <h1>Registro de Anormalidade na Operação de Áudio</h1>
-      <p class="muted">Preencha as informações referentes à anormalidade. Campos marcados com * são obrigatórios.</p>
-      <p class="muted" id="registro-ref" style="margin-top:-6px;"></p>
+      <h1>Registro de Anormalidade</h1>
+      <p class="muted">Preencha as informações referentes à ocorrência. Campos marcados com * são obrigatórios.</p>
+      <p class="muted" id="registro-ref" style="margin-top:-6px; font-weight:500;"></p>
 
       <form id="form-raoa" novalidate>
-        <!-- IDs e referências -->
         <input type="hidden" id="registro_id" name="registro_id" />
         <input type="hidden" id="entrada_id" name="entrada_id" />
 
-        <!-- Cabeçalho / Identificação -->
+        <div class="section-title">1) Referência ao Registro de Operação</div>
         <div class="grid grid-3">
           <div>
-            <label class="required" for="data">Data</label>
-            <input type="date" id="data" name="data" required readonly disabled />
+            <label>Data</label>
+            <input type="date" id="data" name="data" readonly class="readonly-input" />
           </div>
           <div>
-            <label class="required" for="sala_id_display">Local do Evento</label>
+            <label>Local do Evento</label>
             <select id="sala_id_display" disabled>
               <option value="">Carregando...</option>
             </select>
-            <!-- Valor real que será enviado no POST -->
             <input type="hidden" id="sala_id" name="sala_id" />
           </div>
           <div>
-            <label class="required" for="nome_evento_display">Nome do Evento</label>
-            <input type="text" id="nome_evento_display" disabled />
+            <label>Nome do Evento</label>
+            <input type="text" id="nome_evento_display" readonly class="readonly-input" />
             <input type="hidden" id="nome_evento" name="nome_evento" />
           </div>
         </div>
 
-        <div class="grid grid-2">
-          <div>
-            <label class="required" for="responsavel_evento">Responsável do evento (Comissão/Mesa/Organização)</label>
-            <input type="text" id="responsavel_evento" name="responsavel_evento" required
-              placeholder="Nome do responsável" />
-          </div>
+        <div class="section-title" style="margin-top: 15px;">2) Responsáveis</div>
+        <div>
+          <label class="required" for="responsavel_evento">Responsável do evento (Comissão/Mesa/Organização)</label>
+          <input type="text" id="responsavel_evento" name="responsavel_evento" required
+            placeholder="Ex: Secretário da Mesa, Assessor da Comissão..." />
         </div>
 
-        <!-- Formulário de Anormalidade -->
-        <!-- Removidos estilos inline (margin-top) para controle via CSS -->
+        <div class="section-title" style="margin-top: 15px;">3) Detalhes da Anormalidade</div>
 
         <div>
-          <div class="section-title">Horário da Anormalidade</div>
-          <input type="time" id="hora_inicio_anormalidade" name="hora_inicio_anormalidade" required />
+          <label class="required">Horário do início da ocorrência</label>
+          <input type="time" id="hora_inicio_anormalidade" name="hora_inicio_anormalidade" required
+            style="max-width: 150px;" />
         </div>
 
         <div>
-          <div class="section-title">Descrição da anormalidade</div>
-          <textarea id="descricao_anormalidade" name="descricao_anormalidade" required></textarea>
+          <label class="required">Descrição da anormalidade</label>
+          <textarea id="descricao_anormalidade" name="descricao_anormalidade" required
+            placeholder="Descreva o que aconteceu..."></textarea>
         </div>
 
         <div class="grid grid-2">
@@ -73,7 +71,7 @@
             </div>
           </div>
           <div id="grp_descricao_prejuizo" class="hidden">
-            <div class="section-title">Descrição do prejuízo</div>
+            <label class="required">Descrição do prejuízo</label>
             <textarea id="descricao_prejuizo" name="descricao_prejuizo"></textarea>
           </div>
         </div>
@@ -87,40 +85,40 @@
             </div>
           </div>
           <div id="grp_autores_conteudo_reclamacao" class="hidden">
-            <div class="section-title">Autor(es) e conteúdo resumido da(s) reclamação(ões)</div>
+            <label class="required">Autor(es) e conteúdo da reclamação</label>
             <textarea id="autores_conteudo_reclamacao" name="autores_conteudo_reclamacao"></textarea>
           </div>
         </div>
 
         <div class="grid grid-2">
           <div>
-            <div class="section-title">Foi necessário acionar manutenção?</div>
+            <div class="section-title">Acionou manutenção?</div>
             <div class="field-inline">
               <label><input type="radio" name="acionou_manutencao" value="nao" checked /> Não</label>
               <label><input type="radio" name="acionou_manutencao" value="sim" /> Sim</label>
             </div>
           </div>
           <div id="grp_hora_acionamento" class="hidden">
-            <div class="section-title">Indicar o horário</div>
+            <label class="required">Horário do acionamento</label>
             <input type="time" id="hora_acionamento_manutencao" name="hora_acionamento_manutencao" />
           </div>
         </div>
 
         <div class="grid grid-2">
           <div>
-            <div class="section-title">Anormalidade resolvida durante o evento?</div>
+            <div class="section-title">Resolvida pelo operador?</div>
             <div class="field-inline">
               <label><input type="radio" name="resolvida_pelo_operador" value="nao" checked /> Não</label>
               <label><input type="radio" name="resolvida_pelo_operador" value="sim" /> Sim</label>
             </div>
           </div>
           <div id="grp_procedimentos_adotados" class="hidden">
-            <div class="section-title">Descrição dos procedimentos adotados</div>
-            <textarea id="procedimentos_adotados" name="procedimentos_adotados"></textarea>
+            <label>Procedimentos adotados</label>
+            <textarea id="procedimentos_adotados" name="procedimentos_adotados"
+              placeholder="O que foi feito?"></textarea>
           </div>
         </div>
 
-        <!-- Ações -->
         <div class="actions">
           <button type="button" class="btn-secondary" id="btn-voltar">Voltar</button>
           <button type="submit" class="btn-primary">Salvar registro</button>
