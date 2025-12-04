@@ -295,7 +295,7 @@ export async function salvarEntrada(modo, elements, opcoes) {
         const houveAnomalia = json.houve_anormalidade === true || json.houve_anormalidade === "true";
         const tipoEventoEfetivo = (json.tipo_evento || tipoEvento || "operacao").toLowerCase();
         const isEdicao = !!json.is_edicao;
-        const deveAbrirAnomalia = houveAnomalia && tipoEventoEfetivo === "operacao";
+        const deveAbrirAnomalia = houveAnomalia && (tipoEventoEfetivo === "operacao" || tipoEventoEfetivo === "outros");
 
         let msgBase = isEdicao ? "Edição salva com sucesso." : "Registro salvo com sucesso.";
         if (deveAbrirAnomalia) {
