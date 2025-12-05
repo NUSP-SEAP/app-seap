@@ -605,8 +605,15 @@ function bloquearCabecalhoSeSessaoAberta(elements, estadoSessao) {
         }
         if (comissaoSelect) {
             const val = estadoSessao.comissao_id;
-            comissaoSelect.value = (val !== null && val !== undefined) ? String(val) : "";
-            comissaoSelect.disabled = true;
+
+            // Se a sessão já tem uma atividade definida, travamos com esse valor
+            if (val !== null && val !== undefined && val !== "") {
+                comissaoSelect.value = String(val);
+                comissaoSelect.disabled = true;
+            } else {
+                // Sessões antigas podem não ter comissao_id; deixa o campo livre
+                comissaoSelect.disabled = false;
+            }
         }
     } else {
         // Se não, destrava (para o primeiro operador preencher)

@@ -227,7 +227,7 @@ export async function salvarEntrada(modo, elements, opcoes) {
         usb_01: usb01Input ? usb01Input.value : "",
         usb_02: usb02Input ? usb02Input.value : "",
         responsavel_evento: responsavelEventoInput ? responsavelEventoInput.value : "",
-        comissao_id: comissaoSelect && !comissaoSelect.disabled ? comissaoSelect.value : null,
+        comissao_id: comissaoSelect ? (comissaoSelect.value || null) : null,
         tipo_evento: tipoEvento,
         houve_anormalidade: houveAnormalidadeRaw
     };
