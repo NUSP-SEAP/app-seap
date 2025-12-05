@@ -291,7 +291,7 @@ export function atualizarCabecalhoOperadoresSessao(headerEl, modoEl, estadoSessa
 export function aplicarBloqueioPorSala(elements) {
     const {
         form, salaSelect, comissaoSelect, btnLimpar, btnSalvarRegistro,
-        btnSalvarEdicao, btnFinalizarSessao, btnVoltar
+        btnSalvarEdicao, btnVoltar
     } = elements;
 
     if (!form || !salaSelect) return;
@@ -317,13 +317,11 @@ export function aplicarBloqueioPorSala(elements) {
         if (btnLimpar) { btnLimpar.style.display = "none"; btnLimpar.disabled = true; }
         if (btnSalvarRegistro) { btnSalvarRegistro.style.display = "none"; btnSalvarRegistro.disabled = true; }
         if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = true; }
-        if (btnFinalizarSessao) { btnFinalizarSessao.style.display = "none"; btnFinalizarSessao.disabled = true; }
         if (btnVoltar) { btnVoltar.style.display = ""; btnVoltar.disabled = false; }
     } else {
         if (btnLimpar) { btnLimpar.style.display = ""; btnLimpar.disabled = false; }
         if (btnSalvarRegistro) { btnSalvarRegistro.style.display = ""; }
         if (btnSalvarEdicao) { btnSalvarEdicao.disabled = false; }
-        if (btnFinalizarSessao) { btnFinalizarSessao.style.display = ""; }
         if (btnVoltar) { btnVoltar.style.display = ""; btnVoltar.disabled = false; }
     }
 
@@ -331,7 +329,7 @@ export function aplicarBloqueioPorSala(elements) {
 }
 
 export function aplicarModoOperadorComDuasEntradas(elements) {
-    const { form, salaSelect, btnSalvarRegistro, btnSalvarEdicao, btnLimpar, btnCancelarEdicao, btnEditarEntrada1, btnEditarEntrada2, btnFinalizarSessao } = elements;
+    const { form, salaSelect, btnSalvarRegistro, btnSalvarEdicao, btnLimpar, btnCancelarEdicao, btnEditarEntrada1, btnEditarEntrada2 } = elements;
     if (!form) return;
 
     // 1) Zera todos os campos (menos sala) e trava
@@ -362,13 +360,12 @@ export function aplicarModoOperadorComDuasEntradas(elements) {
 
     if (btnEditarEntrada1) { btnEditarEntrada1.style.display = ""; btnEditarEntrada1.disabled = false; }
     if (btnEditarEntrada2) { btnEditarEntrada2.style.display = ""; btnEditarEntrada2.disabled = false; }
-    if (btnFinalizarSessao) { btnFinalizarSessao.style.display = ""; btnFinalizarSessao.disabled = false; }
 }
 
 export function aplicarEstadoSessaoNaUI(elements, state) {
     const {
         salaSelect, btnEditarEntrada1, btnEditarEntrada2, btnCancelarEdicao, btnSalvarRegistro,
-        btnSalvarEdicao, btnFinalizarSessao, headerOperadores, modoEdicaoInfo, sectionAnormalidade
+        btnSalvarEdicao, headerOperadores, modoEdicaoInfo, sectionAnormalidade
     } = elements;
 
     // 0) Esconde botões de edição / cancelar por padrão
@@ -402,7 +399,6 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
         btnSalvarRegistro.textContent = "Salvar registro";
     }
     if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
-    if (btnFinalizarSessao) { btnFinalizarSessao.style.display = ""; btnFinalizarSessao.disabled = true; }
 
     // 3) Não há estado conhecido ainda para essa sala
     if (!estadoSessao) {
@@ -431,9 +427,6 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
     radiosTipo.forEach((r) => { r.disabled = false; });
     atualizarTipoEventoUI(sectionAnormalidade);
 
-    // Botão finalizar habilitado apenas se existir sessão aberta
-    if (btnFinalizarSessao) { btnFinalizarSessao.disabled = !sessaoAberta; }
-
     // === CASO 1: ainda NÃO existe sessão (sem_sessao) ===
     if (situacao === "sem_sessao") {
         if (btnSalvarRegistro) {
@@ -442,7 +435,6 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
             btnSalvarRegistro.textContent = "Salvar registro";
         }
         if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
-        if (btnFinalizarSessao) { btnFinalizarSessao.disabled = true; }
 
         atualizarCabecalhoOperadoresSessao(
             headerOperadores,

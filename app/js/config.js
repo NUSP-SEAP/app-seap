@@ -59,9 +59,6 @@ const AppConfig = {
 
             // POST JSON – criar/editar entrada de operação de áudio
             salvarEntrada: "/webhook/operacao/audio/salvar-entrada",
-
-            // POST JSON – finalizar sessão da sala
-            finalizarSessao: "/webhook/operacao/audio/finalizar-sessao"
         }
     },
 

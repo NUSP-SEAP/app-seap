@@ -13,7 +13,6 @@ import {
 // Endpoints
 const ESTADO_SESSAO_URL = AppConfig.apiUrl(AppConfig.endpoints.operacaoAudio.estadoSessao);
 const SALVAR_ENTRADA_URL = AppConfig.apiUrl(AppConfig.endpoints.operacaoAudio.salvarEntrada);
-const FINALIZAR_SESSAO_URL = AppConfig.apiUrl(AppConfig.endpoints.operacaoAudio.finalizarSessao);
 
 // =============================================================================
 // Carregar Estado
@@ -335,99 +334,99 @@ export async function salvarEntrada(modo, elements, opcoes) {
 // Finalizar Sessão
 // =============================================================================
 
-export async function finalizarSessao(elements) {
-    const { salaSelect, btnFinalizarSessao, form, dataOperacaoInput } = elements;
+// export async function finalizarSessao(elements) {
+//     const { salaSelect, btnFinalizarSessao, form, dataOperacaoInput } = elements;
 
-    if (!salaSelect || !salaSelect.value) {
-        alert("Selecione uma sala antes de finalizar o registro da operação.");
-        return;
-    }
+//     if (!salaSelect || !salaSelect.value) {
+//         alert("Selecione uma sala antes de finalizar o registro da operação.");
+//         return;
+//     }
 
-    const salaId = salaSelect.value;
+//     const salaId = salaSelect.value;
 
-    // Sempre recarrega o estado da sessão para esta sala
-    await carregarEstadoSessao(salaId, elements);
+//     // Sempre recarrega o estado da sessão para esta sala
+//     await carregarEstadoSessao(salaId, elements);
 
-    const { estadoSessao, uiState } = globalState;
-    const sessaoAberta = !!(estadoSessao && estadoSessao.existe_sessao_aberta);
+//     const { estadoSessao, uiState } = globalState;
+//     const sessaoAberta = !!(estadoSessao && estadoSessao.existe_sessao_aberta);
 
-    // Preferência: se o back já mandou situacao_operador, usamos,
-    // senão usamos o valor derivado que está em uiState.
-    let situacaoOperador = "sem_sessao";
-    if (estadoSessao && estadoSessao.situacao_operador) {
-        situacaoOperador = estadoSessao.situacao_operador;
-    } else if (uiState && uiState.situacao_operador) {
-        situacaoOperador = uiState.situacao_operador;
-    }
+//     // Preferência: se o back já mandou situacao_operador, usamos,
+//     // senão usamos o valor derivado que está em uiState.
+//     let situacaoOperador = "sem_sessao";
+//     if (estadoSessao && estadoSessao.situacao_operador) {
+//         situacaoOperador = estadoSessao.situacao_operador;
+//     } else if (uiState && uiState.situacao_operador) {
+//         situacaoOperador = uiState.situacao_operador;
+//     }
 
-    // Mesma regra do index.js original:
-    // só pode finalizar se existir sessão aberta
-    // E o operador tiver pelo menos um registro.
-    if (!sessaoAberta || situacaoOperador === "sem_entrada") {
-        alert("Somente usuários com registro nesta sala/operação podem finalizar.");
-        return;
-    }
+//     // Mesma regra do index.js original:
+//     // só pode finalizar se existir sessão aberta
+//     // E o operador tiver pelo menos um registro.
+//     if (!sessaoAberta || situacaoOperador === "sem_entrada") {
+//         alert("Somente usuários com registro nesta sala/operação podem finalizar.");
+//         return;
+//     }
 
-    const payload = { sala_id: salaId };
+//     const payload = { sala_id: salaId };
 
-    try {
-        if (btnFinalizarSessao) {
-            btnFinalizarSessao.disabled = true;
-            btnFinalizarSessao.textContent = "Finalizando...";
-        }
+//     try {
+//         if (btnFinalizarSessao) {
+//             btnFinalizarSessao.disabled = true;
+//             btnFinalizarSessao.textContent = "Finalizando...";
+//         }
 
-        let resp;
-        const options = {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        };
+//         let resp;
+//         const options = {
+//             method: "POST",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify(payload),
+//         };
 
-        if (window.Auth && typeof Auth.authFetch === "function") {
-            resp = await Auth.authFetch(FINALIZAR_SESSAO_URL, options);
-        } else {
-            resp = await fetch(FINALIZAR_SESSAO_URL, options);
-        }
+//         if (window.Auth && typeof Auth.authFetch === "function") {
+//             resp = await Auth.authFetch(FINALIZAR_SESSAO_URL, options);
+//         } else {
+//             resp = await fetch(FINALIZAR_SESSAO_URL, options);
+//         }
 
-        const json = await safeJson(resp);
-        if (!resp.ok || !json || json.ok === false) {
-            const msg =
-                (json && (json.message || json.detail || json.error)) ||
-                "Falha ao finalizar o registro da sala/operação.";
-            alert(msg);
-            return;
-        }
+//         const json = await safeJson(resp);
+//         if (!resp.ok || !json || json.ok === false) {
+//             const msg =
+//                 (json && (json.message || json.detail || json.error)) ||
+//                 "Falha ao finalizar o registro da sala/operação.";
+//             alert(msg);
+//             return;
+//         }
 
-        alert("Registro da Sala/Operação finalizado com sucesso.");
+//         alert("Registro da Sala/Operação finalizado com sucesso.");
 
-        // Depois de finalizar, voltamos para o estado "sem sala"
-        globalState.modoEdicaoEntradaSeq = null;
+//         // Depois de finalizar, voltamos para o estado "sem sala"
+//         globalState.modoEdicaoEntradaSeq = null;
 
-        if (form) {
-            form.reset();
-        }
+//         if (form) {
+//             form.reset();
+//         }
 
-        if (salaSelect) {
-            salaSelect.value = "";
-        }
+//         if (salaSelect) {
+//             salaSelect.value = "";
+//         }
 
-        globalState.estadoSessao = null;
-        globalState.uiState.situacao_operador = "sem_sessao";
-        globalState.uiState.sessaoAberta = false;
+//         globalState.estadoSessao = null;
+//         globalState.uiState.situacao_operador = "sem_sessao";
+//         globalState.uiState.sessaoAberta = false;
 
-        // Garante a mesma compatibilidade do index.js original
-        ensureHojeEmDataOperacao(dataOperacaoInput);
+//         // Garante a mesma compatibilidade do index.js original
+//         ensureHojeEmDataOperacao(dataOperacaoInput);
 
-        // Reaplica bloqueios / visuais para o estado "sem sala"
-        aplicarEstadoSessaoNaUI(elements, globalState);
-    } catch (e) {
-        console.error("Erro inesperado ao finalizar sessão:", e);
-        alert("Erro inesperado ao finalizar a sessão.");
-    } finally {
-        if (btnFinalizarSessao) {
-            btnFinalizarSessao.disabled = false;
-            btnFinalizarSessao.textContent =
-                "Finalizar Registro da Sala/Operação";
-        }
-    }
-}
+//         // Reaplica bloqueios / visuais para o estado "sem sala"
+//         aplicarEstadoSessaoNaUI(elements, globalState);
+//     } catch (e) {
+//         console.error("Erro inesperado ao finalizar sessão:", e);
+//         alert("Erro inesperado ao finalizar a sessão.");
+//     } finally {
+//         if (btnFinalizarSessao) {
+//             btnFinalizarSessao.disabled = false;
+//             btnFinalizarSessao.textContent =
+//                 "Finalizar Registro da Sala/Operação";
+//         }
+//     }
+// }

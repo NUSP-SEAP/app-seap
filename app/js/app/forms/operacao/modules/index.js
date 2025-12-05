@@ -15,7 +15,6 @@ import {
     entrarModoEdicaoEntrada,
     cancelarEdicaoEntrada,
     salvarEntrada,
-    finalizarSessao
 } from './actions.js';
 
 document.addEventListener("DOMContentLoaded", async function () {
@@ -52,7 +51,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         btnSalvarEdicao: document.getElementById("btnSalvarEdicao"),
         btnEditarEntrada1: document.getElementById("btnEditarEntrada1"),
         btnEditarEntrada2: document.getElementById("btnEditarEntrada2"),
-        btnFinalizarSessao: document.getElementById("btnFinalizarSessao"),
 
         // Botões de Controle de Operadores (UI)
         btnAddTop: document.getElementById("btn-add-top"),
