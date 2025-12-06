@@ -79,8 +79,26 @@
             ev.preventDefault();
             if (sending) return;
 
+            if (statusEl) {
+                statusEl.textContent = "";
+                statusEl.classList.remove("error", "success");
+            }
+
             if (!form.checkValidity()) {
                 form.reportValidity();
+                return;
+            }
+
+            const senha = form.senha.value;
+            const confirmacao = form.confirmar_senha.value;
+
+            if (senha !== confirmacao) {
+                if (statusEl) {
+                    statusEl.textContent = "As senhas não conferem. Por favor, verifique.";
+                    statusEl.classList.add("error");
+                } else {
+                    alert("As senhas não conferem.");
+                }
                 return;
             }
 
@@ -97,11 +115,6 @@
                 submitBtn.textContent = "Salvando...";
             }
 
-            if (statusEl) {
-                statusEl.textContent = "";
-                statusEl.classList.remove("error", "success");
-            }
-
             sending = true;
 
             try {
@@ -109,7 +122,7 @@
                     nome_completo: form.nome_completo.value.trim(),
                     email: form.email.value.trim(),
                     username: form.username.value.trim(),
-                    senha: form.senha.value
+                    senha: senha
                 };
 
                 const resp = await fetch(WEBHOOK_URL, {

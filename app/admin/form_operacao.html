@@ -51,19 +51,39 @@
                 Visualização administrativa do registro nº <span id="display-id">--</span>.
             </p>
 
-            <form id="form-roa-readonly">
-                <div class="section-title">1) Local do Evento</div>
+            <form id="form-roa-readonly" novalidate>
+                <!-- Local -->
                 <div class="grid">
                     <div>
-                        <label for="sala_nome">Local do Evento</label>
+                        <label class="required" for="sala_nome">Local</label>
                         <input id="sala_nome" type="text" readonly />
                     </div>
                 </div>
 
-                <div class="section-title">2) Identificação</div>
+                <!-- Atividade Legislativa -->
+                <div class="grid">
+                    <div>
+                        <label class="required" for="atividade_legislativa">Atividade Legislativa</label>
+                        <input id="atividade_legislativa" type="text" readonly />
+                    </div>
+                </div>
+
+                <!-- Descrição do Evento -->
+                <div>
+                    <label class="required" for="nome_evento">Descrição do Evento</label>
+                    <input id="nome_evento" type="text" readonly />
+                </div>
+
+                <!-- Responsável pelo Evento -->
+                <div>
+                    <label class="required" for="responsavel_evento">Responsável pelo Evento</label>
+                    <input id="responsavel_evento" type="text" readonly />
+                </div>
+
+                <!-- Data e horários (mesma ordem do form original) -->
                 <div class="grid grid-4">
                     <div>
-                        <label for="data_operacao">Data da operação</label>
+                        <label class="required" for="data_operacao">Data</label>
                         <input id="data_operacao" type="date" readonly />
                     </div>
                     <div>
@@ -71,58 +91,64 @@
                         <input id="horario_pauta" type="time" readonly />
                     </div>
                     <div>
-                        <label for="hora_inicio">Hora de início</label>
+                        <label class="required" for="hora_inicio">Horário de início</label>
                         <input id="hora_inicio" type="time" readonly />
                     </div>
                     <div>
-                        <label for="hora_fim">Hora de término</label>
+                        <label for="hora_fim">Horário do término</label>
                         <input id="hora_fim" type="time" readonly />
                     </div>
                 </div>
 
-                <div class="section-title">3) Tipo do Evento</div>
-                <div>
-                    <input id="tipo_evento_display" type="text" readonly />
-                </div>
-
-                <div class="section-title">4) Descrição do Evento</div>
-                <div>
-                    <label for="nome_evento">Descrição do Evento</label>
-                    <input id="nome_evento" type="text" readonly />
-                </div>
-
-                <div class="section-title">5) Recursos/Parâmetros</div>
+                <!-- Trilha dos Gravadores (idêntico ao form do operador, só que readonly) -->
                 <div class="grid grid-2">
                     <div>
-                        <label for="usb_01">USB 01</label>
+                        <div class="section-title">Trilha do Gravador 01</div>
                         <input id="usb_01" type="text" readonly />
                     </div>
                     <div>
-                        <label for="usb_02">USB 02</label>
+                        <div class="section-title">Trilha do Gravador 02</div>
                         <input id="usb_02" type="text" readonly />
                     </div>
                 </div>
 
-                <div class="section-title">6) Observações</div>
+                <!-- Observações -->
                 <div>
-                    <label for="observacoes">Anotações gerais</label>
+                    <div class="section-title">Observações</div>
                     <textarea id="observacoes" readonly></textarea>
                 </div>
 
-                <div class="section-title">7) Houve anormalidade?</div>
-                <div>
-                    <input id="houve_anormalidade_display" type="text" readonly />
+                <!-- Houve anormalidade? (mesmo bloco de radios do form operador, mas desabilitados) -->
+                <div id="section-anormalidade">
+                    <div class="section-title">Houve anormalidade?</div>
+                    <div aria-labelledby="anormalidade-label" class="field-inline" role="radiogroup">
+                        <span class="sr-only" id="anormalidade-label">Houve anormalidade</span>
+                        <label>
+                            <input id="houve_anormalidade_nao" name="houve_anormalidade" type="radio" value="nao"
+                                disabled />
+                            Não
+                        </label>
+                        <label>
+                            <input id="houve_anormalidade_sim" name="houve_anormalidade" type="radio" value="sim"
+                                disabled />
+                            Sim
+                        </label>
+                    </div>
                 </div>
 
-                <div class="section-title">8) Operador Responsável</div>
-                <div>
-                    <input id="operador_nome" type="text" readonly />
+                <!-- Operador responsável (campo extra só do admin, mantém) -->
+                <div class="grid" style="margin-top: 24px;">
+                    <div>
+                        <label for="operador_nome">Operador responsável</label>
+                        <input id="operador_nome" type="text" readonly />
+                    </div>
                 </div>
 
                 <div class="actions" style="justify-content: space-between; margin-top: 30px;">
                     <button type="button" class="btn btn-secondary" onclick="window.close()">Fechar Aba</button>
-                    <button type="button" class="btn btn-primary" disabled title="Funcionalidade futura">Imprimir
-                        🖨️</button>
+                    <button type="button" class="btn btn-primary" disabled title="Funcionalidade futura">
+                        Imprimir 🖨️
+                    </button>
                 </div>
             </form>
         </div>

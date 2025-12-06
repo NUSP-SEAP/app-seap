@@ -7,9 +7,6 @@
   <title>Novo Operador — Administração</title>
   <meta name="robots" content="noindex,nofollow" />
 
-  <!-- Ícone/identidade (ajuste se o seu projeto usar outro caminho) -->
-  <!-- <link rel="icon" href="/imgs/header-senado.png" /> -->
-
   <link rel="stylesheet" href="/css/app/admin/novo_operador.css">
   <link rel="stylesheet" href="/css/app/body.css">
 </head>
@@ -33,14 +30,21 @@
           </div>
         </div>
 
-        <div class="grid grid-2">
+        <div class="grid" style="margin-top: 12px;">
           <div>
             <label for="username" class="required">Nome de usuário</label>
             <input type="text" id="username" name="username" required />
           </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top: 12px;">
           <div>
             <label for="senha" class="required">Senha</label>
             <input type="password" id="senha" name="senha" required />
+          </div>
+          <div>
+            <label for="confirmar_senha" class="required">Confirme a senha</label>
+            <input type="password" id="confirmar_senha" name="confirmar_senha" required />
           </div>
         </div>
 

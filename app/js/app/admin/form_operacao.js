@@ -18,35 +18,74 @@
     };
 
     const setRadio = (name, val) => {
-        // Tenta achar o radio com esse valor e marca
-        // Ex: tipo_evento = 'operacao' -> input[value='operacao']
-        if (!val) return;
-        // O form read-only usa inputs text para exibir radios selecionados
-        // para simplificar a visualização (vide HTML do passo anterior),
-        // mas se mantivermos a estrutura de radios original, usaríamos isso.
-        // No HTML do passo 2, optei por inputs 'text' readonly para mostrar o valor.
-        // Então vamos adaptar para preencher o input text.
+        if (val === undefined || val === null) return;
 
-        // Se no HTML usamos <input id="tipo_evento_display">
+        // Normaliza para string
+        let normalized = String(val).toLowerCase().trim();
+
+        // Tratamento especial para houve_anormalidade (pode vir bool, 't', 'f', 'sim', 'nao', 0/1)
+        if (name === "houve_anormalidade") {
+            if (
+                normalized === "true" ||
+                normalized === "t" ||
+                normalized === "1" ||
+                normalized === "sim" ||
+                normalized === "s"
+            ) {
+                normalized = "sim";
+            } else {
+                normalized = "nao";
+            }
+        }
+
+        // Primeiro tenta marcar radios reais (nosso caso atual)
+        const radios = document.querySelectorAll(`input[name="${name}"]`);
+        if (radios && radios.length) {
+            radios.forEach((radio) => {
+                radio.checked =
+                    String(radio.value).toLowerCase().trim() === normalized;
+            });
+        }
+
+        // Compat: se houver um campo *_display em outra tela, continua preenchendo
         const display = document.getElementById(name + "_display");
         if (display) {
-            // Mapeia valores técnicos para nomes bonitos
-            let text = val;
-            if (name === 'houve_anormalidade') text = val ? "Sim" : "Não";
-            if (name === 'tipo_evento') {
-                if (val === 'operacao') text = "Operação Comum";
-                if (val === 'cessao') text = "Cessão de Sala";
-                if (val === 'outros') text = "Outros Eventos";
+            let text = normalized;
+
+            if (name === "houve_anormalidade") {
+                text = normalized === "sim" ? "Sim" : "Não";
             }
+
+            if (name === "tipo_evento") {
+                const v = String(val).toLowerCase();
+                if (v === "operacao") text = "Operação Comum";
+                else if (v === "cessao") text = "Cessão de Sala";
+                else if (v === "outros") text = "Outros Eventos";
+                else text = val;
+            }
+
             display.value = text;
         }
+    };
+
+    // Helper para formatar data (YYYY-MM-DD -> DD/MM/YYYY)
+    const fmtDate = (d) => {
+        if (!d) return "";
+        const parts = String(d).split("-");
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+    };
+
+    // Helper para formatar hora (HH:MM:SS -> HH:MM)
+    const fmtTime = (t) => {
+        if (!t) return "";
+        return String(t).substring(0, 5);
     };
 
     async function loadData() {
         const url = `${AppConfig.apiUrl(AppConfig.endpoints.adminDashboard.detalheOperacao)}?entrada_id=${entradaId}`;
 
         // Reusa authFetch do sistema
-        if (!window.Auth || typeof Auth.authFetch !== 'function') {
+        if (!window.Auth || typeof Auth.authFetch !== "function") {
             console.error("Auth não carregado");
             return;
         }
@@ -56,60 +95,59 @@
             if (!resp.ok) throw new Error("Erro HTTP " + resp.status);
 
             const json = await resp.json();
-            if (!json.ok || !json.data) throw new Error("Dados não encontrados");
+            if (!json.ok || !json.data) {
+                throw new Error("Registro não encontrado.");
+            }
 
             const d = json.data;
 
-            // Preenche Header
-            document.getElementById("display-id").textContent = d.entrada_id;
+            // Cabeçalho (nº da entrada)
+            const displayIdEl = document.getElementById("display-id");
+            if (displayIdEl) {
+                displayIdEl.textContent = d.entrada_id || entradaId;
+            }
 
-            // Preenche Campos (ids batem com o HTML do form_operacao.html)
-            setVal("sala_nome", d.sala_id); // O backend precisa mandar o NOME ou fazemos lookup. 
-            // Nota: O backend atual manda sala_id. Vamos ajustar rapidinho o backend ou front.
-            // Ajuste: O endpoint `get_entrada_operacao_detalhe` no Python retorna `r.sala_id`.
-            // Para ficar perfeito, o ideal era retornar o nome da sala.
-            // Mas como é read-only, podemos mostrar o ID por enquanto ou fazer um lookup extra.
-            // Vamos assumir que você prefere o nome.
-            // *CORREÇÃO RÁPIDA NO FRONT*: vamos fazer um fetch nas salas para pegar o nome pelo ID.
+            // Local
+            setVal("sala_nome", d.sala_nome || d.sala_id || "");
 
-            setVal("data_operacao", d.data_operacao);
-            setVal("horario_pauta", d.horario_pauta ? d.horario_pauta.substring(0, 5) : "");
-            setVal("hora_inicio", d.hora_inicio ? d.hora_inicio.substring(0, 5) : "");
-            setVal("hora_fim", d.hora_fim ? d.hora_fim.substring(0, 5) : "");
+            // Atividade Legislativa (usa o nome da comissão; se não tiver, fica vazio mesmo)
+            setVal("atividade_legislativa", d.comissao_nome || "");
 
-            setVal("nome_evento", d.nome_evento);
-            setVal("usb_01", d.usb_01);
-            setVal("usb_02", d.usb_02);
-            setVal("observacoes", d.observacoes);
-            setVal("operador_nome", d.operador_nome);
+            // Descrição + Responsável
+            setVal("nome_evento", d.nome_evento || "");
+            setVal("responsavel_evento", d.responsavel_evento || "");
 
-            // Campos especiais (Display)
-            setRadio("tipo_evento", d.tipo_evento);
+            // Datas / horários
+            setVal("data_operacao", d.data_operacao || "");
+            setVal(
+                "horario_pauta",
+                d.horario_pauta ? String(d.horario_pauta).substring(0, 5) : ""
+            );
+            setVal(
+                "hora_inicio",
+                d.hora_inicio ? String(d.hora_inicio).substring(0, 5) : ""
+            );
+            setVal(
+                "hora_fim",
+                d.hora_fim ? String(d.hora_fim).substring(0, 5) : ""
+            );
+
+            // Trilhas e observações
+            setVal("usb_01", d.usb_01 || "");
+            setVal("usb_02", d.usb_02 || "");
+            setVal("observacoes", d.observacoes || "");
+
+            // Operador responsável (campo extra do admin)
+            setVal("operador_nome", d.operador_nome || "");
+
+            // Houve anormalidade? → marca radio Sim/Não
             setRadio("houve_anormalidade", d.houve_anormalidade);
-
-            // Tenta buscar o nome da sala
-            fetchSalaNome(d.sala_id);
-
         } catch (e) {
-            alert("Erro ao carregar dados: " + e.message);
-            console.error(e);
+            console.error("Erro ao carregar detalhe da operação:", e);
+            alert("Erro ao carregar detalhes da operação: " + e.message);
+            window.close();
         }
     }
 
-    async function fetchSalaNome(id) {
-        if (!id) return;
-        try {
-            const r = await Auth.authFetch(AppConfig.apiUrl(AppConfig.endpoints.lookups.salas));
-            const json = await r.json();
-            const sala = (json.data || []).find(s => String(s.id) === String(id));
-            if (sala) {
-                setVal("sala_nome", sala.nome);
-            } else {
-                setVal("sala_nome", "ID: " + id);
-            }
-        } catch (_) { }
-    }
-
     document.addEventListener("DOMContentLoaded", loadData);
-
 })();

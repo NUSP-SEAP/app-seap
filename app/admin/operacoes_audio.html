@@ -52,7 +52,7 @@
         <div id="pag-operacoes" class="pagination-controls"></div>
 
         <div class="section-header">
-            <h2>Relatórios de Anormalidades (Por Sala)</h2>
+            <h2>Relatórios de Anormalidades</h2>
             <div class="toolbar">
                 <input type="text" id="search-anormalidades" class="search-input" placeholder="Buscar anormalidade">
             </div>
@@ -61,8 +61,14 @@
             <table class="data-table" id="tb-anormalidades">
                 <thead>
                     <tr>
-                        <th style="width: 40px;"></th>
-                        <th>Local (Sala)</th>
+                        <th class="sortable" data-sort="data">Data</th>
+                        <th class="sortable" data-sort="sala">Sala</th>
+                        <th class="sortable" data-sort="registrado_por">Registrado por</th>
+                        <th class="sortable" data-sort="descricao">Descrição</th>
+                        <th class="sortable" data-sort="solucionada">Solucionada</th>
+                        <th>Prejuízo</th>
+                        <th>Reclamação</th>
+                        <th>Ação</th>
                     </tr>
                 </thead>
                 <tbody>

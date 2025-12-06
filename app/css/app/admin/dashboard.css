@@ -284,3 +284,19 @@ table.sub-table tr:hover {
     cursor: not-allowed;
     background: #f8fafc;
 }
+
+/* Wrapper do painel de operações (Pandas + Streamlit) */
+.pandas-frame-wrapper {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #ffffff;
+    min-height: 600px;
+}
+
+/* Iframe que embute o painel de operações */
+#frame-operacoes-audio {
+    width: 100%;
+    min-height: 600px;
+    border: none;
+}

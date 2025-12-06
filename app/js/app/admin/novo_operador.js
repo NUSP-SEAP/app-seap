@@ -8,7 +8,6 @@
 
     const WEBHOOK_URL = AppConfig.apiUrl(AppConfig.endpoints.admin.novoOperador);
 
-    // 2) Como pegar o token da sessão (aproveitando o session-autoload.js)
     function getAuthToken() {
         try {
             if (window.Auth && typeof window.Auth.loadToken === "function") {
@@ -23,17 +22,14 @@
         );
     }
 
-    // 3) Botão Voltar → home admin
     btnVoltar.addEventListener("click", function () {
         window.location.href = "/admin/index.html";
     });
 
-    // 4) Botão de escolher arquivo
     btnFile.addEventListener("click", function () {
         inputFile.click();
     });
 
-    // 5) Preview da foto
     inputFile.addEventListener("change", function () {
         if (!inputFile.files || !inputFile.files[0]) {
             fileName.textContent = "Nenhum arquivo selecionado";
@@ -50,7 +46,6 @@
         } catch (_) { }
     });
 
-    // 6) Submit: envia multipart/form-data para o n8n
     form.addEventListener("submit", async function (ev) {
         ev.preventDefault();
 
@@ -63,10 +58,15 @@
         const email = document.getElementById("email").value.trim();
         const username = document.getElementById("username").value.trim();
         const senha = document.getElementById("senha").value;
+        const confirmacao = document.getElementById("confirmar_senha").value;
 
         // Regras básicas extras
         if (senha.length < 6) {
             alert("A senha precisa ter pelo menos 6 caracteres.");
+            return;
+        }
+        if (senha !== confirmacao) {
+            alert("As senhas não conferem. Por favor, verifique.");
             return;
         }
         if (!/^[a-z0-9._-]{3,}$/i.test(username)) {
@@ -76,6 +76,9 @@
 
         // Monta FormData (inclui texto + arquivo)
         const formData = new FormData(form);
+        // Remove o campo de confirmação do payload para não enviar lixo ao backend, se desejar
+        formData.delete("confirmar_senha");
+
         formData.set("email", email);
         formData.set("username", username);
 
@@ -91,10 +94,8 @@
                 method: "POST",
                 headers: token ? { "Authorization": "Bearer " + token } : {},
                 body: formData
-                // NÃO definir Content-Type aqui, o browser cuida do boundary
             });
 
-            // Sessão / permissão
             if (res.status === 401 || res.status === 403) {
                 alert("Sua sessão expirou ou você não tem permissão para esta operação.");
                 window.location.href = "/index.html";
@@ -131,7 +132,7 @@
 
         } catch (err) {
             console.error(err);
-            alert("Erro de rede ou CORS ao comunicar com o n8n.");
+            alert("Erro de rede ou CORS ao comunicar com o servidor.");
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = oldLabel;

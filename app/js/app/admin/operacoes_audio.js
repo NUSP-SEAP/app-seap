@@ -12,10 +12,10 @@
 
     // --- Novo Estado da Tabela de Anormalidades (Master-Detail) ---
     const anomState = {
-        // paginação é controlada individualmente por sala (scoped pagination),
-        // então não guardamos 'page' global aqui.
-        search: "",       // Filtro global em cascata
-        sort: "data",     // Ordenação padrão da sub-tabela
+        page: 1,          // Paginação agora é global
+        limit: 10,
+        search: "",       // Filtro global
+        sort: "data",     // Ordenação padrão
         dir: "desc"       // Direção padrão
     };
 
@@ -261,199 +261,92 @@
     }
 
     // =================================================================
-    // --- LÓGICA DA TABELA DE ANORMALIDADES (AGRUPADA POR SALA) ---
+    // --- LÓGICA DA TABELA DE ANORMALIDADES (LISTA PLANA) ---
     // =================================================================
 
-    // 1. Carrega a lista de salas (Linhas Mestre) - COM FILTRO
-    async function loadSalasComAnormalidades() {
-        const endpoint = AppConfig.endpoints.adminDashboard.anormalidades.salas;
-        // Passa o termo de busca para filtrar quais salas aparecem
-        const params = new URLSearchParams();
-        if (anomState.search) {
-            params.set("search", anomState.search);
-        }
+    async function loadAnormalidades() {
+        updateHeaderIcons("tb-anormalidades", anomState);
 
-        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
-
-        const resp = await fetchJson(url);
-        const tbody = document.querySelector("#tb-anormalidades tbody");
-        if (!tbody) return;
-        tbody.innerHTML = "";
-
-        const data = resp.data || [];
-
-        if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="2" class="empty-state">Nenhuma anormalidade encontrada com este filtro.</td></tr>`;
-            return;
-        }
-
-        // Se houver busca ativa, podemos optar por abrir as salas automaticamente
-        // mas vamos manter fechado para não poluir, a menos que seja 1 só.
-        const shouldAutoOpen = (data.length === 1 && anomState.search.length > 0);
-
-        data.forEach(sala => {
-            const trParent = document.createElement("tr");
-            trParent.className = "accordion-parent";
-            trParent.dataset.salaId = sala.id;
-            // "loaded" indica se já buscamos o detalhe dessa sala com o filtro atual
-            trParent.dataset.loaded = "false";
-
-            trParent.innerHTML = `
-                <td><span class="toggle-icon">▶</span></td>
-                <td><strong>${sala.nome}</strong></td>
-            `;
-
-            const trChild = document.createElement("tr");
-            trChild.className = "accordion-child";
-            trChild.id = `child-sala-${sala.id}`;
-            trChild.innerHTML = `
-                <td colspan="2">
-                    <div class="sub-table-wrap">
-                        <div id="container-anom-${sala.id}" style="min-height:50px;">
-                            <span class="muted">Carregando histórico...</span>
-                        </div>
-                        <div id="pag-anom-sala-${sala.id}" class="pagination-controls" style="margin-top:8px;"></div>
-                    </div>
-                </td>
-            `;
-
-            // Função toggle
-            const toggleFn = () => {
-                const isOpen = trParent.classList.contains("open");
-                trParent.classList.toggle("open");
-                if (!isOpen) {
-                    trChild.classList.add("visible");
-                    // Se não foi carregado OU se tem busca ativa (pra atualizar filtro interno), recarrega
-                    // Na prática, sempre que abrir com busca diferente, deveria recarregar.
-                    // Vamos simplificar: ao abrir, chama loadAnormalidadesDaSala passando o state atual.
-                    loadAnormalidadesDaSala(sala.id, 1);
-                } else {
-                    trChild.classList.remove("visible");
-                }
-            };
-
-            trParent.addEventListener("click", toggleFn);
-
-            tbody.appendChild(trParent);
-            tbody.appendChild(trChild);
-
-            if (shouldAutoOpen) {
-                toggleFn();
-            }
-        });
-    }
-
-    // 2. Carrega as Anormalidades de uma Sala Específica (Paginado + Filtrado + Ordenado)
-    async function loadAnormalidadesDaSala(salaId, page = 1) {
-        const limit = 10;
         const endpoint = AppConfig.endpoints.adminDashboard.anormalidades.lista;
-
-        // Passa estado global de Anormalidades para a sub-query
         const params = new URLSearchParams({
-            sala_id: salaId,
-            page: page,
-            limit: limit,
+            page: anomState.page,
+            limit: anomState.limit,
             search: anomState.search,
             sort: anomState.sort,
             dir: anomState.dir
         });
 
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
-
-        const container = document.getElementById(`container-anom-${salaId}`);
-        const pagContainerId = `pag-anom-sala-${salaId}`;
-
-        if (!container) return;
-
-        container.style.opacity = "0.5";
-
         const resp = await fetchJson(url);
 
-        container.style.opacity = "1";
+        const tbody = document.querySelector("#tb-anormalidades tbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
 
         const data = resp.data || [];
         const meta = resp.meta || { page: 1, pages: 1, total: 0 };
 
         if (data.length === 0) {
-            container.innerHTML = `<div class="empty-state" style="padding:10px;">Nenhum registro encontrado.</div>`;
-            renderPaginationControls(pagContainerId, null, null);
+            tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Nenhuma anormalidade encontrada.</td></tr>`;
+            // Se tiver div externa de paginação, reseta ela aqui
+            renderPaginationControls("pag-anormalidades", null, null);
             return;
         }
 
-        // Renderiza sub-tabela com headers ordenáveis
-        // Helper para setar classe de icone
-        const getSortClass = (col) => {
-            if (anomState.sort === col) return "sortable " + anomState.dir;
-            return "sortable";
-        };
-
-        let html = `
-            <table class="sub-table" id="subtable-${salaId}">
-                <thead>
-                    <tr>
-                        <th class="${getSortClass('data')}" data-col="data">Data</th>
-                        <th class="${getSortClass('registrado_por')}" data-col="registrado_por">Registrado por</th>
-                        <th class="${getSortClass('descricao')}" data-col="descricao">Descrição</th>
-                        <th class="${getSortClass('solucionada')}" data-col="solucionada">Solucionada</th>
-                        <th>Prejuízo</th>
-                        <th>Reclamação</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
         data.forEach(row => {
+            const tr = document.createElement("tr");
+
             const dateStr = fmtDate(row.data);
             const solucaoBadge = row.solucionada
                 ? `<span class="text-green bold">Sim</span>`
                 : `<span class="text-red">Não</span>`;
 
-            const prejText = row.houve_prejuizo ? "Sim" : "Não";
             const prejClass = row.houve_prejuizo ? "text-red bold" : "text-gray";
+            const prejText = row.houve_prejuizo ? "Sim" : "Não";
 
-            const reclText = row.houve_reclamacao ? "Sim" : "Não";
             const reclClass = row.houve_reclamacao ? "text-red bold" : "text-gray";
+            const reclText = row.houve_reclamacao ? "Sim" : "Não";
 
             // Corta descrição longa
-            const desc = row.descricao && row.descricao.length > 60
-                ? row.descricao.substring(0, 60) + "..."
+            const desc = row.descricao && row.descricao.length > 50
+                ? row.descricao.substring(0, 50) + "..."
                 : (row.descricao || "");
 
-            html += `
-                <tr>
-                    <td>${dateStr}</td>
-                    <td>${row.registrado_por}</td>
-                    <td title="${row.descricao}">${desc}</td>
-                    <td>${solucaoBadge}</td>
-                    <td class="${prejClass}">${prejText}</td>
-                    <td class="${reclClass}">${reclText}</td>
-                    <td>
-                        <button class="btn-xs btn-ver-anom" data-id="${row.id}">Formulário 📄</button>
-                    </td>
-                </tr>
+            tr.innerHTML = `
+                <td>${dateStr}</td>
+                <td>${row.sala || '--'}</td>
+                <td>${row.registrado_por}</td>
+                <td title="${row.descricao}">${desc}</td>
+                <td>${solucaoBadge}</td>
+                <td class="${prejClass}">${prejText}</td>
+                <td class="${reclClass}">${reclText}</td>
+                <td>
+                    <button class="btn-xs btn-ver-anom" data-id="${row.id}">Detalhes</button>
+                </td>
             `;
-        });
 
-        html += `</tbody></table>`;
-        container.innerHTML = html;
-
-        // Renderiza paginação "local" da sala
-        renderPaginationControls(pagContainerId, meta, (newPage) => {
-            loadAnormalidadesDaSala(salaId, newPage);
-        });
-
-        // Bind botões de formulário
-        container.querySelectorAll(".btn-ver-anom").forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                const id = btn.dataset.id;
-                window.open(`/admin/form_anormalidade.html?id=${id}`, '_blank');
+            // Bind botão
+            const btn = tr.querySelector(".btn-ver-anom");
+            btn.addEventListener("click", () => {
+                window.open(`/admin/form_anormalidade.html?id=${row.id}`, '_blank');
             });
+
+            tbody.appendChild(tr);
         });
 
-        // Bind Headers da Sub-tabela (Ordenação Dinâmica)
-        bindDynamicSortHeaders(salaId);
+        // Cria a div de paginação dinamicamente se não existir no HTML
+        let pagContainer = document.getElementById("pag-anormalidades");
+        if (!pagContainer) {
+            pagContainer = document.createElement("div");
+            pagContainer.id = "pag-anormalidades";
+            pagContainer.className = "pagination-controls";
+            document.querySelector("#tb-anormalidades").parentNode.after(pagContainer);
+        }
+
+        renderPaginationControls("pag-anormalidades", meta, (newPage) => {
+            anomState.page = newPage;
+            loadAnormalidades();
+        });
     }
 
     // Helper para bindar eventos nos headers recém-criados na sub-tabela
@@ -500,18 +393,16 @@
         const searchAnom = document.getElementById("search-anormalidades");
         if (searchAnom) {
             searchAnom.addEventListener("input", debounce((e) => {
-                const val = e.target.value.trim();
-                // Se mudou a busca, reseta state para default
-                anomState.search = val;
-                // Recarrega a lista Mestre (Salas) filtrada
-                loadSalasComAnormalidades();
+                anomState.search = e.target.value.trim();
+                anomState.page = 1;
+                loadAnormalidades();
             }, 400));
         }
-        // Nota: A ordenação de Anormalidades é bindada dinamicamente dentro de loadAnormalidadesDaSala
+        bindSortHeaders("tb-anormalidades", anomState, loadAnormalidades);
 
         // 3. Carga Inicial
         loadOperacoes();
-        loadSalasComAnormalidades();
+        loadAnormalidades();
     });
 
 })();
