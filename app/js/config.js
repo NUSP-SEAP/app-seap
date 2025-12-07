@@ -35,6 +35,14 @@ const AppConfig = {
             }
         },
 
+        // Endpoints da tela "Edição de Formulários"
+        formEdit: {
+            // Base para:
+            //   GET  /webhook/admin/form-edit/<entidade>/list
+            //   POST /webhook/admin/form-edit/<entidade>/save
+            base: "/webhook/admin/form-edit"
+        },
+
         // Rotas de consulta (usadas para preencher <select>)
         lookups: {
             salas: "/webhook/forms/lookup/salas",
