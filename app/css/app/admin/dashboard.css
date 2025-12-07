@@ -300,3 +300,223 @@ table.sub-table tr:hover {
     min-height: 600px;
     border: none;
 }
+
+/* --- Filtro de Período (Admin Dashboard) --- */
+
+.filter-summary {
+    margin-left: 8px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.filter-summary.active {
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
+.periodo-panel {
+    margin-top: 8px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background-color: #f8fafc;
+}
+
+.periodo-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.periodo-panel-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.periodo-section h4 {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+}
+
+.periodo-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.periodo-row input[type="number"],
+.periodo-row input[type="date"],
+.periodo-row select {
+    max-width: 180px;
+}
+
+.periodo-week-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.week-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid #cbd5e1;
+    background-color: #f1f5f9;
+    font-size: 0.8rem;
+}
+
+.week-pill input {
+    margin: 0;
+}
+
+.periodo-ranges-list {
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.periodo-range-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px dashed #e2e8f0;
+    font-size: 0.85rem;
+}
+
+.periodo-range-row:last-child {
+    border-bottom: none;
+}
+
+.periodo-panel-footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.periodo-hint {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+.periodo-count {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.periodo-spacer {
+    flex: 1;
+}
+
+/* Botão mini para remover faixas */
+.btn-remove-range {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+}
+
+/* --- Filtro de Período (linha simples com checkbox + inputs) --- */
+
+/* Classe utilitária (se já existir em outro lugar, pode manter a mesma) */
+.hidden {
+    display: none !important;
+}
+
+/* Wrapper abaixo do título + busca */
+.date-filter-wrapper {
+    margin-top: 6px;
+    margin-bottom: 4px;
+}
+
+/* Linha com checkbox + controles */
+.date-filter-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.date-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.date-filter-toggle input[type="checkbox"] {
+    margin: 0;
+}
+
+/* Controles (anos, meses, semanas, botões) */
+.date-filter-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.date-filter-inline.hidden {
+    display: none !important;
+}
+
+/* Inputs com visual parecido com a caixa de busca */
+.date-filter-input {
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    min-width: 190px;
+    background-color: #ffffff;
+}
+
+.date-filter-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Dropdown com visual parecido com os botões de paginação */
+.date-filter-select {
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    min-width: 220px;
+    background-color: #ffffff;
+    color: #334155;
+}
+
+.date-filter-select:disabled {
+    background-color: #f8fafc;
+    color: #94a3b8;
+}
+
+/* Botões de filtro reaproveitam o estilo de .btn-page */
+.date-filter-button {
+    font-size: 0.85rem;
+}
+
+/* Bloco de “Períodos selecionados” */
+.date-filter-periods {
+    margin-top: 4px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+}
+
+.date-filter-periods.hidden {
+    display: none !important;
+}
+
+.periodo-selected-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 4px;
+}

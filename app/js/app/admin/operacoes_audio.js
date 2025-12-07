@@ -7,7 +7,8 @@
         limit: 10,
         search: "",
         sort: "data",
-        dir: "desc"
+        dir: "desc",
+        periodo: null, // filtro de período para sessões de operação
     };
 
     // --- Novo Estado da Tabela de Anormalidades (Master-Detail) ---
@@ -16,7 +17,8 @@
         limit: 10,
         search: "",       // Filtro global
         sort: "data",     // Ordenação padrão
-        dir: "desc"       // Direção padrão
+        dir: "desc",      // Direção padrão
+        periodo: null,    // filtro de período para anormalidades
     };
 
     // --- Helpers de Data/Hora ---
@@ -138,11 +140,16 @@
             limit: stateOps.limit,
             search: stateOps.search,
             sort: stateOps.sort,
-            dir: stateOps.dir
+            dir: stateOps.dir,
         });
+
+        if (stateOps.periodo) {
+            params.set("periodo", JSON.stringify(stateOps.periodo));
+        }
 
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
+
 
         const tbody = document.querySelector("#tb-operacoes tbody");
         if (!tbody) return;
@@ -273,8 +280,12 @@
             limit: anomState.limit,
             search: anomState.search,
             sort: anomState.sort,
-            dir: anomState.dir
+            dir: anomState.dir,
         });
+
+        if (anomState.periodo) {
+            params.set("periodo", JSON.stringify(anomState.periodo));
+        }
 
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
@@ -387,6 +398,21 @@
                 loadOperacoes();
             }, 400));
         }
+
+        // 1.1. Filtro por Período (Operações)
+        const toolbarOps = searchOps ? searchOps.closest(".toolbar") : null;
+        if (toolbarOps && window.PeriodoFilter && typeof window.PeriodoFilter.createPeriodoUI === "function") {
+            window.PeriodoFilter.createPeriodoUI({
+                toolbarEl: toolbarOps,
+                getPeriodo: () => stateOps.periodo,
+                setPeriodo: (p) => {
+                    stateOps.periodo = p;
+                    stateOps.page = 1;
+                    loadOperacoes();
+                }
+            });
+        }
+
         bindSortHeaders("tb-operacoes", stateOps, loadOperacoes);
 
         // 2. Tabela de Anormalidades (Busca Cascata)
@@ -399,6 +425,20 @@
             }, 400));
         }
         bindSortHeaders("tb-anormalidades", anomState, loadAnormalidades);
+
+        // 2.1. Filtro por Período (Anormalidades)
+        const toolbarAnom = searchAnom ? searchAnom.closest(".toolbar") : null;
+        if (toolbarAnom && window.PeriodoFilter && typeof window.PeriodoFilter.createPeriodoUI === "function") {
+            window.PeriodoFilter.createPeriodoUI({
+                toolbarEl: toolbarAnom,
+                getPeriodo: () => anomState.periodo,
+                setPeriodo: (p) => {
+                    anomState.periodo = p;
+                    anomState.page = 1;
+                    loadAnormalidades();
+                }
+            });
+        }
 
         // 3. Carga Inicial
         loadOperacoes();

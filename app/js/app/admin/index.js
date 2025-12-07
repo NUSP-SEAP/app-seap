@@ -15,7 +15,8 @@
         limit: 10,
         search: "",
         sort: "data", // Padrão definido no backend
-        dir: "desc"
+        dir: "desc",
+        periodo: null, // ← aqui vamos guardar o JSON { ranges: [...] }
     };
 
     // --- Helpers Genéricos ---
@@ -195,8 +196,13 @@
             limit: stateChk.limit,
             search: stateChk.search,
             sort: stateChk.sort,
-            dir: stateChk.dir
+            dir: stateChk.dir,
         });
+
+        // Se houver filtro de período configurado, envia como JSON
+        if (stateChk.periodo) {
+            params.set("periodo", JSON.stringify(stateChk.periodo));
+        }
 
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
@@ -324,6 +330,20 @@
                 stateChk.page = 1;
                 loadChecklists();
             }, 400));
+        }
+
+        // 2.1. Filtro por Período (Checklists)
+        const toolbarChk = searchChk ? searchChk.closest(".toolbar") : null;
+        if (toolbarChk && window.PeriodoFilter && typeof window.PeriodoFilter.createPeriodoUI === "function") {
+            window.PeriodoFilter.createPeriodoUI({
+                toolbarEl: toolbarChk,
+                getPeriodo: () => stateChk.periodo,
+                setPeriodo: (p) => {
+                    stateChk.periodo = p;
+                    stateChk.page = 1;
+                    loadChecklists();
+                }
+            });
         }
 
         // 3. Bind Header Clicks (Ordenação)
