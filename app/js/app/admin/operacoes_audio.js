@@ -49,39 +49,104 @@
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        if (!meta || !meta.total) {
+        // Quando não há registros ou não faz sentido paginar
+        if (!meta || !meta.total || typeof onPageChange !== "function") {
             container.innerHTML = "";
             return;
         }
 
-        const current = meta.page;
-        const totalPages = meta.pages;
-        const totalRecords = meta.total;
+        const current = meta.page || 1;
+        const totalPages = meta.pages || 1;
+        const totalRecords = meta.total || 0;
 
-        // Se só tem 1 página e poucos registros, às vezes nem precisa mostrar, 
-        // mas vamos manter para consistência.
+        const isFirstPage = current <= 1;
+        const isLastPage = current >= totalPages;
 
         container.innerHTML = `
             <span class="pagination-info">
-                Página <strong>${current}</strong> de <strong>${totalPages || 1}</strong> (Total: ${totalRecords})
+                Página <strong>${current}</strong> de <strong>${totalPages}</strong> (Total: ${totalRecords})
             </span>
-            <div style="display:inline-flex; gap:8px;">
-                <button class="btn-page" id="prev-${containerId}" ${current <= 1 ? 'disabled' : ''}>← Anterior</button>
-                <button class="btn-page" id="next-${containerId}" ${current >= totalPages ? 'disabled' : ''}>Próxima →</button>
+            <div class="pagination-nav">
+                <button class="btn-page" id="first-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;&lt;</button>
+                <button class="btn-page" id="prev-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;</button>
+
+                <input
+                    type="number"
+                    id="page-input-${containerId}"
+                    class="page-input"
+                    min="1"
+                    max="${totalPages}"
+                    value="${current}"
+                />
+
+                <button class="btn-page" id="go-${containerId}">Ir</button>
+
+                <button class="btn-page" id="next-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;</button>
+                <button class="btn-page" id="last-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;&gt;</button>
             </div>
         `;
 
+        const input = document.getElementById(`page-input-${containerId}`);
+        const btnFirst = document.getElementById(`first-${containerId}`);
         const btnPrev = document.getElementById(`prev-${containerId}`);
+        const btnGo = document.getElementById(`go-${containerId}`);
         const btnNext = document.getElementById(`next-${containerId}`);
+        const btnLast = document.getElementById(`last-${containerId}`);
 
-        if (btnPrev) btnPrev.onclick = (e) => {
-            e.stopPropagation(); // Evita fechar o accordion se o clique vazar
-            onPageChange(current - 1);
+        const goToPage = (page) => {
+            let target = parseInt(page, 10);
+            if (isNaN(target)) return;
+
+            if (target < 1) target = 1;
+            if (target > totalPages) target = totalPages;
+
+            if (target === current) return;
+
+            onPageChange(target);
         };
-        if (btnNext) btnNext.onclick = (e) => {
-            e.stopPropagation();
-            onPageChange(current + 1);
-        };
+
+        if (btnFirst) {
+            btnFirst.onclick = (e) => {
+                e.stopPropagation();
+                goToPage(1);
+            };
+        }
+
+        if (btnPrev) {
+            btnPrev.onclick = (e) => {
+                e.stopPropagation();
+                goToPage(current - 1);
+            };
+        }
+
+        if (btnNext) {
+            btnNext.onclick = (e) => {
+                e.stopPropagation();
+                goToPage(current + 1);
+            };
+        }
+
+        if (btnLast) {
+            btnLast.onclick = (e) => {
+                e.stopPropagation();
+                goToPage(totalPages);
+            };
+        }
+
+        if (btnGo && input) {
+            btnGo.onclick = (e) => {
+                e.stopPropagation();
+                goToPage(input.value);
+            };
+
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToPage(input.value);
+                }
+            });
+        }
     }
 
     // --- Fetch Autenticado ---

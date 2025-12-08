@@ -264,8 +264,54 @@ table.sub-table tr:hover {
     color: #64748b;
 }
 
+/* Container dos controles (<< < [input] Ir > >>) */
+.pagination-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Input numérico de página */
+.page-input {
+    width: 60px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.page-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* Botões de paginação */
 .btn-page {
-    padding: 6px 12px;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #334155;
+}
+
+.btn-page:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f8fafc;
+}
+
+/* Botões de paginação */
+.btn-page {
+    padding: 6px 10px;
     border: 1px solid #cbd5e1;
     background: #fff;
     border-radius: 6px;
