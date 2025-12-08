@@ -8,7 +8,8 @@
         search: "",
         sort: "data",
         dir: "desc",
-        periodo: null, // filtro de período para sessões de operação
+        periodo: null,   // filtro de período para sessões de operação
+        groupBySala: true, // NOVO: controla se a tabela está agrupada por sala (default = true)
     };
 
     // --- Novo Estado da Tabela de Anormalidades (Master-Detail) ---
@@ -132,9 +133,57 @@
     // =================================================================
 
     async function loadOperacoes() {
+        const table = document.getElementById("tb-operacoes");
+        if (!table) return;
+
+        const thead = table.querySelector("thead");
+        const tbody = table.querySelector("tbody");
+        if (!thead || !tbody) return;
+
+        // 1) Cabeçalho + comportamento visual conforme o modo
+        if (stateOps.groupBySala) {
+            // Modo AGRUPADO (como já era)
+            table.classList.remove("table-hover");
+
+            thead.innerHTML = `
+                <tr>
+                    <th style="width: 20px;"></th>
+                    <th class="sortable" data-sort="sala">Sala</th>
+                    <th class="sortable" data-sort="data">Data</th>
+                    <th class="sortable" data-sort="autor">1º Registro por</th>
+                    <th>Checklist?</th>
+                    <th class="sortable" data-sort="em_aberto">Em Aberto?</th>
+                </tr>
+            `;
+        } else {
+            // Modo LISTA PLANA (sem sublinhas, uma linha por entrada)
+            // Aqui a tabela principal ganha hover + cursor de mão
+            table.classList.add("table-hover");
+
+            thead.innerHTML = `
+                <tr>
+                    <th class="sortable" data-sort="sala">Sala</th>
+                    <th class="sortable" data-sort="data">Data</th>
+                    <th>Operador</th>
+                    <th>Tipo</th>
+                    <th>Evento</th>
+                    <th>Pauta</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                    <th>Anormalidade?</th>
+                </tr>
+            `;
+        }
+
+        // Reaplica ordenação nos headers recém-criados
+        bindSortHeaders("tb-operacoes", stateOps, loadOperacoes);
         updateHeaderIcons("tb-operacoes", stateOps);
 
-        const endpoint = AppConfig.endpoints.adminDashboard.operacoes;
+        // 2) Escolhe o endpoint correto
+        const endpoint = stateOps.groupBySala
+            ? AppConfig.endpoints.adminDashboard.operacoes            // sessões (agrupado)
+            : AppConfig.endpoints.adminDashboard.operacoesEntradas;  // lista plana de entradas
+
         const params = new URLSearchParams({
             page: stateOps.page,
             limit: stateOps.limit,
@@ -150,117 +199,155 @@
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
 
-
-        const tbody = document.querySelector("#tb-operacoes tbody");
-        if (!tbody) return;
         tbody.innerHTML = "";
 
-        const data = resp.data || [];
-        const meta = resp.meta || { page: 1, pages: 1, total: 0 };
+        const data = (resp && resp.data) || [];
+        const meta = (resp && resp.meta) || { page: 1, pages: 1, total: 0 };
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Nenhum registro encontrado.</td></tr>`;
+            const colspan = stateOps.groupBySala ? 6 : 9;
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum registro encontrado.</td></tr>`;
             renderPaginationControls("pag-operacoes", null, null);
             return;
         }
 
-        data.forEach(sessao => {
-            // 1. Linha Pai (Sessão)
-            const trParent = document.createElement("tr");
-            trParent.className = "accordion-parent";
+        if (stateOps.groupBySala) {
+            // -----------------------------------------------------
+            // MODO AGRUPADO: mesma lógica anterior (sessão + sublinhas)
+            // -----------------------------------------------------
+            data.forEach(sessao => {
+                // 1. Linha Pai (Sessão)
+                const trParent = document.createElement("tr");
+                trParent.className = "accordion-parent";
 
-            const checklistClass = sessao.verificacao === "Realizado" ? "text-green" : "text-gray";
-            const abertoClass = sessao.em_aberto === "Sim" ? "text-blue bold" : "";
+                const checklistClass = sessao.verificacao === "Realizado" ? "text-green" : "text-gray";
+                const abertoClass = sessao.em_aberto === "Sim" ? "text-blue bold" : "";
 
-            trParent.innerHTML = `
-                <td><span class="toggle-icon">▶</span></td>
-                <td><strong>${sessao.sala}</strong></td>
-                <td>${fmtDate(sessao.data)}</td>
-                <td>${sessao.autor}</td>
-                <td class="${checklistClass}">${sessao.verificacao}</td>
-                <td class="${abertoClass}">${sessao.em_aberto}</td>
-            `;
-
-            // 2. Linha Filha (Entradas)
-            const trChild = document.createElement("tr");
-            trChild.className = "accordion-child";
-
-            let entradasHtml = "";
-            if (sessao.entradas && sessao.entradas.length > 0) {
-                entradasHtml = `
-                    <div style="margin-bottom:8px; font-size:0.85em; color:#64748b;">
-                        ℹ️ <em>Dê um duplo-clique na linha para ver o formulário detalhado.</em>
-                    </div>
-                    <table class="sub-table table-hover">
-                        <thead>
-                            <tr>
-                                <th style="width:40px;">Nº</th>
-                                <th>Operador</th>
-                                <th>Tipo</th>
-                                <th>Evento</th>
-                                <th>Pauta</th>
-                                <th>Início</th>
-                                <th>Fim</th>
-                                <th>Anormalidade?</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${sessao.entradas.map(ent => {
-                    const anomStyle = ent.anormalidade ? 'color:red; font-weight:bold;' : 'color:green;';
-                    const anomText = ent.anormalidade ? 'SIM' : 'Não';
-
-                    return `
-                                    <tr class="entry-row" data-id="${ent.id}" title="Duplo-clique para abrir formulário">
-                                        <td>${ent.ordem}º</td>
-                                        <td>${ent.operador}</td>
-                                        <td>${ent.tipo}</td>
-                                        <td>${ent.evento || '-'}</td>
-                                        <td>${fmtTime(ent.pauta)}</td>
-                                        <td>${fmtTime(ent.inicio)}</td>
-                                        <td>${fmtTime(ent.fim)}</td>
-                                        <td style="${anomStyle}">${anomText}</td>
-                                    </tr>
-                                `;
-                }).join('')}
-                        </tbody>
-                    </table>
+                trParent.innerHTML = `
+                    <td><span class="toggle-icon">▶</span></td>
+                    <td><strong>${sessao.sala}</strong></td>
+                    <td>${fmtDate(sessao.data)}</td>
+                    <td>${sessao.autor}</td>
+                    <td class="${checklistClass}">${sessao.verificacao}</td>
+                    <td class="${abertoClass}">${sessao.em_aberto}</td>
                 `;
-            } else {
-                entradasHtml = `<div style="padding:10px;">Nenhuma entrada registrada nesta sessão.</div>`;
-            }
 
-            trChild.innerHTML = `
-                <td colspan="6">
-                    <div class="sub-table-wrap">
-                        ${entradasHtml}
-                    </div>
-                </td>
-            `;
+                // 2. Linha Filha (Entradas)
+                const trChild = document.createElement("tr");
+                trChild.className = "accordion-child";
 
-            // Eventos
-            trParent.addEventListener("click", () => {
-                trParent.classList.toggle("open");
-                if (trParent.classList.contains("open")) {
-                    trChild.classList.add("visible");
+                let entradasHtml = "";
+                if (sessao.entradas && sessao.entradas.length > 0) {
+                    entradasHtml = `
+                        <div style="margin-bottom:8px; font-size:0.85em; color:#64748b;">
+                            ℹ️ <em>Dê um duplo-clique na linha para ver o formulário detalhado.</em>
+                        </div>
+                        <table class="sub-table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;">Nº</th>
+                                    <th>Operador</th>
+                                    <th>Tipo</th>
+                                    <th>Evento</th>
+                                    <th>Pauta</th>
+                                    <th>Início</th>
+                                    <th>Fim</th>
+                                    <th>Anormalidade?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${sessao.entradas.map(ent => {
+                        const anomStyle = ent.anormalidade ? 'color:red; font-weight:bold;' : 'color:green;';
+                        const anomText = ent.anormalidade ? 'SIM' : 'Não';
+
+                        return `
+                                        <tr class="entry-row" data-id="${ent.id}" title="Duplo-clique para abrir formulário">
+                                            <td>${ent.ordem}º</td>
+                                            <td>${ent.operador}</td>
+                                            <td>${ent.tipo}</td>
+                                            <td>${ent.evento || '-'}</td>
+                                            <td>${fmtTime(ent.pauta)}</td>
+                                            <td>${fmtTime(ent.inicio)}</td>
+                                            <td>${fmtTime(ent.fim)}</td>
+                                            <td style="${anomStyle}">${anomText}</td>
+                                        </tr>
+                                    `;
+                    }).join('')}
+                            </tbody>
+                        </table>
+                    `;
                 } else {
-                    trChild.classList.remove("visible");
+                    entradasHtml = `<div style="padding:10px;">Nenhuma entrada registrada nesta sessão.</div>`;
                 }
-            });
 
-            const entryRows = trChild.querySelectorAll(".entry-row");
-            entryRows.forEach(row => {
-                row.addEventListener("dblclick", (e) => {
-                    const entradaId = row.getAttribute("data-id");
-                    if (entradaId) {
-                        window.open(`/admin/form_operacao.html?entrada_id=${entradaId}`, '_blank');
+                trChild.innerHTML = `
+                    <td colspan="6">
+                        <div class="sub-table-wrap">
+                            ${entradasHtml}
+                        </div>
+                    </td>
+                `;
+
+                // Eventos de abrir/fechar
+                trParent.addEventListener("click", () => {
+                    trParent.classList.toggle("open");
+                    if (trParent.classList.contains("open")) {
+                        trChild.classList.add("visible");
+                    } else {
+                        trChild.classList.remove("visible");
                     }
                 });
+
+                // Duplo clique nas sublinhas
+                const entryRows = trChild.querySelectorAll(".entry-row");
+                entryRows.forEach(row => {
+                    row.addEventListener("dblclick", () => {
+                        const entradaId = row.getAttribute("data-id");
+                        if (entradaId) {
+                            window.open(`/admin/form_operacao.html?entrada_id=${entradaId}`, "_blank");
+                        }
+                    });
+                });
+
+                tbody.appendChild(trParent);
+                tbody.appendChild(trChild);
             });
+        } else {
+            // -----------------------------------------------------
+            // MODO LISTA PLANA: uma linha por entrada (sem sublinhas)
+            // -----------------------------------------------------
+            data.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.className = "entry-row";
+                tr.setAttribute("title", "Duplo-clique para ver o formulário detalhado");
 
-            tbody.appendChild(trParent);
-            tbody.appendChild(trChild);
-        });
+                const anomStyle = item.anormalidade ? 'color:red; font-weight:bold;' : 'color:green;';
+                const anomText = item.anormalidade ? 'SIM' : 'Não';
 
+                tr.innerHTML = `
+                    <td><strong>${item.sala}</strong></td>
+                    <td>${fmtDate(item.data)}</td>
+                    <td>${item.operador}</td>
+                    <td>${item.tipo}</td>
+                    <td>${item.evento || '-'}</td>
+                    <td>${fmtTime(item.pauta)}</td>
+                    <td>${fmtTime(item.inicio)}</td>
+                    <td>${fmtTime(item.fim)}</td>
+                    <td style="${anomStyle}">${anomText}</td>
+                `;
+
+                tr.addEventListener("dblclick", () => {
+                    const entradaId = item.id;
+                    if (entradaId) {
+                        window.open(`/admin/form_operacao.html?entrada_id=${entradaId}`, "_blank");
+                    }
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Paginação: agora usa meta.total que já vem certo do backend
         renderPaginationControls("pag-operacoes", meta, (newPage) => {
             stateOps.page = newPage;
             loadOperacoes();
@@ -399,7 +486,7 @@
             }, 400));
         }
 
-        // 1.1. Filtro por Período (Operações)
+        // 1.1. Filtro por Período (Operações) + checkbox "Agrupar por sala"
         const toolbarOps = searchOps ? searchOps.closest(".toolbar") : null;
         if (toolbarOps && window.PeriodoFilter && typeof window.PeriodoFilter.createPeriodoUI === "function") {
             window.PeriodoFilter.createPeriodoUI({
@@ -411,11 +498,50 @@
                     loadOperacoes();
                 }
             });
+
+            // Depois de criar o filtro de período, pegamos a linha do "Filtrar por data"
+            const sectionHeader = toolbarOps.closest(".section-header");
+            let dateFilterLine = null;
+            let inlineControls = null;
+
+            if (sectionHeader) {
+                const wrapper = sectionHeader.nextElementSibling;
+                if (wrapper && wrapper.classList.contains("date-filter-wrapper")) {
+                    dateFilterLine = wrapper.querySelector(".date-filter-line");
+                    inlineControls = wrapper.querySelector(".date-filter-inline");
+                }
+            }
+
+            // Cria o checkbox "Agrupar por sala"
+            const lblGroup = document.createElement("label");
+            lblGroup.className = "date-filter-toggle";
+            lblGroup.innerHTML = `
+                <input type="checkbox" id="chk-group-by-sala" checked>
+                <span>Agrupar por sala</span>
+            `;
+
+            // Insere bem perto do "Filtrar por data"
+            if (dateFilterLine && inlineControls) {
+                dateFilterLine.insertBefore(lblGroup, inlineControls);
+            } else if (dateFilterLine) {
+                dateFilterLine.appendChild(lblGroup);
+            } else if (toolbarOps) {
+                // Fallback: dentro da própria toolbar (caso algo mude no HTML)
+                toolbarOps.appendChild(lblGroup);
+            }
+
+            const chkGroup = lblGroup.querySelector("#chk-group-by-sala");
+            if (chkGroup) {
+                chkGroup.checked = stateOps.groupBySala;
+                chkGroup.addEventListener("change", (e) => {
+                    stateOps.groupBySala = e.target.checked;
+                    stateOps.page = 1;
+                    loadOperacoes();
+                });
+            }
         }
 
-        bindSortHeaders("tb-operacoes", stateOps, loadOperacoes);
-
-        // 2. Tabela de Anormalidades (Busca Cascata)
+        // 2. Tabela de Anormalidades (Busca + ordenação)
         const searchAnom = document.getElementById("search-anormalidades");
         if (searchAnom) {
             searchAnom.addEventListener("input", debounce((e) => {
@@ -444,5 +570,6 @@
         loadOperacoes();
         loadAnormalidades();
     });
+
 
 })();

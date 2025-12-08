@@ -24,6 +24,7 @@ const AppConfig = {
             operadores: "/webhook/admin/dashboard/operadores",
             checklists: "/webhook/admin/dashboard/checklists",
             operacoes: "/webhook/admin/dashboard/operacoes",
+            operacoesEntradas: "/webhook/admin/dashboard/operacoes/entradas",
             detalheOperacao: "/webhook/admin/operacao/detalhe",
             detalheChecklist: "/webhook/admin/checklist/detalhe",
 

@@ -223,6 +223,16 @@
         data.forEach(chk => {
             const trParent = document.createElement("tr");
             trParent.className = "accordion-parent";
+
+            // Calcula o status geral do checklist: se tiver pelo menos 1 Falha → "Falha" em vermelho; senão "Ok" em verde
+            const itens = chk.itens || [];
+            const hasFailure = itens.some(it => it.status === "Falha");
+            const statusColor = hasFailure ? "red" : "green";
+            const statusWeight = hasFailure ? "bold" : "normal";
+            const statusText = itens.length
+                ? (hasFailure ? "Falha" : "Ok")
+                : "--";
+
             trParent.innerHTML = `
                 <td><span class="toggle-icon">▶</span></td>
                 <td><strong>${chk.sala_nome}</strong></td>
@@ -231,6 +241,7 @@
                 <td>${fmtTime(chk.inicio)}</td>
                 <td>${fmtTime(chk.termino)}</td>
                 <td>${chk.duracao || '--'}</td>
+                <td style="color:${statusColor}; font-weight:${statusWeight}">${statusText}</td>
                 <td>
                     <button class="btn-xs btn-form">Formulário 📄</button>
                 </td>
@@ -270,7 +281,7 @@
             }
 
             trChild.innerHTML = `
-                <td colspan="8">
+                <td colspan="9">
                     <div class="sub-table-wrap">
                         <strong>Detalhes da Verificação:</strong>
                         <div style="margin-top:8px;">${itemsHtml}</div>
