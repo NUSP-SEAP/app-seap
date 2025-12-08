@@ -32,7 +32,9 @@ const AppConfig = {
             anormalidades: {
                 salas: "/webhook/admin/dashboard/anormalidades/salas",
                 lista: "/webhook/admin/dashboard/anormalidades/lista",
-                detalhe: "/webhook/admin/anormalidade/detalhe"
+                detalhe: "/webhook/admin/anormalidade/detalhe",
+                observacaoSupervisor: "/webhook/admin/anormalidade/observacao-supervisor",
+                observacaoChefe: "/webhook/admin/anormalidade/observacao-chefe"
             }
         },
 

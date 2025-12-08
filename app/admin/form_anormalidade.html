@@ -109,7 +109,48 @@
                         <input type="text" id="registrado_por" readonly />
                     </div>
                 </div>
+                <!-- Observações administrativas -->
+                <div class="admin-observacao-bloco" id="bloco-observacao-supervisor">
+                    <label for="observacao_supervisor">Observações do Supervisor</label>
+                    <textarea id="observacao_supervisor"
+                              class="admin-observacao-input"
+                              readonly></textarea>
+                    <div class="admin-observacao-actions"
+                         id="acoes-observacao-supervisor"
+                         style="display: none;">
+                        <button type="button"
+                                class="btn-primary"
+                                id="btn-supervisor-salvar">
+                            Salvar
+                        </button>
+                        <button type="button"
+                                class="btn-secondary"
+                                id="btn-supervisor-cancelar">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
 
+                <div class="admin-observacao-bloco" id="bloco-observacao-chefe">
+                    <label for="observacao_chefe">Observações do Chefe de Serviço</label>
+                    <textarea id="observacao_chefe"
+                              class="admin-observacao-input"
+                              readonly></textarea>
+                    <div class="admin-observacao-actions"
+                         id="acoes-observacao-chefe"
+                         style="display: none;">
+                        <button type="button"
+                                class="btn-primary"
+                                id="btn-chefe-salvar">
+                            Salvar
+                        </button>
+                        <button type="button"
+                                class="btn-secondary"
+                                id="btn-chefe-cancelar">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
                 <div class="actions" style="justify-content: space-between; margin-top: 30px;">
                     <button type="button" class="btn-secondary" onclick="window.close()">Fechar Aba</button>
                     <button type="button" class="btn-primary" disabled title="Funcionalidade futura">Imprimir
