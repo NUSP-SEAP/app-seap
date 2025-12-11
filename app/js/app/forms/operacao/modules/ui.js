@@ -109,6 +109,9 @@ export function atualizarVisibilidadeTipoPorSala(salaSelect, comissaoSelect) {
         if (divTipo) divTipo.classList.add("hidden");
         comissaoSelect.value = "";
         comissaoSelect.disabled = true;
+        if (comissaoSelect.dataset) {
+            delete comissaoSelect.dataset.lockSessao;
+        }
         return;
     }
 
@@ -127,14 +130,22 @@ export function atualizarVisibilidadeTipoPorSala(salaSelect, comissaoSelect) {
         if (divTipo) divTipo.classList.add("hidden");
         comissaoSelect.value = "";
         comissaoSelect.disabled = true;
+        if (comissaoSelect.dataset) {
+            delete comissaoSelect.dataset.lockSessao;
+        }
     } else {
         // Qualquer outra sala → "Tipo" é obrigatório e visível
         if (divTipo) divTipo.classList.remove("hidden");
-        comissaoSelect.disabled = false;
+
+        // Se a sessão marcou o campo como travado, mantemos o disable.
+        if (comissaoSelect.dataset && comissaoSelect.dataset.lockSessao === "true") {
+            comissaoSelect.disabled = true;
+        } else {
+            comissaoSelect.disabled = false;
+        }
     }
 
     // O tipo_evento depende de sala + comissão, então recalculamos a UI
-    // Note: atualizarTipoEventoUI precisa do sectionAnormalidade, que buscamos via DOM ou passamos
     const sectionAnormalidade = document.getElementById("section-anormalidade");
     atualizarTipoEventoUI(sectionAnormalidade);
 }
@@ -452,9 +463,20 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
             btnSalvarRegistro.disabled = false;
             btnSalvarRegistro.textContent = "Salvar registro";
         }
-        if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
+        if (btnSalvarEdicao) {
+            btnSalvarEdicao.style.display = "none";
+            btnSalvarEdicao.disabled = false;
+        }
         if (btnEditarEntrada1) { btnEditarEntrada1.style.display = "none"; }
         if (btnEditarEntrada2) { btnEditarEntrada2.style.display = "none"; }
+
+        // Regra nova:
+        // - 2º operador herda os dados do 1º
+        // - 3º operador herda do 2º
+        // - e assim sucessivamente...
+        // Sempre usando a ÚLTIMA entrada da sessão.
+        // "Houve anormalidade?" NÃO é herdado.
+        preencherFormularioComUltimaEntradaDaSessao(elements, estadoSessao);
 
         atualizarCabecalhoOperadoresSessao(
             headerOperadores,
@@ -504,6 +526,31 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
         estadoSessao,
         state.modoEdicaoEntradaSeq
     );
+}
+
+function preencherFormularioComUltimaEntradaDaSessao(elements, estadoSessao) {
+    if (!estadoSessao) return;
+
+    const entradasSessao = Array.isArray(estadoSessao.entradas_sessao)
+        ? estadoSessao.entradas_sessao
+        : [];
+
+    if (!entradasSessao || entradasSessao.length === 0) {
+        return;
+    }
+
+    // Última entrada (lista já vem ordenada do backend por ordem do operador + id)
+    const ultima = entradasSessao[entradasSessao.length - 1];
+    if (!ultima) return;
+
+    // Cópia superficial para não modificar o objeto em estadoSessao
+    const entradaCopia = { ...ultima };
+
+    // Não herdamos a resposta de "Houve anormalidade?".
+    // O novo operador sempre decide isso explicitamente.
+    delete entradaCopia.houve_anormalidade;
+
+    preencherFormularioComEntrada(elements, entradaCopia, estadoSessao);
 }
 
 // =============================================================================
@@ -569,50 +616,84 @@ export function preencherFormularioComEntrada(elements, entrada, estadoSessao) {
 
 function bloquearCabecalhoSeSessaoAberta(elements, estadoSessao) {
     const {
-        dataOperacaoInput, horarioPautaInput, horaInicioInput,
-        nomeEventoInput, responsavelEventoInput, comissaoSelect
+        dataOperacaoInput,
+        horarioPautaInput,
+        horaInicioInput,
+        nomeEventoInput,
+        responsavelEventoInput,
+        comissaoSelect,
+        salaSelect,
     } = elements;
 
-    // Se existe sessão, usamos os dados dela e travamos
-    if (estadoSessao && estadoSessao.existe_sessao_aberta) {
-        if (nomeEventoInput) {
-            nomeEventoInput.value = estadoSessao.nome_evento || "";
-            nomeEventoInput.readOnly = true;
-        }
-        if (responsavelEventoInput) {
-            responsavelEventoInput.value = estadoSessao.responsavel_evento || "";
-            responsavelEventoInput.readOnly = true;
-        }
-        if (dataOperacaoInput) {
-            dataOperacaoInput.value = estadoSessao.data || "";
-            dataOperacaoInput.readOnly = true;
-        }
-        if (horarioPautaInput) {
-            horarioPautaInput.value = estadoSessao.horario_pauta || "";
-            horarioPautaInput.readOnly = true;
-        }
-        if (horaInicioInput) {
-            horaInicioInput.value = estadoSessao.horario_inicio || "";
-            horaInicioInput.readOnly = true;
-        }
-        if (comissaoSelect) {
-            const val = estadoSessao.comissao_id;
+    // Sempre garantimos que os campos básicos permaneçam editáveis.
+    // O "bloqueio" pós-sessão agora só se aplica à Atividade Legislativa
+    // (comissaoSelect) quando a sala NÃO é Plenário/Auditório.
+    if (!estadoSessao || !estadoSessao.existe_sessao_aberta) {
+        [nomeEventoInput, responsavelEventoInput, dataOperacaoInput, horarioPautaInput, horaInicioInput]
+            .forEach((el) => { if (el) el.readOnly = false; });
 
-            // Se a sessão já tem uma atividade definida, travamos com esse valor
-            if (val !== null && val !== undefined && val !== "") {
-                comissaoSelect.value = String(val);
-                comissaoSelect.disabled = true;
-            } else {
-                // Sessões antigas podem não ter comissao_id; deixa o campo livre
-                comissaoSelect.disabled = false;
+        if (comissaoSelect) {
+            comissaoSelect.disabled = false;
+            if (comissaoSelect.dataset) {
+                delete comissaoSelect.dataset.lockSessao;
             }
         }
+        return;
+    }
+
+    // Sessão aberta: usamos os dados da sessão apenas como "default"
+    // (se o campo estiver vazio), mas mantemos os campos editáveis.
+    const aplicarDefault = (input, valor) => {
+        if (!input) return;
+        if (!input.value) {
+            input.value = valor || "";
+        }
+        input.readOnly = false;
+    };
+
+    aplicarDefault(nomeEventoInput, estadoSessao.nome_evento);
+    aplicarDefault(responsavelEventoInput, estadoSessao.responsavel_evento);
+    aplicarDefault(dataOperacaoInput, estadoSessao.data);
+    aplicarDefault(horarioPautaInput, estadoSessao.horario_pauta);
+    aplicarDefault(horaInicioInput, estadoSessao.horario_inicio);
+
+    if (!comissaoSelect) return;
+
+    // Verifica se o "Local" atual é Plenário ou Auditório
+    let isAuditorio = false;
+    let isPlenario = false;
+
+    if (salaSelect && salaSelect.options && salaSelect.selectedIndex >= 0) {
+        const optSala = salaSelect.options[salaSelect.selectedIndex] || null;
+        const textoSala = (
+            (optSala && (optSala.textContent || optSala.innerText || optSala.label)) ||
+            ""
+        ).toLowerCase();
+
+        isAuditorio = /audit[oó]rio/.test(textoSala);
+        isPlenario = /plen[áa]rio/.test(textoSala);
+    }
+
+    const val = estadoSessao.comissao_id;
+
+    if (isAuditorio || isPlenario) {
+        // Plenário / Auditório: nenhum campo é travado pela sessão
+        comissaoSelect.disabled = false;
+        if (comissaoSelect.dataset) {
+            delete comissaoSelect.dataset.lockSessao;
+        }
+    } else if (val !== null && val !== undefined && val !== "") {
+        // Demais salas: Atividade Legislativa travada com o valor da sessão
+        comissaoSelect.value = String(val);
+        comissaoSelect.disabled = true;
+        if (comissaoSelect.dataset) {
+            comissaoSelect.dataset.lockSessao = "true";
+        }
     } else {
-        // Se não, destrava (para o primeiro operador preencher)
-        // Nota: dataOperacaoInput pode ter lógica específica de "hoje", 
-        // mas aqui garantimos que seja editável se não houver sessão.
-        [nomeEventoInput, responsavelEventoInput, dataOperacaoInput, horarioPautaInput, horaInicioInput]
-            .forEach(el => { if (el) el.readOnly = false; });
-        if (comissaoSelect) comissaoSelect.disabled = false;
+        // Sessões antigas podem não ter comissao_id; deixa livre
+        comissaoSelect.disabled = false;
+        if (comissaoSelect.dataset) {
+            delete comissaoSelect.dataset.lockSessao;
+        }
     }
 }

@@ -195,10 +195,26 @@ function preencherFormularioAnormalidade(data) {
  */
 function bindToggles() {
     const toggles = [
-        { name: "houve_prejuizo", target: "grp_descricao_prejuizo", required: ["descricao_prejuizo"] },
-        { name: "houve_reclamacao", target: "grp_autores_conteudo_reclamacao", required: ["autores_conteudo_reclamacao"] },
-        { name: "acionou_manutencao", target: "grp_hora_acionamento", required: ["hora_acionamento_manutencao"] },
-        { name: "resolvida_pelo_operador", target: "grp_procedimentos_adotados", required: [] }
+        {
+            name: "houve_prejuizo",
+            target: "grp_descricao_prejuizo",
+            required: ["descricao_prejuizo"],
+        },
+        {
+            name: "houve_reclamacao",
+            target: "grp_autores_conteudo_reclamacao",
+            required: ["autores_conteudo_reclamacao"],
+        },
+        {
+            name: "acionou_manutencao",
+            target: "grp_hora_acionamento",
+            required: ["hora_acionamento_manutencao"],
+        },
+        {
+            name: "resolvida_pelo_operador",
+            target: "grp_procedimentos_adotados",
+            required: ["procedimentos_adotados"],
+        },
     ];
 
     toggles.forEach((t) => {
@@ -216,8 +232,9 @@ function bindToggles() {
             (t.required || []).forEach((fieldId) => {
                 const field = document.getElementById(fieldId);
                 if (field) {
-                    if (show) field.setAttribute("required", "required");
-                    else {
+                    if (show) {
+                        field.setAttribute("required", "required");
+                    } else {
                         field.removeAttribute("required");
                         field.value = "";
                     }
