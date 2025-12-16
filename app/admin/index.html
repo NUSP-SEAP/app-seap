@@ -14,6 +14,7 @@
     <script src="/js/auth_jwt.js"></script>
     <script src="/js/session-autoload.js" defer></script>
     <script src="/js/app/admin/periodo_filter.js" defer></script>
+    <script src="/js/app/admin/table_filters.js" defer></script>
     <script src="/js/app/admin/index.js" defer></script>
 </head>
 
@@ -61,11 +62,11 @@
             <table class="data-table" id="tb-operadores">
                 <thead>
                     <tr>
-                        <th class="sortable" data-sort="nome">Nome</th>
-                        <th class="sortable" data-sort="email">E-mail</th>
-                        <th>No Senado?</th>
-                        <th>Entrada</th>
-                        <th>Saída</th>
+                        <th class="sortable" data-sort="nome" data-column="nome">Nome</th>
+                        <th class="sortable" data-sort="email" data-column="email">E-mail</th>
+                        <th class="sortable" data-sort="status_local" data-column="status_local">No Senado?</th>
+                        <th class="sortable" data-sort="hora_entrada" data-column="hora_entrada">Entrada</th>
+                        <th class="sortable" data-sort="hora_saida" data-column="hora_saida">Saída</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -89,14 +90,14 @@
                 <thead>
                     <tr>
                         <th style="width: 20px;"></th>
-                        <th class="sortable" data-sort="sala">Sala</th>
-                        <th class="sortable" data-sort="data">Data</th>
-                        <th class="sortable" data-sort="operador">Verificado por</th>
-                        <th>Início</th>
-                        <th>Término</th>
-                        <th class="sortable" data-sort="duracao">Duração</th>
-                        <th>Status</th>
-                        <th>Ações</th>
+                        <th class="sortable" data-sort="sala" data-column="sala">Sala</th>
+                        <th class="sortable" data-sort="data" data-column="data">Data</th>
+                        <th class="sortable" data-sort="operador" data-column="operador">Verificado por</th>
+                        <th class="sortable" data-sort="inicio" data-column="inicio">Início</th>
+                        <th class="sortable" data-sort="termino" data-column="termino">Término</th>
+                        <th class="sortable" data-sort="duracao" data-column="duracao">Duração</th>
+                        <th class="sortable" data-sort="status" data-column="status">Status</th>
+                        <th data-column="acoes" data-no-filter="1">Ações</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -14,6 +14,7 @@
     <script src="/js/auth_jwt.js"></script>
     <script src="/js/session-autoload.js" defer></script>
     <script src="/js/app/admin/periodo_filter.js" defer></script>
+    <script src="/js/app/admin/table_filters.js" defer></script>
     <script src="/js/app/admin/operacoes_audio.js" defer></script>
 </head>
 
@@ -36,11 +37,11 @@
                 <thead>
                     <tr>
                         <th style="width: 20px;"></th>
-                        <th class="sortable" data-sort="sala">Sala</th>
-                        <th class="sortable" data-sort="data">Data</th>
-                        <th class="sortable" data-sort="autor">1º Registro por</th>
-                        <th>Checklist?</th>
-                        <th class="sortable" data-sort="em_aberto">Em Aberto?</th>
+                        <th class="sortable" data-sort="sala" data-column="sala">Sala</th>
+                        <th class="sortable" data-sort="data" data-column="data">Data</th>
+                        <th class="sortable" data-sort="autor" data-column="autor">1º Registro por</th>
+                        <th data-column="verificacao">Checklist?</th>
+                        <th class="sortable" data-sort="em_aberto" data-column="em_aberto">Em Aberto?</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -62,19 +63,20 @@
             <table class="data-table" id="tb-anormalidades">
                 <thead>
                     <tr>
-                        <th class="sortable" data-sort="data">Data</th>
-                        <th class="sortable" data-sort="sala">Sala</th>
-                        <th class="sortable" data-sort="registrado_por">Registrado por</th>
-                        <th class="sortable" data-sort="descricao">Descrição</th>
-                        <th class="sortable" data-sort="solucionada">Solucionada</th>
-                        <th>Prejuízo</th>
-                        <th>Reclamação</th>
-                        <th>Ação</th>
+                        <th class="sortable" data-sort="data" data-column="data">Data</th>
+                        <th class="sortable" data-sort="sala" data-column="sala">Sala</th>
+                        <th class="sortable" data-sort="registrado_por" data-column="registrado_por">Registrado por</th>
+                        <th class="sortable" data-sort="descricao" data-column="descricao">Descrição</th>
+                        <th class="sortable" data-sort="solucionada" data-column="solucionada">Solucionada</th>
+                        <th data-column="houve_prejuizo">Prejuízo</th>
+                        <th data-column="houve_reclamacao">Reclamação</th>
+                        <th data-column="acao" data-no-filter="1">Ação</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     <tr>
-                        <td colspan="2" class="empty-state">Carregando salas com anormalidades...</td>
+                        <td colspan="8" class="empty-state">Carregando salas com anormalidades...</td>
                     </tr>
                 </tbody>
             </table>

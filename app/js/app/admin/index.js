@@ -7,7 +7,8 @@
         limit: 10,
         search: "",
         sort: "nome", // Padrão definido no backend
-        dir: "asc"
+        dir: "asc",
+        filters: {},  // NOVO (TableFilter)
     };
 
     const stateChk = {
@@ -17,6 +18,7 @@
         sort: "data", // Padrão definido no backend
         dir: "desc",
         periodo: null, // ← aqui vamos guardar o JSON { ranges: [...] }
+        filters: {},   // NOVO (TableFilter)
     };
 
     // --- Helpers Genéricos ---
@@ -43,6 +45,15 @@
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     // --- Renderização de Paginação ---
@@ -150,18 +161,61 @@
     }
 
     // --- Fetch Autenticado ---
+    // async function fetchJson(url) {
+    //     if (!window.Auth || typeof Auth.authFetch !== 'function') {
+    //         console.error("Auth module not loaded");
+    //         return null;
+    //     }
+    //     try {
+    //         const resp = await Auth.authFetch(url);
+    //         if (!resp.ok) throw new Error("HTTP " + resp.status);
+    //         return await resp.json();
+    //     } catch (e) {
+    //         console.error("Fetch error:", e);
+    //         return { ok: false, data: [] };
+    //     }
+    // }
+
     async function fetchJson(url) {
-        if (!window.Auth || typeof Auth.authFetch !== 'function') {
-            console.error("Auth module not loaded");
-            return null;
+        const fallbackMeta = { page: 1, pages: 1, total: 0 };
+
+        if (!window.Auth || typeof Auth.authFetch !== "function") {
+            const msg = "Auth não carregado (Auth.authFetch indisponível).";
+            console.error(msg);
+            return { ok: false, status: 0, error: msg, data: [], meta: fallbackMeta };
         }
+
         try {
             const resp = await Auth.authFetch(url);
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
-            return await resp.json();
+
+            const text = await resp.text();
+            let json = null;
+            try {
+                json = text ? JSON.parse(text) : null;
+            } catch (_) {
+                json = null;
+            }
+
+            if (!resp.ok) {
+                const msg =
+                    (json && (json.message || json.error)) ||
+                    (text && text.trim()) ||
+                    `HTTP ${resp.status}`;
+
+                console.error("Fetch error:", resp.status, msg);
+                return { ok: false, status: resp.status, error: msg, data: [], meta: fallbackMeta };
+            }
+
+            // resp.ok === true
+            if (json && typeof json === "object") return json;
+
+            const msg = "Resposta ok, mas não veio JSON.";
+            console.error(msg, (text || "").slice(0, 200));
+            return { ok: false, status: resp.status, error: msg, data: [], meta: fallbackMeta };
         } catch (e) {
-            console.error("Fetch error:", e);
-            return { ok: false, data: [] };
+            const msg = (e && e.message) ? e.message : String(e);
+            console.error("Fetch error:", msg);
+            return { ok: false, status: 0, error: msg, data: [], meta: fallbackMeta };
         }
     }
 
@@ -215,16 +269,46 @@
             sort: stateOp.sort,
             dir: stateOp.dir
         });
+        // Filtros por coluna (estilo Excel)
+        if (window.TableFilter && typeof window.TableFilter.applyToParams === "function") {
+            window.TableFilter.applyToParams(params, stateOp);
+        }
 
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+        // const resp = await fetchJson(url);
+
+        // const tbody = document.querySelector("#tb-operadores tbody");
+        // if (!tbody) return;
+        // tbody.innerHTML = "";
+
+        // const data = resp.data || [];
         const resp = await fetchJson(url);
 
         const tbody = document.querySelector("#tb-operadores tbody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
-        const data = resp.data || [];
+        if (!resp || resp.ok === false) {
+            const status = (resp && typeof resp.status === "number" && resp.status) ? resp.status : "??";
+            const msg = (resp && resp.error) ? resp.error : "Falha ao carregar operadores.";
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Erro ao carregar operadores (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
+            renderPaginationControls("pag-operadores", null, null);
+            return;
+        }
+        const data = Array.isArray(resp.data) ? resp.data : [];
+
         const meta = resp.meta || { page: 1, pages: 1, total: 0 };
+
+        // Valores únicos (checkboxes) do filtro por coluna:
+        // Agora vêm do backend (meta.distinct) para não depender da paginação.
+        if (window.TableFilter) {
+            if (meta.distinct && typeof window.TableFilter.applyDistinctMap === "function") {
+                window.TableFilter.applyDistinctMap("tb-operadores", meta.distinct);
+            } else if (typeof window.TableFilter.updateDistinctValues === "function") {
+                // fallback (caso o backend ainda não esteja retornando meta.distinct)
+                window.TableFilter.updateDistinctValues("tb-operadores", data);
+            }
+        }
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Nenhum operador encontrado.</td></tr>`;
@@ -276,16 +360,45 @@
         if (stateChk.periodo) {
             params.set("periodo", JSON.stringify(stateChk.periodo));
         }
-
+        // Filtros por coluna (estilo Excel)
+        if (window.TableFilter && typeof window.TableFilter.applyToParams === "function") {
+            window.TableFilter.applyToParams(params, stateChk);
+        }
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+        // const resp = await fetchJson(url);
+
+        // const tbody = document.querySelector("#tb-checklists tbody");
+        // if (!tbody) return;
+        // tbody.innerHTML = "";
+
+        // const data = resp.data || [];
+
         const resp = await fetchJson(url);
 
         const tbody = document.querySelector("#tb-checklists tbody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
-        const data = resp.data || [];
+        if (!resp || resp.ok === false) {
+            const status = (resp && typeof resp.status === "number" && resp.status) ? resp.status : "??";
+            const msg = (resp && resp.error) ? resp.error : "Falha ao carregar checklists.";
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Erro ao carregar checklists (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
+            renderPaginationControls("pag-checklists", null, null);
+            return;
+        }
+
+        const data = Array.isArray(resp.data) ? resp.data : [];
+
         const meta = resp.meta || { page: 1, pages: 1, total: 0 };
+
+        // Valores únicos (checkboxes) do filtro por coluna (sem depender da página atual)
+        if (window.TableFilter) {
+            if (meta.distinct && typeof window.TableFilter.applyDistinctMap === "function") {
+                window.TableFilter.applyDistinctMap("tb-checklists", meta.distinct);
+            } else if (typeof window.TableFilter.updateDistinctValues === "function") {
+                window.TableFilter.updateDistinctValues("tb-checklists", data);
+            }
+        }
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" class="empty-state">Nenhum checklist encontrado.</td></tr>`;
@@ -433,6 +546,73 @@
         // 3. Bind Header Clicks (Ordenação)
         bindSortHeaders("tb-operadores", stateOp, loadOperadores);
         bindSortHeaders("tb-checklists", stateChk, loadChecklists);
+
+        // 3.1 Filtros por coluna (Excel-like) — Operadores
+        if (window.TableFilter && typeof window.TableFilter.init === "function") {
+            window.TableFilter.init({
+                tableId: "tb-operadores",
+                state: stateOp,
+                columns: {
+                    nome: { type: "text", sortable: true, sortKey: "nome", dataKey: "nome_completo", label: "Nome" },
+                    email: { type: "text", sortable: true, sortKey: "email", dataKey: "email", label: "E-mail" },
+                    status_local: { type: "text", sortable: true, sortKey: "status_local", dataKey: "status_local", label: "No Senado?" },
+                    hora_entrada: { type: "text", sortable: true, sortKey: "hora_entrada", dataKey: "hora_entrada", label: "Entrada" },
+                    hora_saida: { type: "text", sortable: true, sortKey: "hora_saida", dataKey: "hora_saida", label: "Saída" },
+                },
+                onChange: loadOperadores,
+                debounceMs: 250,
+            });
+
+            window.TableFilter.init({
+                tableId: "tb-checklists",
+                state: stateChk,
+                columns: {
+                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala_nome", label: "Sala" },
+                    data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+                    operador: { type: "text", sortable: true, sortKey: "operador", dataKey: "operador", label: "Verificado por" },
+
+                    // Hora: guardamos/filtramos por HH:MM
+                    inicio: {
+                        type: "text",
+                        sortable: true,
+                        sortKey: "inicio",
+                        dataKey: "inicio",
+                        label: "Início",
+                        toValue: (v) => (v ? String(v).substring(0, 5) : ""),
+                        toLabel: (v) => (v ? String(v).substring(0, 5) : ""),
+                    },
+                    termino: {
+                        type: "text",
+                        sortable: true,
+                        sortKey: "termino",
+                        dataKey: "termino",
+                        label: "Término",
+                        toValue: (v) => (v ? String(v).substring(0, 5) : ""),
+                        toLabel: (v) => (v ? String(v).substring(0, 5) : ""),
+                    },
+
+                    duracao: { type: "text", sortable: true, sortKey: "duracao", dataKey: "duracao", label: "Duração" },
+
+                    // Status é derivado de itens (Falha / Ok / --)
+                    status: {
+                        type: "text",
+                        sortable: true,
+                        sortKey: "status",
+                        label: "Status",
+                        getValue: (row) => {
+                            const itens = (row && Array.isArray(row.itens)) ? row.itens : [];
+                            if (!itens.length) return "--";
+                            const hasFailure = itens.some((it) => it && it.status === "Falha");
+                            return hasFailure ? "Falha" : "Ok";
+                        },
+                    },
+
+                    acoes: { filterable: false, label: "Ações" },
+                },
+                onChange: loadChecklists,
+                debounceMs: 250,
+            });
+        }
 
         // 4. Carga Inicial
         loadOperadores();

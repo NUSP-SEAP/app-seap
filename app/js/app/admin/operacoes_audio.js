@@ -8,8 +8,9 @@
         search: "",
         sort: "data",
         dir: "desc",
-        periodo: null,   // filtro de período para sessões de operação
-        groupBySala: true, // NOVO: controla se a tabela está agrupada por sala (default = true)
+        periodo: null,     // filtro de período para sessões de operação
+        groupBySala: true, // controla se a tabela está agrupada por sala (default = true)
+        filters: {},       // NOVO: filtros por coluna (TableFilter)
     };
 
     // --- Novo Estado da Tabela de Anormalidades (Master-Detail) ---
@@ -20,7 +21,34 @@
         sort: "data",     // Ordenação padrão
         dir: "desc",      // Direção padrão
         periodo: null,    // filtro de período para anormalidades
+        filters: {},      // NOVO: filtros por coluna (TableFilter)
     };
+
+    // --- Colunas do filtro (tb-operacoes) dependem do modo (agrupado x lista plana) ---
+    function getOperacoesColumns() {
+        if (stateOps.groupBySala) {
+            return {
+                sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+                autor: { type: "text", sortable: true, sortKey: "autor", dataKey: "autor", label: "1º Registro por" },
+                verificacao: { type: "text", sortable: false, dataKey: "verificacao", label: "Checklist" },
+                em_aberto: { type: "text", sortable: true, sortKey: "em_aberto", dataKey: "em_aberto", label: "Em Aberto?" },
+                toggle: { filterable: false, label: "" },
+            };
+        }
+
+        return {
+            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+            data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+            operador: { type: "text", sortable: true, sortKey: "operador", dataKey: "operador", label: "Operador" },
+            tipo: { type: "text", sortable: true, sortKey: "tipo", dataKey: "tipo", label: "Tipo" },
+            evento: { type: "text", sortable: true, sortKey: "evento", dataKey: "evento", label: "Evento" },
+            pauta: { type: "text", sortable: true, sortKey: "pauta", dataKey: "pauta", label: "Pauta" },
+            inicio: { type: "text", sortable: true, sortKey: "inicio", dataKey: "inicio", label: "Início" },
+            fim: { type: "text", sortable: true, sortKey: "fim", dataKey: "fim", label: "Fim" },
+            anormalidade: { type: "bool", sortable: true, sortKey: "anormalidade", dataKey: "anormalidade", label: "Anormalidade?" },
+        };
+    }
 
     // --- Helpers de Data/Hora ---
     const fmtDate = (d) => {
@@ -44,6 +72,14 @@
         };
     }
 
+    function escapeHtml(s) {
+        return String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
     // --- Helper de Paginação ---
     function renderPaginationControls(containerId, meta, onPageChange) {
         const container = document.getElementById(containerId);
@@ -150,18 +186,60 @@
     }
 
     // --- Fetch Autenticado ---
+    // async function fetchJson(url) {
+    //     if (!window.Auth || typeof Auth.authFetch !== 'function') {
+    //         console.error("Auth não carregado");
+    //         return null;
+    //     }
+    //     try {
+    //         const resp = await Auth.authFetch(url);
+    //         if (!resp.ok) throw new Error("HTTP " + resp.status);
+    //         return await resp.json();
+    //     } catch (e) {
+    //         console.error(e);
+    //         return { ok: false, data: [] };
+    //     }
+    // }
+
     async function fetchJson(url) {
-        if (!window.Auth || typeof Auth.authFetch !== 'function') {
-            console.error("Auth não carregado");
-            return null;
+        const fallbackMeta = { page: 1, pages: 1, total: 0 };
+
+        if (!window.Auth || typeof Auth.authFetch !== "function") {
+            const msg = "Auth não carregado (Auth.authFetch indisponível).";
+            console.error(msg);
+            return { ok: false, status: 0, error: msg, data: [], meta: fallbackMeta };
         }
+
         try {
             const resp = await Auth.authFetch(url);
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
-            return await resp.json();
+
+            const text = await resp.text();
+            let json = null;
+            try {
+                json = text ? JSON.parse(text) : null;
+            } catch (_) {
+                json = null;
+            }
+
+            if (!resp.ok) {
+                const msg =
+                    (json && (json.message || json.error)) ||
+                    (text && text.trim()) ||
+                    `HTTP ${resp.status}`;
+
+                console.error("Fetch error:", resp.status, msg);
+                return { ok: false, status: resp.status, error: msg, data: [], meta: fallbackMeta };
+            }
+
+            if (json && typeof json === "object") return json;
+
+            const msg = "Resposta ok, mas não veio JSON.";
+            console.error(msg, (text || "").slice(0, 200));
+            return { ok: false, status: resp.status, error: msg, data: [], meta: fallbackMeta };
         } catch (e) {
-            console.error(e);
-            return { ok: false, data: [] };
+            const msg = (e && e.message) ? e.message : String(e);
+            console.error("Fetch error:", msg);
+            return { ok: false, status: 0, error: msg, data: [], meta: fallbackMeta };
         }
     }
 
@@ -179,6 +257,10 @@
     function bindSortHeaders(tableId, stateObj, loadFunc) {
         const headers = document.querySelectorAll(`#${tableId} th.sortable`);
         headers.forEach(th => {
+            // Evita bind duplicado quando o thead não é recriado
+            if (th.dataset.sortBound === "1") return;
+            th.dataset.sortBound = "1";
+
             th.addEventListener("click", () => {
                 const col = th.dataset.sort;
                 if (stateObj.sort === col) {
@@ -187,11 +269,12 @@
                     stateObj.sort = col;
                     stateObj.dir = "asc";
                 }
-                if (stateObj.page) stateObj.page = 1; // Reseta página se existir no state
+                if (stateObj.page) stateObj.page = 1;
                 loadFunc();
             });
         });
     }
+
 
     // =================================================================
     // --- LÓGICA DA TABELA DE OPERAÇÕES (SESSÕES) ---
@@ -206,49 +289,55 @@
         if (!thead || !tbody) return;
 
         // 1) Cabeçalho + comportamento visual conforme o modo
-        if (stateOps.groupBySala) {
-            // Modo AGRUPADO (como já era)
-            table.classList.remove("table-hover");
+        // IMPORTANTe: só recria o <thead> quando muda o modo (evita o painel de filtro fechar a cada interação)
+        const mode = stateOps.groupBySala ? "grouped" : "flat";
+        if (table.dataset.opsMode !== mode) {
+            table.dataset.opsMode = mode;
 
-            thead.innerHTML = `
+            if (stateOps.groupBySala) {
+                // Modo AGRUPADO (como já era)
+                table.classList.remove("table-hover");
+
+                thead.innerHTML = `
                 <tr>
                     <th style="width: 20px;"></th>
-                    <th class="sortable" data-sort="sala">Sala</th>
-                    <th class="sortable" data-sort="data">Data</th>
-                    <th class="sortable" data-sort="autor">1º Registro por</th>
-                    <th>Checklist?</th>
-                    <th class="sortable" data-sort="em_aberto">Em Aberto?</th>
+                    <th class="sortable" data-sort="sala" data-column="sala">Sala</th>
+                    <th class="sortable" data-sort="data" data-column="data">Data</th>
+                    <th class="sortable" data-sort="autor" data-column="autor">1º Registro por</th>
+                    <th data-column="verificacao">Checklist?</th>
+                    <th class="sortable" data-sort="em_aberto" data-column="em_aberto">Em Aberto?</th>
                 </tr>
             `;
-        } else {
-            // Modo LISTA PLANA (sem sublinhas, uma linha por entrada)
-            // Aqui a tabela principal ganha hover + cursor de mão
-            table.classList.add("table-hover");
+            } else {
+                // Modo LISTA PLANA (sem sublinhas, uma linha por entrada)
+                table.classList.add("table-hover");
 
-            thead.innerHTML = `
+                thead.innerHTML = `
                 <tr>
-                    <th class="sortable" data-sort="sala">Sala</th>
-                    <th class="sortable" data-sort="data">Data</th>
-                    <th>Operador</th>
-                    <th>Tipo</th>
-                    <th>Evento</th>
-                    <th>Pauta</th>
-                    <th>Início</th>
-                    <th>Fim</th>
-                    <th>Anormalidade?</th>
+                    <th class="sortable" data-sort="sala" data-column="sala">Sala</th>
+                    <th class="sortable" data-sort="data" data-column="data">Data</th>
+                    <th data-column="operador">Operador</th>
+                    <th data-column="tipo">Tipo</th>
+                    <th data-column="evento">Evento</th>
+                    <th data-column="pauta">Pauta</th>
+                    <th data-column="inicio">Início</th>
+                    <th data-column="fim">Fim</th>
+                    <th data-column="anormalidade">Anormalidade?</th>
                 </tr>
             `;
+            }
         }
 
-        // Reaplica ordenação nos headers recém-criados
+        // (re)bind seguro (idempotente)
         bindSortHeaders("tb-operacoes", stateOps, loadOperacoes);
         updateHeaderIcons("tb-operacoes", stateOps);
 
-        // 2) Escolhe o endpoint correto
+        // 2) Endpoint conforme modo
         const endpoint = stateOps.groupBySala
-            ? AppConfig.endpoints.adminDashboard.operacoes            // sessões (agrupado)
-            : AppConfig.endpoints.adminDashboard.operacoesEntradas;  // lista plana de entradas
+            ? AppConfig.endpoints.adminDashboard.operacoes
+            : AppConfig.endpoints.adminDashboard.operacoesEntradas;
 
+        // 3) Params
         const params = new URLSearchParams({
             page: stateOps.page,
             limit: stateOps.limit,
@@ -261,52 +350,117 @@
             params.set("periodo", JSON.stringify(stateOps.periodo));
         }
 
+        // Filtros por coluna (estilo Excel)
+        if (window.TableFilter && typeof window.TableFilter.applyToParams === "function") {
+            window.TableFilter.applyToParams(params, stateOps);
+        }
+
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
 
         tbody.innerHTML = "";
 
-        const data = (resp && resp.data) || [];
-        const meta = (resp && resp.meta) || { page: 1, pages: 1, total: 0 };
-
-        if (data.length === 0) {
+        if (!resp || resp.ok === false) {
+            const status = (resp && typeof resp.status === "number" && resp.status) ? resp.status : "??";
+            const msg = (resp && resp.error) ? resp.error : "Falha ao carregar operações.";
             const colspan = stateOps.groupBySala ? 6 : 9;
-            tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum registro encontrado.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Erro ao carregar operações (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
             renderPaginationControls("pag-operacoes", null, null);
             return;
         }
 
+        const data = Array.isArray(resp.data) ? resp.data : [];
+        const meta = resp.meta || { page: 1, pages: 1, total: 0 };
+
+        // Valores únicos (checkboxes) do filtro por coluna:
+        // Devem vir do backend (meta.distinct) para NÃO depender da paginação.
+        if (window.TableFilter) {
+            if (meta.distinct && typeof window.TableFilter.applyDistinctMap === "function") {
+                window.TableFilter.applyDistinctMap("tb-operacoes", meta.distinct);
+            } else if (typeof window.TableFilter.updateDistinctValues === "function") {
+                // fallback (caso o backend ainda não esteja retornando meta.distinct)
+                window.TableFilter.updateDistinctValues("tb-operacoes", data);
+            }
+        }
+
+        // Distinct (values para checkboxes)
+        if (window.TableFilter) {
+            const distinctMap = meta && meta.distinct;
+
+            // meta.distinct às vezes vem presente porém vazio ({} ou chaves com arrays vazios).
+            // Nesse caso, caímos no fallback updateDistinctValues() para não abrir a lista “em branco”.
+            const distinctHasValues =
+                distinctMap &&
+                typeof distinctMap === "object" &&
+                Object.keys(distinctMap).some((k) => {
+                    const v = distinctMap[k];
+
+                    // Formato 1: { col: [ ... ] }
+                    if (Array.isArray(v)) return v.length > 0;
+
+                    // Formato 2: { col: { values: [ ... ] } } (compat)
+                    if (v && typeof v === "object") {
+                        if (Array.isArray(v.values)) return v.values.length > 0;
+                        if (Array.isArray(v.options)) return v.options.length > 0;
+                    }
+                    return false;
+                });
+
+            if (distinctHasValues && typeof window.TableFilter.applyDistinctMap === "function") {
+                window.TableFilter.applyDistinctMap("tb-operacoes", distinctMap);
+            } else if (typeof window.TableFilter.updateDistinctValues === "function") {
+                window.TableFilter.updateDistinctValues("tb-operacoes", data);
+            }
+        }
+
+        if (data.length === 0) {
+            const colspan = stateOps.groupBySala ? 6 : 9;
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhuma operação encontrada.</td></tr>`;
+            renderPaginationControls("pag-operacoes", null, null);
+            return;
+        }
+
+        // 4) Render
         if (stateOps.groupBySala) {
             // -----------------------------------------------------
-            // MODO AGRUPADO: mesma lógica anterior (sessão + sublinhas)
+            // MODO AGRUPADO: sessão + sublinhas (accordion)
             // -----------------------------------------------------
-            data.forEach(sessao => {
-                // 1. Linha Pai (Sessão)
+            data.forEach((sessao) => {
+                // Normalizações (evita depender de casing/espacos)
+                const verificRaw = String(sessao.verificacao || "--").trim();
+                const verificNorm = verificRaw.toLowerCase();
+                const checklistClass = (verificNorm === "realizado") ? "text-green" : "text-gray";
+
+                const emAbertoRaw = String(sessao.em_aberto || "--").trim();
+                const emAbertoNorm = emAbertoRaw.toLowerCase();
+                const emAbertoIsSim = (emAbertoNorm === "sim");
+                const emAbertoClass = emAbertoIsSim ? "text-blue" : "";
+
+                // 1) Linha Pai (Sessão)
                 const trParent = document.createElement("tr");
                 trParent.className = "accordion-parent";
-
-                const checklistClass = sessao.verificacao === "Realizado" ? "text-green" : "text-gray";
-                const abertoClass = sessao.em_aberto === "Sim" ? "text-blue bold" : "";
+                trParent.setAttribute("title", "Clique para expandir/recolher");
 
                 trParent.innerHTML = `
                     <td><span class="toggle-icon">▶</span></td>
-                    <td><strong>${sessao.sala}</strong></td>
-                    <td>${fmtDate(sessao.data)}</td>
-                    <td>${sessao.autor}</td>
-                    <td class="${checklistClass}">${sessao.verificacao}</td>
-                    <td class="${abertoClass}">${sessao.em_aberto}</td>
+                    <td><strong>${escapeHtml(sessao.sala || "--")}</strong></td>
+                    <td><strong>${fmtDate(sessao.data)}</strong></td>
+                    <td><strong>${escapeHtml(sessao.autor || "--")}</strong></td>
+                    <td class="${checklistClass}">${escapeHtml(verificRaw || "--")}</td>
+                    <td><strong class="${emAbertoClass}">${escapeHtml(emAbertoRaw || "--")}</strong></td>
                 `;
 
-                // 2. Linha Filha (Entradas)
+                // 2) Linha Filha (Entradas)
                 const trChild = document.createElement("tr");
                 trChild.className = "accordion-child";
 
                 let entradasHtml = "";
-                if (sessao.entradas && sessao.entradas.length > 0) {
+                if (Array.isArray(sessao.entradas) && sessao.entradas.length > 0) {
                     entradasHtml = `
                         <div style="margin-bottom:8px; font-size:0.85em; color:#64748b;">
                             ℹ️ <em>Dê um duplo-clique na linha para ver o formulário detalhado.</em>
                         </div>
+
                         <table class="sub-table table-hover">
                             <thead>
                                 <tr>
@@ -321,23 +475,24 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${sessao.entradas.map(ent => {
-                        const anomStyle = ent.anormalidade ? 'color:red; font-weight:bold;' : 'color:green;';
-                        const anomText = ent.anormalidade ? 'SIM' : 'Não';
+                                ${sessao.entradas.map((ent) => {
+                        const anom = !!ent.anormalidade;
+                        const anomText = anom ? "SIM" : "Não";
+                        const anomClass = anom ? "text-red bold" : "text-green";
 
                         return `
                                         <tr class="entry-row" data-id="${ent.id}" title="Duplo-clique para abrir formulário">
-                                            <td>${ent.ordem}º</td>
-                                            <td>${ent.operador}</td>
-                                            <td>${ent.tipo}</td>
-                                            <td>${ent.evento || '-'}</td>
+                                            <td>${escapeHtml(ent.ordem)}º</td>
+                                            <td>${escapeHtml(ent.operador || "--")}</td>
+                                            <td>${escapeHtml(ent.tipo || "--")}</td>
+                                            <td>${escapeHtml(ent.evento || "--")}</td>
                                             <td>${fmtTime(ent.pauta)}</td>
                                             <td>${fmtTime(ent.inicio)}</td>
                                             <td>${fmtTime(ent.fim)}</td>
-                                            <td style="${anomStyle}">${anomText}</td>
+                                            <td class="${anomClass}">${anomText}</td>
                                         </tr>
                                     `;
-                    }).join('')}
+                    }).join("")}
                             </tbody>
                         </table>
                     `;
@@ -353,68 +508,73 @@
                     </td>
                 `;
 
-                // Eventos de abrir/fechar
+                // Abrir/fechar accordion (usando CSS do dashboard.css)
                 trParent.addEventListener("click", () => {
                     trParent.classList.toggle("open");
-                    if (trParent.classList.contains("open")) {
-                        trChild.classList.add("visible");
-                    } else {
-                        trChild.classList.remove("visible");
-                    }
+                    trChild.classList.toggle("visible", trParent.classList.contains("open"));
                 });
 
-                // Duplo clique nas sublinhas
+                // Duplo clique nas sublinhas: abre o form correto (sem 404)
                 const entryRows = trChild.querySelectorAll(".entry-row");
-                entryRows.forEach(row => {
-                    row.addEventListener("dblclick", () => {
+                entryRows.forEach((row) => {
+                    row.addEventListener("dblclick", (e) => {
+                        e.stopPropagation();
                         const entradaId = row.getAttribute("data-id");
-                        if (entradaId) {
-                            window.open(`/admin/form_operacao.html?entrada_id=${entradaId}`, "_blank");
-                        }
+                        if (!entradaId) return;
+
+                        window.open(
+                            `/admin/form_operacao.html?entrada_id=${encodeURIComponent(entradaId)}`,
+                            "_blank"
+                        );
                     });
                 });
 
                 tbody.appendChild(trParent);
                 tbody.appendChild(trChild);
             });
+
         } else {
             // -----------------------------------------------------
             // MODO LISTA PLANA: uma linha por entrada (sem sublinhas)
             // -----------------------------------------------------
-            data.forEach(item => {
+            data.forEach((item) => {
                 const tr = document.createElement("tr");
                 tr.className = "entry-row";
                 tr.setAttribute("title", "Duplo-clique para ver o formulário detalhado");
 
-                const anomStyle = item.anormalidade ? 'color:red; font-weight:bold;' : 'color:green;';
-                const anomText = item.anormalidade ? 'SIM' : 'Não';
+                const anom = !!item.anormalidade;
+                const anomText = anom ? "SIM" : "Não";
+                const anomClass = anom ? "text-red bold" : "text-green";
 
                 tr.innerHTML = `
-                    <td><strong>${item.sala}</strong></td>
-                    <td>${fmtDate(item.data)}</td>
-                    <td>${item.operador}</td>
-                    <td>${item.tipo}</td>
-                    <td>${item.evento || '-'}</td>
+                    <td><strong>${escapeHtml(item.sala || "--")}</strong></td>
+                    <td><strong>${fmtDate(item.data)}</strong></td>
+                    <td>${escapeHtml(item.operador || "--")}</td>
+                    <td>${escapeHtml(item.tipo || "--")}</td>
+                    <td>${escapeHtml(item.evento || "--")}</td>
                     <td>${fmtTime(item.pauta)}</td>
                     <td>${fmtTime(item.inicio)}</td>
                     <td>${fmtTime(item.fim)}</td>
-                    <td style="${anomStyle}">${anomText}</td>
+                    <td class="${anomClass}">${anomText}</td>
                 `;
 
                 tr.addEventListener("dblclick", () => {
                     const entradaId = item.id;
-                    if (entradaId) {
-                        window.open(`/admin/form_operacao.html?entrada_id=${entradaId}`, "_blank");
-                    }
+                    if (!entradaId) return;
+
+                    window.open(
+                        `/admin/form_operacao.html?entrada_id=${encodeURIComponent(entradaId)}`,
+                        "_blank"
+                    );
                 });
 
                 tbody.appendChild(tr);
             });
         }
 
-        // Paginação: agora usa meta.total que já vem certo do backend
-        renderPaginationControls("pag-operacoes", meta, (newPage) => {
-            stateOps.page = newPage;
+        // 5) Paginação
+        renderPaginationControls("pag-operacoes", meta, (p) => {
+            stateOps.page = p;
             loadOperacoes();
         });
     }
@@ -439,15 +599,42 @@
             params.set("periodo", JSON.stringify(anomState.periodo));
         }
 
+        // Filtros por coluna (estilo Excel)
+        if (window.TableFilter && typeof window.TableFilter.applyToParams === "function") {
+            window.TableFilter.applyToParams(params, anomState);
+        }
+
         const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
         const resp = await fetchJson(url);
 
+        // const tbody = document.querySelector("#tb-anormalidades tbody");
+        // if (!tbody) return;
+        // tbody.innerHTML = "";
+
+        // const data = resp.data || [];
         const tbody = document.querySelector("#tb-anormalidades tbody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
-        const data = resp.data || [];
+        if (!resp || resp.ok === false) {
+            const status = (resp && typeof resp.status === "number" && resp.status) ? resp.status : "??";
+            const msg = (resp && resp.error) ? resp.error : "Falha ao carregar anormalidades.";
+            tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Erro ao carregar anormalidades (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
+            renderPaginationControls("pag-anormalidades", null, null);
+            return;
+        }
+
+        const data = Array.isArray(resp.data) ? resp.data : [];
         const meta = resp.meta || { page: 1, pages: 1, total: 0 };
+
+        // Valores únicos (checkboxes) do filtro por coluna (sem depender da página atual)
+        if (window.TableFilter) {
+            if (meta.distinct && typeof window.TableFilter.applyDistinctMap === "function") {
+                window.TableFilter.applyDistinctMap("tb-anormalidades", meta.distinct);
+            } else if (typeof window.TableFilter.updateDistinctValues === "function") {
+                window.TableFilter.updateDistinctValues("tb-anormalidades", data);
+            }
+        }
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Nenhuma anormalidade encontrada.</td></tr>`;
@@ -550,6 +737,110 @@
                 loadOperacoes();
             }, 400));
         }
+        // 1.2. Filtros por coluna (estilo Excel) — Operações (Sessões/Entradas)
+        if (window.TableFilter && typeof window.TableFilter.init === "function") {
+            window.TableFilter.init({
+                tableId: "tb-operacoes",
+                state: stateOps,
+                getColumns: () => {
+                    // Quando o usuário alterna "Agrupar por sala", o <thead> muda.
+                    // Então devolvemos a configuração de colunas conforme o modo atual.
+                    if (stateOps.groupBySala) {
+                        return {
+                            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                            data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+                            autor: { type: "text", sortable: true, sortKey: "autor", dataKey: "autor", label: "1º Registro por" },
+                            verificacao: { type: "text", sortable: false, dataKey: "verificacao", label: "Checklist?" },
+                            em_aberto: { type: "text", sortable: true, sortKey: "em_aberto", dataKey: "em_aberto", label: "Em Aberto?" },
+                        };
+                    }
+
+                    // Modo lista plana (uma linha por entrada)
+                    return {
+                        sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                        data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+                        operador: { type: "text", sortable: true, sortKey: "operador", dataKey: "operador", label: "Operador" },
+                        tipo: { type: "text", sortable: false, dataKey: "tipo", label: "Tipo" },
+                        evento: { type: "text", sortable: false, dataKey: "evento", label: "Evento" },
+                        pauta: {
+                            type: "text",
+                            sortable: false,
+                            dataKey: "pauta",
+                            label: "Pauta",
+                            toValue: (v) => (v ? String(v).substring(0, 5) : ""),
+                            toLabel: (v) => (v ? String(v).substring(0, 5) : ""),
+                        },
+                        inicio: {
+                            type: "text",
+                            sortable: false,
+                            dataKey: "inicio",
+                            label: "Início",
+                            toValue: (v) => (v ? String(v).substring(0, 5) : ""),
+                            toLabel: (v) => (v ? String(v).substring(0, 5) : ""),
+                        },
+                        fim: {
+                            type: "text",
+                            sortable: false,
+                            dataKey: "fim",
+                            label: "Fim",
+                            toValue: (v) => (v ? String(v).substring(0, 5) : ""),
+                            toLabel: (v) => (v ? String(v).substring(0, 5) : ""),
+                        },
+                        anormalidade: { type: "bool", sortable: false, dataKey: "anormalidade", label: "Anormalidade?" },
+                    };
+                },
+                onChange: loadOperacoes,
+                debounceMs: 250,
+            });
+        }
+        // 1.2. Filtros por coluna (Operações) — estilo Excel (tb-operacoes)
+        // if (window.TableFilter && typeof window.TableFilter.init === "function") {
+        //     window.TableFilter.init({
+        //         tableId: "tb-operacoes",
+        //         state: stateOps,
+        //         getColumns: getOperacoesColumns,
+        //         onChange: loadOperacoes,
+        //         debounceMs: 250,
+        //     });
+        // }
+
+        // 1.2. Filtros por coluna (estilo Excel) - tb-operacoes
+        if (window.TableFilter && typeof window.TableFilter.init === "function") {
+            if (typeof window.TableFilter.destroy === "function") {
+                window.TableFilter.destroy("tb-operacoes");
+            }
+
+            window.TableFilter.init({
+                tableId: "tb-operacoes",
+                state: stateOps,
+                getColumns: () => {
+                    if (stateOps.groupBySala) {
+                        return {
+                            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                            data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+                            autor: { type: "text", sortable: true, sortKey: "autor", dataKey: "autor", label: "1º Registro por" },
+                            verificacao: { type: "text", sortable: false, dataKey: "verificacao", label: "Checklist?" },
+                            em_aberto: { type: "text", sortable: true, sortKey: "em_aberto", dataKey: "em_aberto", label: "Em Aberto?" },
+                        };
+                    }
+
+                    // modo lista plana (uma linha por entrada)
+                    return {
+                        sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                        data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+                        operador: { type: "text", sortable: false, dataKey: "operador", label: "Operador" },
+                        tipo: { type: "text", sortable: false, dataKey: "tipo", label: "Tipo" },
+                        evento: { type: "text", sortable: false, dataKey: "evento", label: "Evento" },
+                        pauta: { filterable: false, label: "Pauta" },
+                        inicio: { filterable: false, label: "Início" },
+                        fim: { filterable: false, label: "Fim" },
+                        anormalidade: { type: "bool", sortable: false, dataKey: "anormalidade", label: "Anormalidade?" },
+                    };
+                },
+                onChange: loadOperacoes,
+                debounceMs: 250,
+            });
+        }
 
         // 1.1. Filtro por Período (Operações) + checkbox "Agrupar por sala"
         const toolbarOps = searchOps ? searchOps.closest(".toolbar") : null;
@@ -563,6 +854,7 @@
                     loadOperacoes();
                 }
             });
+
 
             // Depois de criar o filtro de período, pegamos a linha do "Filtrar por data"
             const sectionHeader = toolbarOps.closest(".section-header");
@@ -617,7 +909,27 @@
         }
         bindSortHeaders("tb-anormalidades", anomState, loadAnormalidades);
 
-        // 2.1. Filtro por Período (Anormalidades)
+        // 2.1. Filtros por coluna (estilo Excel)
+        if (window.TableFilter && typeof window.TableFilter.init === "function") {
+            window.TableFilter.init({
+                tableId: "tb-anormalidades",
+                state: anomState,
+                columns: {
+                    data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
+                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                    registrado_por: { type: "text", sortable: true, sortKey: "registrado_por", dataKey: "registrado_por", label: "Registrado por" },
+                    descricao: { type: "text", sortable: true, sortKey: "descricao", dataKey: "descricao", label: "Descrição" },
+                    solucionada: { type: "bool", sortable: true, sortKey: "solucionada", dataKey: "solucionada", label: "Solucionada" },
+                    houve_prejuizo: { type: "bool", sortable: false, dataKey: "houve_prejuizo", label: "Prejuízo" },
+                    houve_reclamacao: { type: "bool", sortable: false, dataKey: "houve_reclamacao", label: "Reclamação" },
+                    acao: { filterable: false, label: "Ação" },
+                },
+                onChange: loadAnormalidades,
+                debounceMs: 250,
+            });
+        }
+
+        // 2.2. Filtro por Período (Anormalidades)
         const toolbarAnom = searchAnom ? searchAnom.closest(".toolbar") : null;
         if (toolbarAnom && window.PeriodoFilter && typeof window.PeriodoFilter.createPeriodoUI === "function") {
             window.PeriodoFilter.createPeriodoUI({
