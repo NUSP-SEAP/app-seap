@@ -22,9 +22,13 @@ const AppConfig = {
         // --- NOVOS ENDPOINTS DO DASHBOARD ---
         adminDashboard: {
             operadores: "/webhook/admin/dashboard/operadores",
+            operadoresRelatorio: "/webhook/admin/dashboard/operadores/relatorio",
             checklists: "/webhook/admin/dashboard/checklists",
+            checklistsRelatorio: "/webhook/admin/dashboard/checklists/relatorio",
             operacoes: "/webhook/admin/dashboard/operacoes",
+            operacoesRelatorio: "/webhook/admin/dashboard/operacoes/relatorio",
             operacoesEntradas: "/webhook/admin/dashboard/operacoes/entradas",
+            operacoesEntradasRelatorio: "/webhook/admin/dashboard/operacoes/entradas/relatorio",
             detalheOperacao: "/webhook/admin/operacao/detalhe",
             detalheChecklist: "/webhook/admin/checklist/detalhe",
 
@@ -32,10 +36,12 @@ const AppConfig = {
             anormalidades: {
                 salas: "/webhook/admin/dashboard/anormalidades/salas",
                 lista: "/webhook/admin/dashboard/anormalidades/lista",
+                relatorio: "/webhook/admin/dashboard/anormalidades/lista/relatorio",
                 detalhe: "/webhook/admin/anormalidade/detalhe",
                 observacaoSupervisor: "/webhook/admin/anormalidade/observacao-supervisor",
                 observacaoChefe: "/webhook/admin/anormalidade/observacao-chefe"
-            }
+            },
+            formOperacao: "/webhook/admin/form-operacao",
         },
 
         // Endpoints da tela "Edição de Formulários"

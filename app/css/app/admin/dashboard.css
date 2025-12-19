@@ -253,15 +253,25 @@ table.sub-table tr:hover {
 /* --- Paginação --- */
 .pagination-controls {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     padding: 12px 0;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
-.pagination-info {
-    font-size: 0.9rem;
-    color: #64748b;
+.pagination-controls .pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-controls .pagination-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 /* Container dos controles (<< < [input] Ir > >>) */
@@ -565,4 +575,58 @@ table.sub-table tr:hover {
     font-weight: 600;
     color: #475569;
     margin-bottom: 4px;
+}
+
+/* =====================================================================
+   Dropdown de extensão do relatório (.pdf/.docx)
+   - visual idêntico ao botão .btn-page
+   ===================================================================== */
+
+.report-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.report-format-select {
+    /* Mesma "cara" do .btn-page */
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    background-color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #334155;
+
+    /* Garantir altura consistente */
+    box-sizing: border-box;
+    line-height: 1.2;
+
+    /* Remove estilo nativo do select pra bater com o botão */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    /* Seta do dropdown (opcional, mas ajuda a ficar “com cara de select”) */
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23334155' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 6px;
+
+    /* Se o select herdar estilos de input, força alinhamento de texto */
+    text-align: left;
+}
+
+/* Se em alguma tela o select estiver como "page-input report-format-select",
+   isso remove o width/text-align do input e mantém o estilo de select */
+.page-input.report-format-select {
+    width: auto;
+    text-align: left;
+}
+
+.report-format-select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }

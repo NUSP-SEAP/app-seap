@@ -15,6 +15,7 @@
     <script src="/js/session-autoload.js" defer></script>
     <script src="/js/app/admin/periodo_filter.js" defer></script>
     <script src="/js/app/admin/table_filters.js" defer></script>
+    <script src="/js/app/admin/report_pdf.js" defer></script>
     <script src="/js/app/admin/operacoes_audio.js" defer></script>
 </head>
 
@@ -22,14 +23,14 @@
     <main>
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
             <a href="/admin/index.html" class="btn-xs">← Voltar</a>
-            <h1 style="margin: 0;">Gestão de Operações de Áudio</h1>
+            <h1 style="margin: 0;">Tabelas de Operações de Áudio</h1>
         </div>
 
         <div class="section-header">
-            <h2>Registros de Operação (Sessões)</h2>
+            <h2>Registros de Operação</h2>
             <div class="toolbar">
                 <input type="text" id="search-operacoes" class="search-input"
-                    placeholder="Buscar por sala, operador ou data...">
+                    placeholder="Buscar por sala, operador, data, ...">
             </div>
         </div>
         <div class="table-container">
@@ -56,7 +57,8 @@
         <div class="section-header">
             <h2>Relatórios de Anormalidades</h2>
             <div class="toolbar">
-                <input type="text" id="search-anormalidades" class="search-input" placeholder="Buscar anormalidade">
+                <input type="text" id="search-anormalidades" class="search-input"
+                    placeholder="Buscar por data, sala, operador, ...">
             </div>
         </div>
         <div class="table-container">

@@ -11,6 +11,7 @@
         periodo: null,     // filtro de período para sessões de operação
         groupBySala: true, // controla se a tabela está agrupada por sala (default = true)
         filters: {},       // NOVO: filtros por coluna (TableFilter)
+        reportFormat: "", // extensão selecionada: "pdf" | "docx" | ""
     };
 
     // --- Novo Estado da Tabela de Anormalidades (Master-Detail) ---
@@ -22,6 +23,7 @@
         dir: "desc",      // Direção padrão
         periodo: null,    // filtro de período para anormalidades
         filters: {},      // NOVO: filtros por coluna (TableFilter)
+        reportFormat: "", // extensão selecionada: "pdf" | "docx" | ""
     };
 
     // --- Colunas do filtro (tb-operacoes) dependem do modo (agrupado x lista plana) ---
@@ -81,126 +83,178 @@
             .replace(/'/g, "&#039;");
     }
     // --- Helper de Paginação ---
-    function renderPaginationControls(containerId, meta, onPageChange) {
+    function renderPaginationControls(containerId, meta, onPageChange, options) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        // Quando não há registros ou não faz sentido paginar
-        if (!meta || !meta.total || typeof onPageChange !== "function") {
+        const opts = options || {};
+        const reportCfg = opts.report || null;
+        const hasReport = !!(reportCfg && typeof reportCfg.onClick === "function");
+
+        const canPaginate = !!(meta && meta.total && typeof onPageChange === "function");
+        const current = (meta && meta.page) ? meta.page : 1;
+        const totalPages = (meta && meta.pages) ? meta.pages : 1;
+        const totalRecords = (meta && meta.total) ? meta.total : 0;
+
+        // Se não há relatório e não há paginação, mantém o comportamento antigo (não ocupar espaço)
+        if (!hasReport && !canPaginate) {
             container.innerHTML = "";
             return;
         }
 
-        const current = meta.page || 1;
-        const totalPages = meta.pages || 1;
-        const totalRecords = meta.total || 0;
-
-        const isFirstPage = current <= 1;
-        const isLastPage = current >= totalPages;
-
-        container.innerHTML = `
-            <span class="pagination-info">
-                Página <strong>${current}</strong> de <strong>${totalPages}</strong> (Total: ${totalRecords})
-            </span>
-            <div class="pagination-nav">
-                <button class="btn-page" id="first-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;&lt;</button>
-                <button class="btn-page" id="prev-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;</button>
-
-                <input
-                    type="number"
-                    id="page-input-${containerId}"
-                    class="page-input"
-                    min="1"
-                    max="${totalPages}"
-                    value="${current}"
-                />
-
-                <button class="btn-page" id="go-${containerId}">Ir</button>
-
-                <button class="btn-page" id="next-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;</button>
-                <button class="btn-page" id="last-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;&gt;</button>
-            </div>
-        `;
-
-        const input = document.getElementById(`page-input-${containerId}`);
-        const btnFirst = document.getElementById(`first-${containerId}`);
-        const btnPrev = document.getElementById(`prev-${containerId}`);
-        const btnGo = document.getElementById(`go-${containerId}`);
-        const btnNext = document.getElementById(`next-${containerId}`);
-        const btnLast = document.getElementById(`last-${containerId}`);
-
-        const goToPage = (page) => {
-            let target = parseInt(page, 10);
-            if (isNaN(target)) return;
-
-            if (target < 1) target = 1;
-            if (target > totalPages) target = totalPages;
-
-            if (target === current) return;
-
-            onPageChange(target);
+        // Normaliza valor salvo (aceita "pdf", ".pdf", "docx", ".docx")
+        const normalize = (v) => {
+            let f = String(v || "").trim().toLowerCase();
+            if (f.startsWith(".")) f = f.slice(1);
+            return (f === "pdf" || f === "docx") ? f : "";
         };
 
-        if (btnFirst) {
-            btnFirst.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(1);
-            };
+        // LEFT: relatório (dropdown + botão)
+        let leftHtml = "";
+        if (hasReport) {
+            const stateObj = reportCfg.state || null;
+            const formatKey = reportCfg.formatKey || "";
+            const currentFmt = (stateObj && formatKey) ? normalize(stateObj[formatKey]) : "";
+            const btnDisabled = !currentFmt;
+
+            leftHtml = `
+                <div class="report-controls" style="display:flex; gap:8px; align-items:center;">
+                    <select
+                        id="report-format-${containerId}"
+                        class="page-input report-format-select"
+                        style="min-width: 210px;"
+                        aria-label="Selecione a extensão do relatório"
+                    >
+                        <option value="" ${currentFmt ? "" : "selected"}>Selecione a extensão...</option>
+                        <option value="pdf" ${currentFmt === "pdf" ? "selected" : ""}>.pdf</option>
+                        <option value="docx" ${currentFmt === "docx" ? "selected" : ""}>.docx</option>
+                    </select>
+
+                    <button
+                        type="button"
+                        class="btn-page btn-report"
+                        id="report-btn-${containerId}"
+                        ${btnDisabled ? "disabled" : ""}
+                    >
+                        ${escapeHtml(reportCfg.label || "Gerar Relatório")}
+                    </button>
+                </div>
+            `;
         }
 
-        if (btnPrev) {
-            btnPrev.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(current - 1);
-            };
+        // RIGHT: paginação (igual ao comportamento atual)
+        let rightHtml = "";
+        if (canPaginate) {
+            const isFirstPage = current <= 1;
+            const isLastPage = current >= totalPages;
+
+            rightHtml = `
+                <span class="pagination-info">
+                    Página <strong>${current}</strong> de <strong>${totalPages}</strong> (Total: ${totalRecords})
+                </span>
+                <div class="pagination-nav">
+                    <button class="btn-page" id="first-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;&lt;</button>
+                    <button class="btn-page" id="prev-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;</button>
+
+                    <input
+                        type="number"
+                        id="page-input-${containerId}"
+                        class="page-input"
+                        min="1"
+                        max="${totalPages}"
+                        value="${current}"
+                    />
+
+                    <button class="btn-page" id="go-${containerId}">Ir</button>
+
+                    <button class="btn-page" id="next-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;</button>
+                    <button class="btn-page" id="last-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;&gt;</button>
+                </div>
+            `;
         }
 
-        if (btnNext) {
-            btnNext.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(current + 1);
-            };
-        }
+        container.innerHTML = `
+            <div class="pagination-left">${leftHtml}</div>
+            <div class="pagination-right">${rightHtml}</div>
+        `;
 
-        if (btnLast) {
-            btnLast.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(totalPages);
-            };
-        }
+        // Bind do relatório (dropdown + botão)
+        if (hasReport) {
+            const btnReport = container.querySelector(`#report-btn-${containerId}`);
+            const sel = container.querySelector(`#report-format-${containerId}`);
 
-        if (btnGo && input) {
-            btnGo.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(input.value);
+            const stateObj = reportCfg.state || null;
+            const formatKey = reportCfg.formatKey || "";
+
+            const syncButton = () => {
+                if (!btnReport) return;
+                btnReport.disabled = !(sel && sel.value);
             };
 
-            input.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
+            if (sel && stateObj && formatKey) {
+                // garante que o state armazene sem ponto e sincroniza com o select
+                const normalized = normalize(stateObj[formatKey]);
+                if (normalized !== stateObj[formatKey]) stateObj[formatKey] = normalized;
+                sel.value = normalized || "";
+            }
+
+            syncButton();
+
+            if (sel) {
+                sel.addEventListener("change", (e) => {
+                    const v = normalize(e.target.value);
+                    if (stateObj && formatKey) stateObj[formatKey] = v; // "pdf" | "docx" | ""
+                    sel.value = v; // garante normalização visual
+                    syncButton();
+                });
+            }
+
+            if (btnReport) {
+                btnReport.onclick = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    goToPage(input.value);
-                }
-            });
+                    try { reportCfg.onClick(); } catch (err) { console.error(err); }
+                };
+            }
+        }
+
+        // Bind da paginação (mantém o comportamento antigo)
+        if (canPaginate) {
+            const input = document.getElementById(`page-input-${containerId}`);
+            const btnFirst = document.getElementById(`first-${containerId}`);
+            const btnPrev = document.getElementById(`prev-${containerId}`);
+            const btnGo = document.getElementById(`go-${containerId}`);
+            const btnNext = document.getElementById(`next-${containerId}`);
+            const btnLast = document.getElementById(`last-${containerId}`);
+
+            const goToPage = (page) => {
+                let target = parseInt(page, 10);
+                if (isNaN(target)) return;
+                if (target < 1) target = 1;
+                if (target > totalPages) target = totalPages;
+                if (target === current) return;
+                onPageChange(target);
+            };
+
+            if (btnFirst) btnFirst.onclick = (e) => { e.stopPropagation(); goToPage(1); };
+            if (btnPrev) btnPrev.onclick = (e) => { e.stopPropagation(); goToPage(current - 1); };
+            if (btnNext) btnNext.onclick = (e) => { e.stopPropagation(); goToPage(current + 1); };
+            if (btnLast) btnLast.onclick = (e) => { e.stopPropagation(); goToPage(totalPages); };
+
+            if (btnGo && input) {
+                btnGo.onclick = (e) => { e.stopPropagation(); goToPage(input.value); };
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        goToPage(input.value);
+                    }
+                });
+            }
         }
     }
 
     // --- Fetch Autenticado ---
-    // async function fetchJson(url) {
-    //     if (!window.Auth || typeof Auth.authFetch !== 'function') {
-    //         console.error("Auth não carregado");
-    //         return null;
-    //     }
-    //     try {
-    //         const resp = await Auth.authFetch(url);
-    //         if (!resp.ok) throw new Error("HTTP " + resp.status);
-    //         return await resp.json();
-    //     } catch (e) {
-    //         console.error(e);
-    //         return { ok: false, data: [] };
-    //     }
-    // }
-
     async function fetchJson(url) {
         const fallbackMeta = { page: 1, pages: 1, total: 0 };
 
@@ -275,6 +329,248 @@
         });
     }
 
+    // =========================================================
+    // --- Relatórios (PDF/DOCX) ---
+    // =========================================================
+
+    const REPORT_MIME = {
+        pdf: "application/pdf",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+
+    function normalizeReportFormat(fmt) {
+        let f = String(fmt || "").trim().toLowerCase();
+        if (f.startsWith(".")) f = f.slice(1);
+        if (f === "pdf" || f === "docx") return f;
+        return "";
+    }
+
+    function getAcceptHeaderForFormat(fmt) {
+        return REPORT_MIME[fmt] || "*/*";
+    }
+
+    function extractFilenameFromContentDisposition(cd) {
+        if (!cd) return "";
+        const m = String(cd).match(/filename\*?=(?:UTF-8''|")?([^";\n]+)"?/i);
+        if (!m) return "";
+        try { return decodeURIComponent(m[1]); } catch (_) { return m[1]; }
+    }
+
+    async function openReportInNewTabWithAuth(url, title, format, filenameBase) {
+        if (!window.Auth || typeof Auth.authFetch !== "function") {
+            alert("Auth não carregado (Auth.authFetch indisponível).");
+            return;
+        }
+
+        const fmt = normalizeReportFormat(format) || "pdf";
+
+        const tab = window.open("about:blank", "_blank");
+        if (!tab) {
+            alert("Não foi possível abrir uma nova guia. Verifique o bloqueador de pop-ups.");
+            return;
+        }
+
+        try { tab.opener = null; } catch (_) { }
+
+        tab.document.title = title || "Relatório";
+        tab.document.body.innerHTML = `
+            <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+                <h2 style="margin: 0 0 8px 0;">Gerando relatório...</h2>
+                <p style="margin: 0; color: #64748b;">Aguarde alguns segundos.</p>
+            </div>
+        `;
+
+        try {
+            const resp = await Auth.authFetch(url, {
+                method: "GET",
+                headers: { "Accept": getAcceptHeaderForFormat(fmt) },
+            });
+
+            if (!resp.ok) {
+                const text = await resp.text().catch(() => "");
+                tab.document.body.innerHTML = `
+                    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+                        <h2 style="margin: 0 0 8px 0;">Falha ao gerar relatório</h2>
+                        <p style="margin: 0; color: #64748b;">HTTP ${resp.status}</p>
+                        <pre style="white-space: pre-wrap; margin-top: 12px;">${escapeHtml(text || "")}</pre>
+                    </div>
+                `;
+                return;
+            }
+
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const cd = resp.headers ? resp.headers.get("content-disposition") : "";
+            const fromHeader = extractFilenameFromContentDisposition(cd);
+
+            const safeBase = (filenameBase && String(filenameBase).trim()) ? String(filenameBase).trim() : "relatorio";
+            const downloadName = fromHeader || `${safeBase}.${fmt}`;
+
+            if (fmt === "pdf") {
+                tab.location.href = blobUrl;
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
+                return;
+            }
+
+            // DOCX: mostra link e tenta iniciar download automaticamente
+            tab.document.title = title || "Relatório";
+            tab.document.body.innerHTML = `
+                <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+                    <h2 style="margin: 0 0 8px 0;">Relatório DOCX pronto</h2>
+                    <p style="margin: 0 0 12px 0; color: #64748b;">
+                        Se o download não iniciar automaticamente, clique no link abaixo:
+                    </p>
+                    <a id="download-link"
+                       style="display:inline-block; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; text-decoration:none;">
+                        Baixar
+                    </a>
+                </div>
+            `;
+
+            const a = tab.document.getElementById("download-link");
+            if (a) {
+                a.href = blobUrl;
+                a.download = downloadName;
+                a.textContent = `Baixar ${downloadName}`;
+                try { a.click(); } catch (_) { }
+            }
+
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 2 * 60 * 1000);
+
+        } catch (err) {
+            console.error(err);
+            tab.document.body.innerHTML = `
+                <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+                    <h2 style="margin: 0 0 8px 0;">Erro inesperado</h2>
+                    <pre style="white-space: pre-wrap; margin-top: 12px;">${escapeHtml(err?.message || String(err))}</pre>
+                </div>
+            `;
+        }
+    }
+
+    // Compatibilidade (caso algo ainda use o nome antigo internamente)
+    async function openPdfInNewTabWithAuth(url, title) {
+        return openReportInNewTabWithAuth(url, title, "pdf", "relatorio");
+    }
+
+    function buildReportParamsFromState(state) {
+        const params = new URLSearchParams({
+            page: "1",
+            limit: "10",
+            search: state.search || "",
+            sort: state.sort || "",
+            dir: state.dir || "",
+        });
+
+        if (state.periodo) {
+            params.set("periodo", JSON.stringify(state.periodo));
+        }
+
+        if (window.TableFilter && typeof window.TableFilter.applyToParams === "function") {
+            window.TableFilter.applyToParams(params, state);
+        }
+
+        return params;
+    }
+
+    function gerarRelatorioAnormalidades() {
+        const endpoint =
+            (AppConfig.endpoints.adminDashboard
+                && AppConfig.endpoints.adminDashboard.anormalidades
+                && AppConfig.endpoints.adminDashboard.anormalidades.relatorio)
+            || "/webhook/admin/dashboard/anormalidades/lista/relatorio";
+
+        const fmt = normalizeReportFormat(anomState.reportFormat);
+        if (!fmt) {
+            alert("Selecione a extensão do relatório (.pdf ou .docx).");
+            return;
+        }
+
+        const params = buildReportParamsFromState(anomState);
+        params.set("format", fmt);
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+        openReportInNewTabWithAuth(url, "Relatório - Anormalidades", fmt, "relatorio_anormalidades");
+    }
+
+    function gerarRelatorioOperacoes() {
+        const endpoint = stateOps.groupBySala
+            ? ((AppConfig.endpoints.adminDashboard && AppConfig.endpoints.adminDashboard.operacoesRelatorio)
+                || "/webhook/admin/dashboard/operacoes/relatorio")
+            : ((AppConfig.endpoints.adminDashboard && AppConfig.endpoints.adminDashboard.operacoesEntradasRelatorio)
+                || "/webhook/admin/dashboard/operacoes/entradas/relatorio");
+
+        const fmt = normalizeReportFormat(stateOps.reportFormat);
+        if (!fmt) {
+            alert("Selecione a extensão do relatório (.pdf ou .docx).");
+            return;
+        }
+
+        const params = buildReportParamsFromState(stateOps);
+        params.set("format", fmt);
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+
+        const titulo = stateOps.groupBySala
+            ? "Relatório - Registros de Operação (Agrupado)"
+            : "Relatório - Registros de Operação (Lista)";
+
+        const filenameBase = stateOps.groupBySala
+            ? "relatorio_operacoes_sessoes"
+            : "relatorio_operacoes_entradas";
+
+        openReportInNewTabWithAuth(url, titulo, fmt, filenameBase);
+    }
+
+    function gerarRelatorioAnormalidades() {
+        const endpoint =
+            (AppConfig.endpoints.adminDashboard
+                && AppConfig.endpoints.adminDashboard.anormalidades
+                && AppConfig.endpoints.adminDashboard.anormalidades.relatorio)
+            || "/webhook/admin/dashboard/anormalidades/lista/relatorio";
+
+        const fmt = normalizeReportFormat(anomState.reportFormat);
+        if (!fmt) {
+            alert("Selecione a extensão do relatório (.pdf ou .docx).");
+            return;
+        }
+
+        const params = buildReportParamsFromState(anomState);
+        params.set("format", fmt);
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+        openReportInNewTabWithAuth(url, "Relatório - Anormalidades", fmt, "relatorio_anormalidades");
+    }
+
+    function gerarRelatorioOperacoes() {
+        const endpoint = stateOps.groupBySala
+            ? ((AppConfig.endpoints.adminDashboard && AppConfig.endpoints.adminDashboard.operacoesRelatorio)
+                || "/webhook/admin/dashboard/operacoes/relatorio")
+            : ((AppConfig.endpoints.adminDashboard && AppConfig.endpoints.adminDashboard.operacoesEntradasRelatorio)
+                || "/webhook/admin/dashboard/operacoes/entradas/relatorio");
+
+        const fmt = normalizeReportFormat(stateOps.reportFormat);
+        if (!fmt) {
+            alert("Selecione a extensão do relatório (.pdf ou .docx).");
+            return;
+        }
+
+        const params = buildReportParamsFromState(stateOps);
+        params.set("format", fmt);
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+
+        const titulo = stateOps.groupBySala
+            ? "Relatório - Registros de Operação (Agrupado)"
+            : "Relatório - Registros de Operação (Lista)";
+
+        const filenameBase = stateOps.groupBySala
+            ? "relatorio_operacoes_sessoes"
+            : "relatorio_operacoes_entradas";
+
+        openReportInNewTabWithAuth(url, titulo, fmt, filenameBase);
+    }
 
     // =================================================================
     // --- LÓGICA DA TABELA DE OPERAÇÕES (SESSÕES) ---
@@ -365,7 +661,9 @@
             const msg = (resp && resp.error) ? resp.error : "Falha ao carregar operações.";
             const colspan = stateOps.groupBySala ? 6 : 9;
             tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Erro ao carregar operações (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
-            renderPaginationControls("pag-operacoes", null, null);
+            renderPaginationControls("pag-operacoes", null, null, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioOperacoes, state: stateOps, formatKey: "reportFormat" }
+            });
             return;
         }
 
@@ -416,7 +714,9 @@
         if (data.length === 0) {
             const colspan = stateOps.groupBySala ? 6 : 9;
             tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhuma operação encontrada.</td></tr>`;
-            renderPaginationControls("pag-operacoes", null, null);
+            renderPaginationControls("pag-operacoes", null, null, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioOperacoes, state: stateOps, formatKey: "reportFormat" }
+            });
             return;
         }
 
@@ -576,6 +876,8 @@
         renderPaginationControls("pag-operacoes", meta, (p) => {
             stateOps.page = p;
             loadOperacoes();
+        }, {
+            report: { label: "Gerar Relatório", onClick: gerarRelatorioOperacoes, state: stateOps, formatKey: "reportFormat" }
         });
     }
 
@@ -620,7 +922,9 @@
             const status = (resp && typeof resp.status === "number" && resp.status) ? resp.status : "??";
             const msg = (resp && resp.error) ? resp.error : "Falha ao carregar anormalidades.";
             tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Erro ao carregar anormalidades (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
-            renderPaginationControls("pag-anormalidades", null, null);
+            renderPaginationControls("pag-anormalidades", null, null, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioAnormalidades, state: anomState, formatKey: "reportFormat" }
+            });
             return;
         }
 
@@ -639,7 +943,12 @@
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Nenhuma anormalidade encontrada.</td></tr>`;
             // Se tiver div externa de paginação, reseta ela aqui
-            renderPaginationControls("pag-anormalidades", null, null);
+            renderPaginationControls("pag-anormalidades", meta, (p) => {
+                anomState.page = p;
+                loadAnormalidades();
+            }, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioAnormalidades, state: anomState, formatKey: "reportFormat" }
+            });
             return;
         }
 
@@ -693,9 +1002,11 @@
             document.querySelector("#tb-anormalidades").parentNode.after(pagContainer);
         }
 
-        renderPaginationControls("pag-anormalidades", meta, (newPage) => {
-            anomState.page = newPage;
+        renderPaginationControls("pag-anormalidades", meta, (p) => {
+            anomState.page = p;
             loadAnormalidades();
+        }, {
+            report: { label: "Gerar Relatório", onClick: gerarRelatorioAnormalidades, state: anomState, formatKey: "reportFormat" }
         });
     }
 

@@ -9,6 +9,7 @@
         sort: "nome", // Padrão definido no backend
         dir: "asc",
         filters: {},  // NOVO (TableFilter)
+        reportFormat: "", // NOVO (Relatórios: "pdf" | "docx")
     };
 
     const stateChk = {
@@ -19,6 +20,7 @@
         dir: "desc",
         periodo: null, // ← aqui vamos guardar o JSON { ranges: [...] }
         filters: {},   // NOVO (TableFilter)
+        reportFormat: "", // NOVO (Relatórios: "pdf" | "docx")
     };
 
     // --- Helpers Genéricos ---
@@ -55,48 +57,172 @@
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
+    // --- Helpers de Relatório (PDF/DOCX) ---
+    function normalizeReportFormat(fmt) {
+        const v = String(fmt ?? "").trim().toLowerCase();
+        if (v === "pdf" || v === ".pdf") return "pdf";
+        if (v === "docx" || v === ".docx") return "docx";
+        return "";
+    }
+
+    function reportMimeType(fmt) {
+        const f = normalizeReportFormat(fmt);
+        return (f === "docx")
+            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            : "application/pdf";
+    }
+
+    function extractFilenameFromContentDisposition(cd) {
+        if (!cd) return null;
+
+        // filename*=UTF-8''...  (RFC 5987)
+        let m = cd.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+        if (m && m[1]) {
+            const raw = m[1].replace(/["']/g, "").trim();
+            try { return decodeURIComponent(raw); } catch (_) { return raw; }
+        }
+
+        // filename="..."
+        m = cd.match(/filename\s*=\s*"([^"]+)"/i);
+        if (m && m[1]) return m[1].trim();
+
+        // filename=...
+        m = cd.match(/filename\s*=\s*([^;]+)/i);
+        if (m && m[1]) return m[1].replace(/["']/g, "").trim();
+
+        return null;
+    }
 
     // --- Renderização de Paginação ---
-    function renderPaginationControls(containerId, meta, onPageChange) {
+    function renderPaginationControls(containerId, meta, onPageChange, options) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        // Sem meta ou sem total → limpa a área de paginação
-        if (!meta || !meta.total || typeof onPageChange !== "function") {
+        const opts = options || {};
+        const report = opts.report || null;
+        const hasReport = !!(report && typeof report.onClick === "function");
+
+        // Quando não há registros / erro: mantém o relatório visível se estiver configurado
+        const canPaginate = !!(meta && meta.total && typeof onPageChange === "function");
+        if (!canPaginate && !hasReport) {
             container.innerHTML = "";
             return;
         }
 
-        const current = meta.page || 1;
-        const totalPages = meta.pages || 1;
-        const totalRecords = meta.total || 0;
+        const current = (meta && meta.page) ? meta.page : 1;
+        const totalPages = (meta && meta.pages) ? meta.pages : 1;
+        const totalRecords = (meta && meta.total) ? meta.total : 0;
 
         const isFirstPage = current <= 1;
         const isLastPage = current >= totalPages;
 
+        // --- Área da esquerda: dropdown + botão de relatório (quando aplicável) ---
+        let leftHtml = "";
+        if (hasReport) {
+            const reportState = report.state || null;
+            const formatKey = report.formatKey || null;
+
+            // Se state/formatKey não foram passados, mantém o comportamento antigo (apenas botão)
+            if (!reportState || !formatKey) {
+                leftHtml = `<button type="button" class="btn-page btn-report">${escapeHtml(report.label || "Gerar Relatório")}</button>`;
+            } else {
+                const selectedFmt = normalizeReportFormat(reportState[formatKey]);
+                const disabled = !selectedFmt;
+
+                leftHtml = `
+                <div class="report-controls">
+                    <select
+                        id="report-format-${containerId}"
+                        class="report-format-select"
+                        style="min-width: 170px;"
+                    >
+                        <option value="" ${selectedFmt ? "" : "selected"}>Selecione a extensão...</option>
+                        <option value="pdf" ${selectedFmt === "pdf" ? "selected" : ""}>.pdf</option>
+                        <option value="docx" ${selectedFmt === "docx" ? "selected" : ""}>.docx</option>
+                    </select>
+
+                    <button
+                        type="button"
+                        class="btn-page btn-report"
+                        ${disabled ? "disabled" : ""}
+                    >${escapeHtml(report.label || "Gerar Relatório")}</button>
+                </div>
+            `;
+            }
+        }
+
+        // --- Área da direita: paginação ---
+        const rightHtml = canPaginate
+            ? `
+        <span class="pagination-info">
+            Página <strong>${current}</strong> de <strong>${totalPages}</strong> (Total: ${totalRecords})
+        </span>
+        <div class="pagination-nav">
+            <button class="btn-page" id="first-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;&lt;</button>
+            <button class="btn-page" id="prev-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;</button>
+
+            <input
+                type="number"
+                id="page-input-${containerId}"
+                class="page-input"
+                min="1"
+                max="${totalPages}"
+                value="${current}"
+            />
+
+            <button class="btn-page" id="go-${containerId}">Ir</button>
+
+            <button class="btn-page" id="next-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;</button>
+            <button class="btn-page" id="last-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;&gt;</button>
+        </div>
+    `
+            : "";
+
         container.innerHTML = `
-            <span class="pagination-info">
-                Página <strong>${current}</strong> de <strong>${totalPages}</strong> (Total: ${totalRecords})
-            </span>
-            <div class="pagination-nav">
-                <button class="btn-page" id="first-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;&lt;</button>
-                <button class="btn-page" id="prev-${containerId}" ${isFirstPage ? "disabled" : ""}>&lt;</button>
+    <div class="pagination-left">${leftHtml}</div>
+    <div class="pagination-right">${rightHtml}</div>
+`;
 
-                <input
-                    type="number"
-                    id="page-input-${containerId}"
-                    class="page-input"
-                    min="1"
-                    max="${totalPages}"
-                    value="${current}"
-                />
+        // --- Bind do botão de relatório ---
+        if (hasReport) {
+            const btnReport = container.querySelector(".btn-report");
+            if (btnReport && !btnReport.dataset.bound) {
+                btnReport.dataset.bound = "1";
+                btnReport.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        const r = report.onClick();
 
-                <button class="btn-page" id="go-${containerId}">Ir</button>
+                        // Se onClick retornar Promise (caso do ReportPDF.openFromEndpoint), captura rejeição
+                        if (r && typeof r.then === "function") {
+                            r.catch((err) => {
+                                console.error("Erro ao gerar relatório (async):", err);
+                                alert("Erro ao gerar relatório. Veja o console.");
+                            });
+                        }
+                    } catch (err) {
+                        console.error("Erro ao gerar relatório:", err);
+                        alert("Erro ao gerar relatório. Veja o console.");
+                    }
+                });
+            }
 
-                <button class="btn-page" id="next-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;</button>
-                <button class="btn-page" id="last-${containerId}" ${isLastPage ? "disabled" : ""}>&gt;&gt;</button>
-            </div>
-        `;
+            // Bind do dropdown (se existir)
+            const reportState = report.state || null;
+            const formatKey = report.formatKey || null;
+            const sel = document.getElementById(`report-format-${containerId}`);
+            if (sel && reportState && formatKey && btnReport) {
+                sel.addEventListener("change", (e) => {
+                    const fmt = normalizeReportFormat(e.target.value);
+                    reportState[formatKey] = fmt;
+                    btnReport.disabled = !fmt;
+                });
+            }
+        }
+
+        // --- Bind da paginação (mantém seu comportamento atual) ---
+        if (!canPaginate) return;
 
         const input = document.getElementById(`page-input-${containerId}`);
         const btnFirst = document.getElementById(`first-${containerId}`);
@@ -108,48 +234,19 @@
         const goToPage = (page) => {
             let target = parseInt(page, 10);
             if (isNaN(target)) return;
-
             if (target < 1) target = 1;
             if (target > totalPages) target = totalPages;
             if (target === current) return;
-
             onPageChange(target);
         };
 
-        if (btnFirst) {
-            btnFirst.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(1);
-            };
-        }
-
-        if (btnPrev) {
-            btnPrev.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(current - 1);
-            };
-        }
-
-        if (btnNext) {
-            btnNext.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(current + 1);
-            };
-        }
-
-        if (btnLast) {
-            btnLast.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(totalPages);
-            };
-        }
+        if (btnFirst) btnFirst.onclick = (e) => { e.stopPropagation(); goToPage(1); };
+        if (btnPrev) btnPrev.onclick = (e) => { e.stopPropagation(); goToPage(current - 1); };
+        if (btnNext) btnNext.onclick = (e) => { e.stopPropagation(); goToPage(current + 1); };
+        if (btnLast) btnLast.onclick = (e) => { e.stopPropagation(); goToPage(totalPages); };
 
         if (btnGo && input) {
-            btnGo.onclick = (e) => {
-                e.stopPropagation();
-                goToPage(input.value);
-            };
-
+            btnGo.onclick = (e) => { e.stopPropagation(); goToPage(input.value); };
             input.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
                     e.preventDefault();
@@ -159,22 +256,6 @@
             });
         }
     }
-
-    // --- Fetch Autenticado ---
-    // async function fetchJson(url) {
-    //     if (!window.Auth || typeof Auth.authFetch !== 'function') {
-    //         console.error("Auth module not loaded");
-    //         return null;
-    //     }
-    //     try {
-    //         const resp = await Auth.authFetch(url);
-    //         if (!resp.ok) throw new Error("HTTP " + resp.status);
-    //         return await resp.json();
-    //     } catch (e) {
-    //         console.error("Fetch error:", e);
-    //         return { ok: false, data: [] };
-    //     }
-    // }
 
     async function fetchJson(url) {
         const fallbackMeta = { page: 1, pages: 1, total: 0 };
@@ -292,7 +373,10 @@
             const status = (resp && typeof resp.status === "number" && resp.status) ? resp.status : "??";
             const msg = (resp && resp.error) ? resp.error : "Falha ao carregar operadores.";
             tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Erro ao carregar operadores (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
-            renderPaginationControls("pag-operadores", null, null);
+            renderPaginationControls("pag-operadores", null, null, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioOperadores, state: stateOp, formatKey: "reportFormat" }
+            });
+
             return;
         }
         const data = Array.isArray(resp.data) ? resp.data : [];
@@ -312,7 +396,10 @@
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Nenhum operador encontrado.</td></tr>`;
-            renderPaginationControls("pag-operadores", null, null);
+            renderPaginationControls("pag-operadores", null, null, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioOperadores, state: stateOp, formatKey: "reportFormat" }
+            });
+
             return;
         }
 
@@ -337,7 +424,173 @@
         renderPaginationControls("pag-operadores", meta, (newPage) => {
             stateOp.page = newPage;
             loadOperadores();
+        }, {
+            report: { label: "Gerar Relatório", onClick: gerarRelatorioOperadores, state: stateOp, formatKey: "reportFormat" }
         });
+
+    }
+    async function openReportInNewTabWithAuth(url, title, format, fallbackFilename) {
+        const fmt = normalizeReportFormat(format) || "pdf";
+        const mime = reportMimeType(fmt);
+
+        const opener = window.open("about:blank", "_blank");
+        if (!opener) {
+            alert("Não foi possível abrir uma nova guia. Verifique o bloqueador de pop-ups.");
+            return;
+        }
+        try { opener.opener = null; } catch (_) { }
+
+        const safeTitle = escapeHtml(title || "Relatório");
+        opener.document.title = safeTitle;
+        opener.document.body.innerHTML = `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+        <h2 style="margin: 0 0 8px 0;">Gerando relatório...</h2>
+        <p style="margin: 0; color: #64748b;">Aguarde alguns segundos.</p>
+    </div>
+`;
+
+        try {
+            // Usa Auth.authFetch quando disponível (mantém seu padrão)
+            const fetchFn = (window.Auth && typeof Auth.authFetch === "function")
+                ? Auth.authFetch.bind(Auth)
+                : fetch;
+
+            const resp = await fetchFn(url, { method: "GET", headers: { "Accept": mime } });
+
+            if (!resp.ok) {
+                const text = await resp.text().catch(() => "");
+                opener.document.body.innerHTML = `
+            <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+                <h2 style="margin: 0 0 8px 0;">Falha ao gerar relatório</h2>
+                <p style="margin: 0; color: #64748b;">HTTP ${resp.status}</p>
+                <pre style="white-space: pre-wrap; margin-top: 12px;">${escapeHtml(text || "")}</pre>
+            </div>
+        `;
+                return;
+            }
+
+            const cd = resp.headers.get("Content-Disposition") || "";
+            const serverFilename = extractFilenameFromContentDisposition(cd);
+            const filename = serverFilename || fallbackFilename || `relatorio.${fmt}`;
+
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            if (fmt === "pdf") {
+                opener.location.href = blobUrl;
+            } else {
+                // DOCX (download)
+                opener.document.body.innerHTML = `
+            <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+                <h2 style="margin: 0 0 8px 0;">Relatório pronto</h2>
+                <p style="margin: 0 0 12px 0; color: #64748b;">Se o download não iniciar automaticamente, clique no link abaixo.</p>
+                <p style="margin: 0;">
+                    <a id="downloadLink" href="${blobUrl}" download="${escapeHtml(filename)}">Baixar ${escapeHtml(filename)}</a>
+                </p>
+            </div>
+            `;
+                const a = opener.document.getElementById("downloadLink");
+                if (a) a.click();
+            }
+
+            // libera o blob depois de um tempo
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
+        } catch (err) {
+            console.error(err);
+            opener.document.body.innerHTML = `
+        <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
+            <h2 style="margin: 0 0 8px 0;">Erro inesperado</h2>
+            <pre style="white-space: pre-wrap; margin-top: 12px;">${escapeHtml(err?.message || String(err))}</pre>
+        </div>
+    `;
+        }
+    }
+
+    // Mantém compatibilidade com chamadas antigas
+    async function openPdfInNewTabWithAuth(url, title) {
+        return openReportInNewTabWithAuth(url, title, "pdf", "relatorio.pdf");
+    }
+
+    function buildReportParamsFromState(state, includePeriodo) {
+        const params = new URLSearchParams({
+            page: "1",
+            limit: "10",
+            search: state.search || "",
+            sort: state.sort || "",
+            dir: state.dir || "",
+        });
+
+        if (includePeriodo && state.periodo) {
+            params.set("periodo", JSON.stringify(state.periodo));
+        }
+
+        if (window.TableFilter && typeof window.TableFilter.applyToParams === "function") {
+            window.TableFilter.applyToParams(params, state);
+        }
+
+        return params;
+    }
+
+    function gerarRelatorioOperadores() {
+        const fmt = (stateOp.reportFormat || "").trim(); // "pdf" | "docx"
+        if (!fmt) {
+            alert("Selecione a extensão do relatório (.pdf ou .docx).");
+            return;
+        }
+
+        const endpoint =
+            (AppConfig.endpoints.adminDashboard && AppConfig.endpoints.adminDashboard.operadoresRelatorio)
+            || "/webhook/admin/dashboard/operadores/relatorio";
+
+        // Reaproveita o helper compartilhado
+        const params = (window.ReportPDF && typeof window.ReportPDF.buildParamsFromState === "function")
+            ? window.ReportPDF.buildParamsFromState(stateOp, { includePeriodo: false, page: 1, limit: 10 })
+            : buildReportParamsFromState(stateOp, false);
+
+        params.set("format", fmt);
+
+        if (window.ReportPDF && typeof window.ReportPDF.openFromEndpoint === "function") {
+            window.ReportPDF.openFromEndpoint(endpoint, params, {
+                title: "Relatório - Operadores",
+                format: fmt,
+                filenameBase: "relatorio_operadores_audio",
+            });
+            return;
+        }
+
+        // fallback (se por algum motivo ReportPDF não carregou)
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+        openPdfInNewTabWithAuth(url, "Relatório - Operadores");
+    }
+
+    function gerarRelatorioChecklists() {
+        const fmt = (stateChk.reportFormat || "").trim(); // "pdf" | "docx"
+        if (!fmt) {
+            alert("Selecione a extensão do relatório (.pdf ou .docx).");
+            return;
+        }
+
+        const endpoint =
+            (AppConfig.endpoints.adminDashboard && AppConfig.endpoints.adminDashboard.checklistsRelatorio)
+            || "/webhook/admin/dashboard/checklists/relatorio";
+
+        const params = (window.ReportPDF && typeof window.ReportPDF.buildParamsFromState === "function")
+            ? window.ReportPDF.buildParamsFromState(stateChk, { includePeriodo: true, page: 1, limit: 10 })
+            : buildReportParamsFromState(stateChk, true);
+
+        params.set("format", fmt);
+
+        if (window.ReportPDF && typeof window.ReportPDF.openFromEndpoint === "function") {
+            window.ReportPDF.openFromEndpoint(endpoint, params, {
+                title: "Relatório - Checklists",
+                format: fmt,
+                filenameBase: "relatorio_checklists",
+            });
+            return;
+        }
+
+        const url = `${AppConfig.apiUrl(endpoint)}?${params.toString()}`;
+        openPdfInNewTabWithAuth(url, "Relatório - Checklists");
     }
 
     // =========================================================
@@ -383,7 +636,10 @@
             const status = (resp && typeof resp.status === "number" && resp.status) ? resp.status : "??";
             const msg = (resp && resp.error) ? resp.error : "Falha ao carregar checklists.";
             tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Erro ao carregar checklists (HTTP ${status}). ${escapeHtml(msg)}</td></tr>`;
-            renderPaginationControls("pag-checklists", null, null);
+            renderPaginationControls("pag-checklists", null, null, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioChecklists, state: stateChk, formatKey: "reportFormat" }
+            });
+
             return;
         }
 
@@ -402,7 +658,10 @@
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" class="empty-state">Nenhum checklist encontrado.</td></tr>`;
-            renderPaginationControls("pag-checklists", null, null);
+            renderPaginationControls("pag-checklists", null, null, {
+                report: { label: "Gerar Relatório", onClick: gerarRelatorioChecklists, state: stateChk, formatKey: "reportFormat" }
+            });
+
             return;
         }
 
@@ -502,7 +761,10 @@
         renderPaginationControls("pag-checklists", meta, (newPage) => {
             stateChk.page = newPage;
             loadChecklists();
+        }, {
+            report: { label: "Gerar Relatório", onClick: gerarRelatorioChecklists, state: stateChk, formatKey: "reportFormat" }
         });
+
     }
 
     // =========================================================
@@ -618,5 +880,4 @@
         loadOperadores();
         loadChecklists();
     });
-
 })();
