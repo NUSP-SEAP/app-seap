@@ -336,12 +336,13 @@
     const REPORT_MIME = {
         pdf: "application/pdf",
         docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     };
 
     function normalizeReportFormat(fmt) {
         let f = String(fmt || "").trim().toLowerCase();
         if (f.startsWith(".")) f = f.slice(1);
-        if (f === "pdf" || f === "docx") return f;
+        if (f === "pdf" || f === "docx" || f === "xlsx") return f;
         return "";
     }
 
@@ -354,6 +355,211 @@
         const m = String(cd).match(/filename\*?=(?:UTF-8''|")?([^";\n]+)"?/i);
         if (!m) return "";
         try { return decodeURIComponent(m[1]); } catch (_) { return m[1]; }
+    }
+    // =========================================================
+    // --- RDS (XLSX) - UI (Ano/Mês + Botão) + Download com Auth ---
+    // =========================================================
+
+    const RDS_MONTHS_PT = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    function pad2(n) {
+        return String(n).padStart(2, "0");
+    }
+
+    async function downloadXlsxWithAuth(url, fallbackFilename) {
+        if (!window.Auth || typeof Auth.authFetch !== "function") {
+            alert("Auth não carregado (Auth.authFetch indisponível).");
+            return;
+        }
+
+        const resp = await Auth.authFetch(url, {
+            method: "GET",
+            headers: { "Accept": (REPORT_MIME && REPORT_MIME.xlsx) ? REPORT_MIME.xlsx : "*/*" },
+        });
+
+        if (!resp.ok) {
+            const text = await resp.text().catch(() => "");
+            const msg = (text || "").trim();
+            alert(`Falha ao gerar RDS (HTTP ${resp.status}).${msg ? "\n\n" + msg : ""}`);
+            return;
+        }
+
+        const blob = await resp.blob();
+        const cd = resp.headers ? resp.headers.get("content-disposition") : "";
+        const fromHeader = extractFilenameFromContentDisposition(cd);
+        const filename = fromHeader || fallbackFilename || "RDS.xlsx";
+
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2 * 60 * 1000);
+    }
+
+    async function initRdsUi(mountEl) {
+        if (!mountEl) return;
+
+        // Evita duplicar caso a tela reinicialize algum trecho
+        if (document.getElementById("rds-ano") || document.getElementById("btn-gerar-rds")) {
+            return;
+        }
+
+        // Spacer para empurrar os controles do RDS para a direita na flex-line
+        const spacer = document.createElement("div");
+        spacer.className = "periodo-spacer";
+
+        const box = document.createElement("div");
+        box.className = "rds-controls";
+        box.style.display = "flex";
+        box.style.alignItems = "center";
+        box.style.gap = "8px";
+        box.style.flexWrap = "wrap";
+
+        box.innerHTML = `
+            <select id="rds-ano" class="page-input" style="min-width: 120px;">
+                <option value="">Ano</option>
+            </select>
+
+            <select id="rds-mes" class="page-input" style="min-width: 150px;" disabled>
+                <option value="">Mês</option>
+            </select>
+
+            <button type="button" id="btn-gerar-rds" class="btn-page" disabled>
+                Gerar RDS
+            </button>
+        `;
+
+        mountEl.appendChild(spacer);
+        mountEl.appendChild(box);
+
+        const selAno = document.getElementById("rds-ano");
+        const selMes = document.getElementById("rds-mes");
+        const btn = document.getElementById("btn-gerar-rds");
+
+        const endpointAnos =
+            (AppConfig.endpoints.adminDashboard &&
+                AppConfig.endpoints.adminDashboard.rds &&
+                AppConfig.endpoints.adminDashboard.rds.anos) ||
+            "/webhook/admin/operacoes/rds/anos";
+
+        const endpointMeses =
+            (AppConfig.endpoints.adminDashboard &&
+                AppConfig.endpoints.adminDashboard.rds &&
+                AppConfig.endpoints.adminDashboard.rds.meses) ||
+            "/webhook/admin/operacoes/rds/meses";
+
+        const endpointGerar =
+            (AppConfig.endpoints.adminDashboard &&
+                AppConfig.endpoints.adminDashboard.rds &&
+                AppConfig.endpoints.adminDashboard.rds.gerar) ||
+            "/webhook/admin/operacoes/rds/gerar";
+
+        const resetMes = () => {
+            selMes.innerHTML = `<option value="">Mês</option>`;
+            selMes.value = "";
+            selMes.disabled = true;
+            btn.disabled = true;
+        };
+
+        const fillAnos = (anos) => {
+            selAno.innerHTML = `<option value="">Ano</option>`;
+            (anos || []).forEach((y) => {
+                const yy = parseInt(y, 10);
+                if (!Number.isFinite(yy)) return;
+                const opt = document.createElement("option");
+                opt.value = String(yy);
+                opt.textContent = String(yy);
+                selAno.appendChild(opt);
+            });
+        };
+
+        const fillMeses = (meses) => {
+            selMes.innerHTML = `<option value="">Mês</option>`;
+            (meses || []).forEach((m) => {
+                const mm = parseInt(m, 10);
+                if (!Number.isFinite(mm) || mm < 1 || mm > 12) return;
+
+                const opt = document.createElement("option");
+                opt.value = String(mm);
+                opt.textContent = RDS_MONTHS_PT[mm - 1] || `Mês ${mm}`;
+                selMes.appendChild(opt);
+            });
+            selMes.disabled = false; // habilita após carregar
+        };
+
+        // 1) Carrega anos (dropdown Ano)
+        try {
+            const url = AppConfig.apiUrl(endpointAnos);
+            const resp = await fetchJson(url);
+
+            if (resp && resp.ok !== false && Array.isArray(resp.anos)) {
+                fillAnos(resp.anos);
+            } else {
+                console.error("Falha ao carregar anos do RDS:", resp);
+            }
+        } catch (err) {
+            console.error("Erro ao carregar anos do RDS:", err);
+        }
+
+        // 2) Ao selecionar ano, habilita mês e carrega meses disponíveis
+        selAno.addEventListener("change", async () => {
+            resetMes();
+
+            const ano = parseInt(selAno.value, 10);
+            if (!Number.isFinite(ano)) return;
+
+            try {
+                const params = new URLSearchParams({ ano: String(ano) });
+                const url = `${AppConfig.apiUrl(endpointMeses)}?${params.toString()}`;
+
+                const resp = await fetchJson(url);
+                if (resp && resp.ok !== false && Array.isArray(resp.meses)) {
+                    fillMeses(resp.meses);
+                } else {
+                    console.error("Falha ao carregar meses do RDS:", resp);
+                }
+            } catch (err) {
+                console.error("Erro ao carregar meses do RDS:", err);
+            }
+        });
+
+        // 3) Ao selecionar mês, habilita botão
+        selMes.addEventListener("change", () => {
+            btn.disabled = !(selAno.value && selMes.value);
+        });
+
+        // 4) Gerar RDS (download do XLSX)
+        btn.addEventListener("click", async () => {
+            const ano = parseInt(selAno.value, 10);
+            const mes = parseInt(selMes.value, 10);
+
+            if (!Number.isFinite(ano) || !Number.isFinite(mes)) {
+                alert("Selecione um Ano e um Mês para gerar o RDS.");
+                return;
+            }
+
+            const params = new URLSearchParams({ ano: String(ano), mes: String(mes) });
+            const url = `${AppConfig.apiUrl(endpointGerar)}?${params.toString()}`;
+
+            const oldText = btn.textContent;
+            btn.textContent = "Gerando...";
+            btn.disabled = true;
+
+            try {
+                const fallback = `RDS ${ano}-${pad2(mes)}.xlsx`;
+                await downloadXlsxWithAuth(url, fallback);
+            } finally {
+                btn.textContent = oldText;
+                btn.disabled = !(selAno.value && selMes.value);
+            }
+        });
     }
 
     async function openReportInNewTabWithAuth(url, title, format, filenameBase) {
@@ -417,7 +623,7 @@
             tab.document.title = title || "Relatório";
             tab.document.body.innerHTML = `
                 <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px;">
-                    <h2 style="margin: 0 0 8px 0;">Relatório DOCX pronto</h2>
+                    <h2 style="margin: 0 0 8px 0;">Arquivo ${fmt.toUpperCase()} pronto</h2>
                     <p style="margin: 0 0 12px 0; color: #64748b;">
                         Se o download não iniciar automaticamente, clique no link abaixo:
                     </p>
@@ -1197,6 +1403,8 @@
                 // Fallback: dentro da própria toolbar (caso algo mude no HTML)
                 toolbarOps.appendChild(lblGroup);
             }
+            // --- RDS (Ano/Mês + Botão) deve aparecer na mesma linha do filtro por data ---
+            initRdsUi(dateFilterLine || toolbarOps);
 
             const chkGroup = lblGroup.querySelector("#chk-group-by-sala");
             if (chkGroup) {

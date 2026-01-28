@@ -31,7 +31,11 @@ const AppConfig = {
             operacoesEntradasRelatorio: "/webhook/admin/dashboard/operacoes/entradas/relatorio",
             detalheOperacao: "/webhook/admin/operacao/detalhe",
             detalheChecklist: "/webhook/admin/checklist/detalhe",
-
+            rds: {
+                anos: "/webhook/admin/operacoes/rds/anos",
+                meses: "/webhook/admin/operacoes/rds/meses",
+                gerar: "/webhook/admin/operacoes/rds/gerar",
+            },
             // --- Novos Endpoints de Anormalidade ---
             anormalidades: {
                 salas: "/webhook/admin/dashboard/anormalidades/salas",
