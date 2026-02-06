@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <title>Login | Senado NUSP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/css/app/index.css">
+</head>
+
+<body>
+  <main role="main">
+    <section aria-labelledby="login-title" class="card">
+      <h1 class="title" id="login-title">Acessar o Sistema</h1>
+      <p class="subtitle">Informe suas credenciais</p>
+      <div class="error" id="error-box" role="alert"></div>
+      <form id="login-form" novalidate="">
+        <div class="field">
+          <label for="username">Login</label>
+          <input autocomplete="username" id="username" name="usuario" placeholder="seu.usuario" required=""
+            type="text" />
+        </div>
+        <div class="field">
+          <label for="password">Senha</label>
+          <input autocomplete="current-password" id="password" name="senha" placeholder="••••••••" required=""
+            type="password" />
+        </div>
+        <button class="btn" id="submit-btn" type="submit">Entrar</button>
+        <!-- <p class="helper">Apenas usuários autorizados.</p> -->
+      </form>
+    </section>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/session-autoload.js" defer></script>
+  <script src="/js/app/index.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>Home | Senado NUSP</title>
+
+    <link rel="stylesheet" href="/css/app/home.css">
+    <link rel="stylesheet" href="/css/app/body.css">
+</head>
+
+<body>
+    <main>
+        <h1>Página Principal</h1>
+        <p class="muted">Escolha uma ação.</p>
+        <div class="grid">
+            <a class="card" href="/forms/checklist/"><strong>Formulário de Verificação de Salas</strong><br /><span
+                    class="muted">Abrir</span></a>
+            <a class="card" href="/forms/operacao/"><strong>Registro de Operação de Áudio</strong><br /><span
+                    class="muted">Abrir</span></a>
+            <a id="btn-admin-dashboard" class="card" href="/admin/index.html"
+                style="display: none; border-color: #cbd5e1; background-color: #f8fafc;">
+                <strong style="color: #475569;">Painel Administrativo</strong><br />
+                <span class="muted">Voltar para Admin</span>
+            </a>
+        </div>
+    </main>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth_jwt.js"></script>
+    <script src="/js/session-autoload.js" defer></script>
+    <script src="/js/app/home.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,80 @@
+/* app/css/app/admin/form_checklist.css */
+
+/* Ajustes gerais para modo leitura */
+body {
+    background-color: #e2e8f0;
+}
+
+/* Badge indicando Read-Only */
+.card {
+    border-top: 4px solid #64748b;
+    position: relative;
+}
+
+.read-only-badge {
+    background: #64748b;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    float: right;
+}
+
+/* Inputs travados */
+input,
+select,
+textarea {
+    pointer-events: none;
+    background-color: #f8fafc !important;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+/* Estilização da lista de itens */
+.check-item-readonly {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.check-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.check-label {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.check-status {
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+}
+
+.status-ok {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-falha {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.falha-box {
+    margin-top: 8px;
+    padding: 8px;
+    background-color: #fff1f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    color: #7f1d1d;
+    font-size: 0.9rem;
+}
