@@ -985,7 +985,7 @@
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="empty-state">Carregando configuração...</td>
+                        <td colspan="6" class="empty-state">Carregando configuração...</td>
                     </tr>
                 `;
             }
@@ -999,7 +999,7 @@
                 if (tbody) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="5" class="empty-state">Erro ao carregar configuração.</td>
+                            <td colspan="6" class="empty-state">Erro ao carregar configuração.</td>
                         </tr>
                     `;
                 }
@@ -1071,6 +1071,9 @@
                 rowClasses.push("form-edit-row-moved");
             }
 
+            // Exibe tipo do widget (somente leitura)
+            const tipoLabel = item.tipo_widget === "text" ? "Texto livre" : "Ok/Falha";
+
             return `
             <tr class="${rowClasses.join(" ")}"
                 data-type="item"
@@ -1080,6 +1083,7 @@
                 <td class="drag-cell"><span title="Arrastar para reordenar">⋮⋮</span></td>
                 <td class="position-cell">${pos}</td>
                 <td class="name-cell">${escapeHtml(item.nome)}</td>
+                <td class="tipo-cell" style="color: #64748b; font-size: 0.9em;">${tipoLabel}</td>
                 <td class="obrigatorio-cell">
                     <div class="form-edit-checkbox">
                         <input type="checkbox" class="form-edit-checkbox-obrigatorio" ${checkedObrig}>
@@ -1098,11 +1102,16 @@
             const itemIndex = index;
             const checkedAtivo = item.ativo ? "checked" : "";
             const checkedObrig = item.obrigatorio ? "checked" : "";
+
+            // Exibe tipo do widget (somente leitura)
+            const tipoLabel = item.tipo_widget === "text" ? "Texto livre" : "Ok/Falha";
+
             return `
                 <tr class="form-edit-row form-edit-row-inactive" data-type="inactive" data-item-index="${itemIndex}">
                     <td class="drag-cell"><span title="Item desativado">⋮⋮</span></td>
                     <td class="position-cell"></td>
                     <td class="name-cell">${escapeHtml(item.nome)}</td>
+                    <td class="tipo-cell" style="color: #64748b; font-size: 0.9em;">${tipoLabel}</td>
                     <td class="obrigatorio-cell">
                         <div class="form-edit-checkbox">
                             <input type="checkbox" class="form-edit-checkbox-obrigatorio" ${checkedObrig} disabled>
@@ -1125,6 +1134,7 @@
                     <td class="name-cell">
                         <input type="text" id="sala-config-new-item-input" class="form-edit-input-name" placeholder="Digite o nome do novo item...">
                     </td>
+                    <td class="tipo-cell"></td>
                     <td class="obrigatorio-cell"></td>
                     <td class="ativo-cell"></td>
                 </tr>
@@ -1150,7 +1160,7 @@
         if (!html) {
             html = `
                 <tr>
-                    <td colspan="5" class="empty-state">Nenhum item configurado.</td>
+                    <td colspan="6" class="empty-state">Nenhum item configurado.</td>
                 </tr>
             `;
         }
