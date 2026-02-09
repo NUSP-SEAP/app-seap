@@ -23,6 +23,13 @@
             tableId: "tb-comissoes",
             cardId: "card-edit-comissoes",
             title: "Edição de Comissões"
+        },
+        sala_config: {
+            apiKey: "sala-config",
+            tableId: "tb-sala-config-itens",
+            cardId: "card-edit-sala-config",
+            title: "Configuração de Itens por Sala",
+            sectionId: "sala-config-section"
         }
     };
 
@@ -49,6 +56,17 @@
                 items: [],
                 originalItems: [],
                 insertIndex: null
+            },
+            sala_config: {
+                loaded: false,
+                dirty: false,
+                items: [],
+                originalItems: [],
+                insertIndex: null,
+                salasLoaded: false,
+                salas: [],
+                selectedSalaId: null,
+                allItemsTipo: []  // todos os itens disponíveis (master list)
             }
         }
     };
@@ -134,20 +152,30 @@
         const headerEl = document.getElementById("form-edit-header");
         const titleEl = document.getElementById("form-edit-title");
         const actionsEl = document.getElementById("form-edit-actions");
+        const btnAplicarTodas = document.getElementById("btn-sala-config-aplicar-todas");
 
-        // esconde todas as tabelas e remove destaque dos cards
+        // esconde todas as tabelas/seções e remove destaque dos cards
         Object.keys(ENTITY_CONFIG).forEach(function (key) {
-            const tableId = ENTITY_CONFIG[key].tableId;
+            const cfg = ENTITY_CONFIG[key];
+            const tableId = cfg.tableId;
             const tbl = document.getElementById(tableId);
             if (tbl) {
                 tbl.classList.add("hidden");
             }
-            const cardId = ENTITY_CONFIG[key].cardId;
+            // Para sala_config, esconde a seção especial
+            if (cfg.sectionId) {
+                const section = document.getElementById(cfg.sectionId);
+                if (section) section.classList.add("hidden");
+            }
+            const cardId = cfg.cardId;
             const cardEl = document.getElementById(cardId);
             if (cardEl) {
                 cardEl.classList.remove("card-active");
             }
         });
+
+        // Sempre esconde o botão "Aplicar a Todas" inicialmente
+        if (btnAplicarTodas) btnAplicarTodas.classList.add("hidden");
 
         if (!entityKey) {
             if (headerEl) headerEl.classList.add("hidden");
@@ -159,14 +187,22 @@
         const cfg = ENTITY_CONFIG[entityKey];
         if (!cfg) return;
 
-        const tbl = document.getElementById(cfg.tableId);
         const cardEl = document.getElementById(cfg.cardId);
 
-        if (tbl) tbl.classList.remove("hidden");
         if (cardEl) cardEl.classList.add("card-active");
         if (headerEl) headerEl.classList.remove("hidden");
         if (titleEl) titleEl.textContent = cfg.title;
         if (actionsEl) actionsEl.classList.remove("hidden");
+
+        // Para sala_config, mostra a seção especial ao invés da tabela diretamente
+        if (entityKey === "sala_config") {
+            const section = document.getElementById(cfg.sectionId);
+            if (section) section.classList.remove("hidden");
+            if (btnAplicarTodas) btnAplicarTodas.classList.remove("hidden");
+        } else {
+            const tbl = document.getElementById(cfg.tableId);
+            if (tbl) tbl.classList.remove("hidden");
+        }
 
         updateActionsState();
     }
@@ -666,6 +702,12 @@
         const ent = state.entities[entKey];
         if (!ent.dirty) return;
 
+        // Sala config tem handler específico
+        if (entKey === "sala_config") {
+            await handleSalaConfigSalvar();
+            return;
+        }
+
         const cfg = ENTITY_CONFIG[entKey];
         if (!cfg) return;
 
@@ -711,12 +753,526 @@
         const ent = state.entities[entKey];
         if (!ent.loaded) return;
 
-        ent.items = cloneItems(ent.originalItems);
+        if (entKey === "sala_config") {
+            ent.items = cloneSalaConfigItems(ent.originalItems);
+        } else {
+            ent.items = cloneItems(ent.originalItems);
+        }
+
         ent.insertIndex = null;
         ent.dirty = false;
 
-        renderEntityTable(entKey);
+        if (entKey === "sala_config") {
+            renderSalaConfigTable();
+        } else {
+            renderEntityTable(entKey);
+        }
+
         updateActionsState();
+    }
+
+    // ============================
+    // Configuração de Itens por Sala
+    // ============================
+
+    async function loadSalasForConfig() {
+        const ent = state.entities.sala_config;
+        if (ent.salasLoaded) return;
+
+        const base = getFormEditBaseEndpoint();
+        if (!base) return;
+
+        const endpoint = `${base}/salas/list`;
+        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
+
+        const json = await fetchJson(url);
+        if (!json || !json.success) {
+            console.error("Falha ao carregar salas", json);
+            return;
+        }
+
+        ent.salas = (json.items || []).filter(function (sala) {
+            return sala.ativo; // Apenas salas ativas
+        });
+        ent.salasLoaded = true;
+
+        renderSalaSelect();
+    }
+
+    function renderSalaSelect() {
+        const ent = state.entities.sala_config;
+        const select = document.getElementById("sala-config-select");
+        if (!select) return;
+
+        const salas = ent.salas || [];
+
+        if (salas.length === 0) {
+            select.innerHTML = '<option value="">Nenhuma sala disponível</option>';
+            select.disabled = true;
+            return;
+        }
+
+        const opts = ['<option value="">Selecione uma sala...</option>'].concat(
+            salas.map(function (sala) {
+                return '<option value="' + sala.id + '">' + escapeHtml(sala.nome) + '</option>';
+            })
+        ).join('');
+
+        select.innerHTML = opts;
+        select.disabled = false;
+
+        // Se já tinha uma sala selecionada, restaura
+        if (ent.selectedSalaId) {
+            select.value = ent.selectedSalaId;
+        }
+    }
+
+    async function loadAllItemsTipo() {
+        const ent = state.entities.sala_config;
+        if (ent.allItemsTipo.length > 0) return; // Já carregado
+
+        const base = getFormEditBaseEndpoint();
+        if (!base) return;
+
+        const endpoint = `${base}/checklist-itens/list`;
+        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
+
+        const json = await fetchJson(url);
+        if (!json || !json.success) {
+            console.error("Falha ao carregar itens tipo", json);
+            return;
+        }
+
+        ent.allItemsTipo = (json.items || []).filter(function (item) {
+            return item.ativo; // Apenas itens ativos da lista mestre
+        });
+    }
+
+    async function loadSalaConfigItems(salaId) {
+        const ent = state.entities.sala_config;
+
+        const base = getFormEditBaseEndpoint();
+        if (!base) return;
+
+        const endpoint = `${base}/sala-config/${salaId}/list`;
+        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
+
+        const tbl = document.getElementById("tb-sala-config-itens");
+        if (tbl) {
+            const tbody = tbl.querySelector("tbody");
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">Carregando configuração...</td>
+                    </tr>
+                `;
+            }
+        }
+
+        const json = await fetchJson(url);
+        if (!json || !json.success) {
+            console.error("Falha ao carregar config da sala", json);
+            if (tbl) {
+                const tbody = tbl.querySelector("tbody");
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="empty-state">Erro ao carregar configuração.</td>
+                        </tr>
+                    `;
+                }
+            }
+            return;
+        }
+
+        const items = json.items || [];
+
+        ent.items = items;
+        ent.originalItems = cloneSalaConfigItems(items);
+        ent.loaded = true;
+        ent.dirty = false;
+        ent.insertIndex = null;
+
+        renderSalaConfigTable();
+    }
+
+    function cloneSalaConfigItems(items) {
+        return (items || []).map(function (it) {
+            return {
+                id: it.id,
+                item_tipo_id: it.item_tipo_id,
+                nome: it.nome,
+                ativo: !!it.ativo,
+                obrigatorio: !!it.obrigatorio
+            };
+        });
+    }
+
+    function renderSalaConfigTable() {
+        const ent = state.entities.sala_config;
+        const tbl = document.getElementById("tb-sala-config-itens");
+        if (!tbl) return;
+
+        const tbody = tbl.querySelector("tbody");
+        if (!tbody) return;
+
+        const items = ent.items || [];
+
+        // Reorganiza: ativos no topo, inativos depois
+        const activeItems = [];
+        const inactiveItems = [];
+        items.forEach(function (it) {
+            if (it.ativo) activeItems.push(it);
+            else inactiveItems.push(it);
+        });
+
+        const canonical = activeItems.concat(inactiveItems);
+        ent.items = canonical;
+
+        const activeCount = activeItems.length;
+        let insertIndex = ent.insertIndex;
+        if (typeof insertIndex !== "number" || insertIndex < 0 || insertIndex > activeCount) {
+            insertIndex = activeCount;
+        }
+        ent.insertIndex = insertIndex;
+
+        function buildActiveRow(item, index) {
+            const pos = index + 1;
+            const itemIndex = index;
+            const checkedAtivo = item.ativo ? "checked" : "";
+            const checkedObrig = item.obrigatorio ? "checked" : "";
+
+            const rowClasses = ["form-edit-row"];
+            if (item._highlight) {
+                rowClasses.push("form-edit-row-moved");
+            }
+
+            return `
+            <tr class="${rowClasses.join(" ")}"
+                data-type="item"
+                data-item-index="${itemIndex}"
+                data-active-index="${index}"
+                draggable="true">
+                <td class="drag-cell"><span title="Arrastar para reordenar">⋮⋮</span></td>
+                <td class="position-cell">${pos}</td>
+                <td class="name-cell">${escapeHtml(item.nome)}</td>
+                <td class="obrigatorio-cell">
+                    <div class="form-edit-checkbox">
+                        <input type="checkbox" class="form-edit-checkbox-obrigatorio" ${checkedObrig}>
+                    </div>
+                </td>
+                <td class="ativo-cell">
+                    <div class="form-edit-checkbox">
+                        <input type="checkbox" class="form-edit-checkbox-ativo" ${checkedAtivo}>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+
+        function buildInactiveRow(item, index) {
+            const itemIndex = index;
+            const checkedAtivo = item.ativo ? "checked" : "";
+            const checkedObrig = item.obrigatorio ? "checked" : "";
+            return `
+                <tr class="form-edit-row form-edit-row-inactive" data-type="inactive" data-item-index="${itemIndex}">
+                    <td class="drag-cell"><span title="Item desativado">⋮⋮</span></td>
+                    <td class="position-cell"></td>
+                    <td class="name-cell">${escapeHtml(item.nome)}</td>
+                    <td class="obrigatorio-cell">
+                        <div class="form-edit-checkbox">
+                            <input type="checkbox" class="form-edit-checkbox-obrigatorio" ${checkedObrig} disabled>
+                        </div>
+                    </td>
+                    <td class="ativo-cell">
+                        <div class="form-edit-checkbox">
+                            <input type="checkbox" class="form-edit-checkbox-ativo" ${checkedAtivo}>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function buildBlankRow() {
+            return `
+                <tr class="form-edit-row form-edit-row-blank" data-type="blank" data-active-index="${insertIndex}" draggable="true">
+                    <td class="drag-cell"><span title="Arrastar para escolher a posição">⋮⋮</span></td>
+                    <td class="position-cell"></td>
+                    <td class="name-cell">
+                        <select id="sala-config-new-item-select" class="form-edit-input-name">
+                            <option value="">Adicionar item existente...</option>
+                        </select>
+                    </td>
+                    <td class="obrigatorio-cell"></td>
+                    <td class="ativo-cell"></td>
+                </tr>
+            `;
+        }
+
+        let html = "";
+
+        for (let i = 0; i < activeCount; i++) {
+            if (i === insertIndex) {
+                html += buildBlankRow();
+            }
+            html += buildActiveRow(canonical[i], i);
+        }
+        if (insertIndex === activeCount) {
+            html += buildBlankRow();
+        }
+
+        for (let i = activeCount; i < canonical.length; i++) {
+            html += buildInactiveRow(canonical[i], i);
+        }
+
+        if (!html) {
+            html = `
+                <tr>
+                    <td colspan="5" class="empty-state">Nenhum item configurado.</td>
+                </tr>
+            `;
+        }
+
+        tbody.innerHTML = html;
+
+        attachSalaConfigRowEvents();
+        setupSalaConfigBlankRow();
+        updateActionsState();
+
+        // Mostra a tabela e a info
+        tbl.classList.remove("hidden");
+        const infoEl = document.getElementById("sala-config-info");
+        if (infoEl) infoEl.classList.remove("hidden");
+    }
+
+    function attachSalaConfigRowEvents() {
+        const tbl = document.getElementById("tb-sala-config-itens");
+        if (!tbl) return;
+        const tbody = tbl.querySelector("tbody");
+        if (!tbody) return;
+
+        // Drag & Drop (apenas linhas com draggable="true")
+        const draggableRows = tbody.querySelectorAll("tr[draggable='true']");
+        draggableRows.forEach(function (tr) {
+            tr.addEventListener("dragstart", onRowDragStart);
+            tr.addEventListener("dragover", onRowDragOver);
+            tr.addEventListener("drop", onRowDrop);
+            tr.addEventListener("dragend", onRowDragEnd);
+        });
+
+        // Checkbox Ativo/Ativa
+        const checkboxesAtivo = tbody.querySelectorAll("input.form-edit-checkbox-ativo");
+        checkboxesAtivo.forEach(function (chk) {
+            chk.addEventListener("change", function () {
+                const row = chk.closest("tr");
+                if (!row) return;
+
+                const idx = parseInt(row.getAttribute("data-item-index"), 10);
+                if (isNaN(idx)) return;
+
+                handleSalaConfigAtivoChange(idx, chk.checked);
+            });
+        });
+
+        // Checkbox Obrigatório
+        const checkboxesObrig = tbody.querySelectorAll("input.form-edit-checkbox-obrigatorio");
+        checkboxesObrig.forEach(function (chk) {
+            chk.addEventListener("change", function () {
+                const row = chk.closest("tr");
+                if (!row) return;
+
+                const idx = parseInt(row.getAttribute("data-item-index"), 10);
+                if (isNaN(idx)) return;
+
+                handleSalaConfigObrigatorioChange(idx, chk.checked);
+            });
+        });
+    }
+
+    function setupSalaConfigBlankRow() {
+        const select = document.getElementById("sala-config-new-item-select");
+        if (!select) return;
+
+        const ent = state.entities.sala_config;
+
+        // Popula o select com itens que ainda não estão na lista
+        const usedItemIds = new Set();
+        (ent.items || []).forEach(function (it) {
+            if (it.item_tipo_id) usedItemIds.add(it.item_tipo_id);
+        });
+
+        const availableItems = (ent.allItemsTipo || []).filter(function (item) {
+            return !usedItemIds.has(item.id);
+        });
+
+        const opts = ['<option value="">Adicionar item existente...</option>'].concat(
+            availableItems.map(function (item) {
+                return '<option value="' + item.id + '">' + escapeHtml(item.nome) + '</option>';
+            })
+        ).join('');
+
+        select.innerHTML = opts;
+
+        select.addEventListener("change", function () {
+            const itemTipoId = parseInt(select.value, 10);
+            if (!itemTipoId || isNaN(itemTipoId)) return;
+
+            const item = ent.allItemsTipo.find(function (it) {
+                return it.id === itemTipoId;
+            });
+
+            if (item) {
+                createNewSalaConfigItem(item);
+            }
+        });
+    }
+
+    function createNewSalaConfigItem(itemTipo) {
+        const ent = state.entities.sala_config;
+        const items = ent.items || [];
+        const activeCount = countActive(items);
+
+        let insertIndex = ent.insertIndex;
+        if (typeof insertIndex !== "number" || insertIndex < 0 || insertIndex > activeCount) {
+            insertIndex = activeCount;
+        }
+
+        const novo = {
+            id: null,
+            item_tipo_id: itemTipo.id,
+            nome: itemTipo.nome,
+            ativo: true,
+            obrigatorio: true,
+            _highlight: true
+        };
+
+        items.splice(insertIndex, 0, novo);
+        ent.items = items;
+        ent.insertIndex = null;
+
+        markDirty("sala_config");
+        renderSalaConfigTable();
+    }
+
+    function handleSalaConfigAtivoChange(index, checked) {
+        const ent = state.entities.sala_config;
+        if (!ent || !Array.isArray(ent.items)) return;
+
+        const items = ent.items.slice();
+        const item = items[index];
+        if (!item) return;
+
+        const novoAtivo = !!checked;
+        if (item.ativo === novoAtivo) return;
+
+        item.ativo = novoAtivo;
+        item._highlight = true;
+
+        ent.items = items;
+        ent.insertIndex = null;
+
+        markDirty("sala_config");
+        renderSalaConfigTable();
+    }
+
+    function handleSalaConfigObrigatorioChange(index, checked) {
+        const ent = state.entities.sala_config;
+        if (!ent || !Array.isArray(ent.items)) return;
+
+        const item = ent.items[index];
+        if (!item || !item.ativo) return;
+
+        item.obrigatorio = !!checked;
+        item._highlight = true;
+
+        markDirty("sala_config");
+        updateActionsState();
+    }
+
+    async function handleSalaConfigSalvar() {
+        const ent = state.entities.sala_config;
+        if (!ent.dirty || !ent.selectedSalaId) return;
+
+        const base = getFormEditBaseEndpoint();
+        if (!base) return;
+
+        const salaId = ent.selectedSalaId;
+        const endpoint = `${base}/sala-config/${salaId}/save`;
+        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
+
+        const payload = {
+            sala_id: salaId,
+            items: (ent.items || []).filter(function (it) {
+                return it.ativo; // Envia apenas itens ativos
+            }).map(function (it, idx) {
+                return {
+                    item_tipo_id: it.item_tipo_id,
+                    ordem: idx + 1,
+                    ativo: true,
+                    obrigatorio: !!it.obrigatorio
+                };
+            })
+        };
+
+        const json = await fetchJson(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!json || !json.success) {
+            alert("Erro ao salvar configuração: " + (json && json.message ? json.message : "Erro desconhecido"));
+            return;
+        }
+
+        await loadSalaConfigItems(salaId);
+        markDirty("sala_config", false);
+        alert("Configuração salva com sucesso!");
+    }
+
+    async function handleSalaConfigAplicarTodas() {
+        const ent = state.entities.sala_config;
+        if (!ent.selectedSalaId) return;
+
+        const confirmMsg = "Deseja aplicar a configuração atual a TODAS as salas?\n\n" +
+                          "Isso irá sobrescrever a configuração individual de cada sala.";
+
+        if (!confirm(confirmMsg)) return;
+
+        const base = getFormEditBaseEndpoint();
+        if (!base) return;
+
+        const endpoint = `${base}/sala-config/aplicar-todas`;
+        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
+
+        const payload = {
+            source_sala_id: ent.selectedSalaId,
+            items: (ent.items || []).filter(function (it) {
+                return it.ativo;
+            }).map(function (it, idx) {
+                return {
+                    item_tipo_id: it.item_tipo_id,
+                    ordem: idx + 1,
+                    ativo: true,
+                    obrigatorio: !!it.obrigatorio
+                };
+            })
+        };
+
+        const json = await fetchJson(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!json || !json.success) {
+            alert("Erro ao aplicar configuração: " + (json && json.message ? json.message : "Erro desconhecido"));
+            return;
+        }
+
+        const salasAtualizadas = json.salas_atualizadas || 0;
+        alert("Configuração aplicada com sucesso a " + salasAtualizadas + " sala(s)!");
+        markDirty("sala_config", false);
     }
 
     // ============================
@@ -739,10 +1295,19 @@
                     state.activeEntityKey = entityKey;
                     showSectionForEntity(entityKey);
                     const ent = state.entities[entityKey];
-                    if (!ent.loaded) {
-                        loadEntity(entityKey);
+
+                    // Sala config tem lógica especial
+                    if (entityKey === "sala_config") {
+                        if (!ent.salasLoaded) {
+                            loadSalasForConfig();
+                            loadAllItemsTipo();
+                        }
                     } else {
-                        renderEntityTable(entityKey);
+                        if (!ent.loaded) {
+                            loadEntity(entityKey);
+                        } else {
+                            renderEntityTable(entityKey);
+                        }
                     }
                 }
             });
@@ -750,6 +1315,8 @@
 
         const salvarBtn = document.getElementById("btn-form-edit-salvar");
         const cancelarBtn = document.getElementById("btn-form-edit-cancelar");
+        const aplicarTodasBtn = document.getElementById("btn-sala-config-aplicar-todas");
+
         if (salvarBtn) {
             salvarBtn.addEventListener("click", function (ev) {
                 ev.preventDefault();
@@ -760,6 +1327,35 @@
             cancelarBtn.addEventListener("click", function (ev) {
                 ev.preventDefault();
                 handleCancelarClick();
+            });
+        }
+        if (aplicarTodasBtn) {
+            aplicarTodasBtn.addEventListener("click", function (ev) {
+                ev.preventDefault();
+                handleSalaConfigAplicarTodas();
+            });
+        }
+
+        // Dropdown de seleção de sala
+        const salaSelect = document.getElementById("sala-config-select");
+        if (salaSelect) {
+            salaSelect.addEventListener("change", function (ev) {
+                const salaId = ev.target.value;
+                if (!salaId) {
+                    const ent = state.entities.sala_config;
+                    ent.selectedSalaId = null;
+                    ent.loaded = false;
+                    ent.items = [];
+                    const tbl = document.getElementById("tb-sala-config-itens");
+                    if (tbl) tbl.classList.add("hidden");
+                    const infoEl = document.getElementById("sala-config-info");
+                    if (infoEl) infoEl.classList.add("hidden");
+                    return;
+                }
+
+                const ent = state.entities.sala_config;
+                ent.selectedSalaId = parseInt(salaId, 10);
+                loadSalaConfigItems(ent.selectedSalaId);
             });
         }
 

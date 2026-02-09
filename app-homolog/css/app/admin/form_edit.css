@@ -101,3 +101,81 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Configuração de Itens por Sala */
+.sala-config-selector {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sala-config-selector label {
+    font-weight: 600;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.sala-config-select {
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.sala-config-select:hover:not(:disabled) {
+    border-color: #94a3b8;
+}
+
+.sala-config-select:focus {
+    outline: none;
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.sala-config-select:disabled {
+    background-color: #f1f5f9;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.sala-config-info {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background-color: #f0f9ff;
+    border-left: 4px solid #0284c7;
+    border-radius: 4px;
+}
+
+.sala-config-info .info-text {
+    margin: 0;
+    color: #0c4a6e;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Coluna Obrigatório */
+.form-edit-table .obrigatorio-cell {
+    text-align: center;
+    width: 110px;
+}
+
+/* Botão Aplicar a Todas as Salas */
+.btn-sala-config-aplicar-todas {
+    background: #059669;
+    color: #fff;
+}
+
+.btn-sala-config-aplicar-todas:hover:not(:disabled) {
+    background: #047857;
+}
+
+.btn-sala-config-aplicar-todas:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #9ca3af;
+}

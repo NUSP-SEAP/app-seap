@@ -39,6 +39,11 @@
                 Edição de Comissões
                 <div class="muted">Configurar lista de comissões</div>
             </a>
+
+            <a href="#" class="card form-edit-card" id="card-edit-sala-config" data-entity="sala_config">
+                Configuração de Itens por Sala
+                <div class="muted">Gerenciar itens específicos de cada sala</div>
+            </a>
         </div>
 
         <div id="form-edit-section" class="form-edit-section">
@@ -98,11 +103,46 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Configuração de Itens por Sala -->
+                <div id="sala-config-section" class="hidden" data-entity-key="sala_config">
+                    <div class="sala-config-selector">
+                        <label for="sala-config-select">Selecione a sala:</label>
+                        <select id="sala-config-select" class="sala-config-select">
+                            <option value="">Carregando salas...</option>
+                        </select>
+                    </div>
+
+                    <div id="sala-config-info" class="sala-config-info hidden">
+                        <p class="info-text">
+                            Configure quais itens de verificação aparecerão no formulário desta sala.
+                            Você pode ativar/desativar itens, reordenar e adicionar novos.
+                        </p>
+                    </div>
+
+                    <table id="tb-sala-config-itens" class="data-table form-edit-table hidden" data-entity-key="sala_config">
+                        <thead>
+                            <tr>
+                                <th style="width: 32px;"></th>
+                                <th style="width: 80px;">Posição</th>
+                                <th>Nome do Item</th>
+                                <th style="width: 110px;">Obrigatório</th>
+                                <th style="width: 90px;">Ativo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="empty-state">Selecione uma sala para configurar.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="form-edit-actions" class="form-edit-actions hidden">
                 <button id="btn-form-edit-salvar" class="btn-page btn-primary" disabled>Salvar Alterações</button>
                 <button id="btn-form-edit-cancelar" class="btn-page">Cancelar</button>
+                <button id="btn-sala-config-aplicar-todas" class="btn-page btn-secondary hidden" disabled>Aplicar a Todas as Salas</button>
             </div>
         </div>
     </main>
