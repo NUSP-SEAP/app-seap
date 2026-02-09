@@ -255,7 +255,8 @@
             return {
                 id: it.id,
                 nome: it.nome || "",
-                ativo: !!it.ativo
+                ativo: !!it.ativo,
+                tipo_widget: it.tipo_widget || "radio"  // Para checklist-itens
             };
         });
 
@@ -320,6 +321,20 @@
                 rowClasses.push("form-edit-row-moved");
             }
 
+            // Coluna tipo_widget apenas para checklist_itens
+            let tipoCell = "";
+            if (entityKey === "checklist_itens") {
+                const tipoWidget = item.tipo_widget || "radio";
+                tipoCell = `
+                    <td class="tipo-cell">
+                        <select class="form-edit-select-tipo" data-item-index="${itemIndex}">
+                            <option value="radio" ${tipoWidget === "radio" ? "selected" : ""}>Ok/Falha</option>
+                            <option value="text" ${tipoWidget === "text" ? "selected" : ""}>Texto livre</option>
+                        </select>
+                    </td>
+                `;
+            }
+
             return `
             <tr class="${rowClasses.join(" ")}"
                 data-type="item"
@@ -329,6 +344,7 @@
                 <td class="drag-cell"><span title="Arrastar para reordenar">⋮⋮</span></td>
                 <td class="position-cell">${pos}</td>
                 <td class="name-cell">${escapeHtml(item.nome)}</td>
+                ${tipoCell}
                 <td class="ativo-cell">
                     <div class="form-edit-checkbox">
                         <input type="checkbox" class="form-edit-checkbox-ativo" ${checkedAttr}>
@@ -341,11 +357,27 @@
         function buildInactiveRow(item, index) {
             const itemIndex = index;
             const checkedAttr = item.ativo ? "checked" : "";
+
+            // Coluna tipo_widget apenas para checklist_itens
+            let tipoCell = "";
+            if (entityKey === "checklist_itens") {
+                const tipoWidget = item.tipo_widget || "radio";
+                tipoCell = `
+                    <td class="tipo-cell">
+                        <select class="form-edit-select-tipo" data-item-index="${itemIndex}" disabled>
+                            <option value="radio" ${tipoWidget === "radio" ? "selected" : ""}>Ok/Falha</option>
+                            <option value="text" ${tipoWidget === "text" ? "selected" : ""}>Texto livre</option>
+                        </select>
+                    </td>
+                `;
+            }
+
             return `
                 <tr class="form-edit-row form-edit-row-inactive" data-type="inactive" data-item-index="${itemIndex}">
                     <td class="drag-cell"><span title="Item desativado">⋮⋮</span></td>
                     <td class="position-cell"></td>
                     <td class="name-cell">${escapeHtml(item.nome)}</td>
+                    ${tipoCell}
                     <td class="ativo-cell">
                         <div class="form-edit-checkbox">
                             <input type="checkbox" class="form-edit-checkbox-ativo" ${checkedAttr}>
@@ -357,6 +389,21 @@
 
         function buildBlankRow() {
             const inputId = `form-edit-new-name-${entityKey}`;
+            const selectId = `form-edit-new-tipo-${entityKey}`;
+
+            // Coluna tipo_widget apenas para checklist_itens
+            let tipoCell = "";
+            if (entityKey === "checklist_itens") {
+                tipoCell = `
+                    <td class="tipo-cell">
+                        <select id="${selectId}" class="form-edit-select-tipo">
+                            <option value="radio">Ok/Falha</option>
+                            <option value="text">Texto livre</option>
+                        </select>
+                    </td>
+                `;
+            }
+
             return `
                 <tr class="form-edit-row form-edit-row-blank" data-type="blank" data-active-index="${insertIndex}" draggable="true">
                     <td class="drag-cell"><span title="Arrastar para escolher a posição do novo item">⋮⋮</span></td>
@@ -364,6 +411,7 @@
                     <td class="name-cell">
                         <input type="text" id="${inputId}" class="form-edit-input-name" placeholder="Novo registro...">
                     </td>
+                    ${tipoCell}
                     <td class="ativo-cell">
                         <div class="form-edit-checkbox">
                             <input type="checkbox" disabled>
@@ -457,6 +505,19 @@
                 handleAtivoChange(entityKey, idx, chk.checked);
             });
         });
+
+        // Dropdown Tipo (apenas para checklist_itens)
+        if (entityKey === "checklist_itens") {
+            const selectsTipo = tbody.querySelectorAll("select.form-edit-select-tipo");
+            selectsTipo.forEach(function (select) {
+                select.addEventListener("change", function () {
+                    const idx = parseInt(select.getAttribute("data-item-index"), 10);
+                    if (isNaN(idx)) return;
+
+                    handleTipoChange(entityKey, idx, select.value);
+                });
+            });
+        }
 
     }
 
@@ -555,6 +616,27 @@
         renderEntityTable(entityKey);
     }
 
+    function handleTipoChange(entityKey, index, novoTipo) {
+        const ent = state.entities[entityKey];
+        if (!ent || !Array.isArray(ent.items)) return;
+
+        const items = ent.items.slice();
+        const item = items[index];
+        if (!item) return;
+
+        if (item.tipo_widget === novoTipo) {
+            return;
+        }
+
+        item.tipo_widget = novoTipo;
+        item._highlight = true;
+        item._tipo_changed = true; // Flag para indicar que precisa chamar API de update
+
+        ent.items = items;
+        markDirty(entityKey);
+        renderEntityTable(entityKey);
+    }
+
 
 
     function createNewItemFromBlankRow(entityKey, nome) {
@@ -573,6 +655,12 @@
             ativo: true,
             _highlight: true // nova linha já entra destacada
         };
+
+        // Para checklist_itens, inclui o tipo_widget
+        if (entityKey === "checklist_itens") {
+            const selectTipo = document.getElementById(`form-edit-new-tipo-${entityKey}`);
+            novo.tipo_widget = selectTipo ? selectTipo.value : "radio";
+        }
 
         // insere o novo item entre as linhas ativas
         items.splice(insertIndex, 0, novo);
@@ -725,11 +813,16 @@
 
         const payload = {
             items: (ent.items || []).map(function (it) {
-                return {
+                const item = {
                     id: it.id,
                     nome: it.nome,
                     ativo: !!it.ativo
                 };
+                // Para checklist_itens novos, inclui tipo_widget
+                if (entKey === "checklist_itens" && !it.id) {
+                    item.tipo_widget = it.tipo_widget || "radio";
+                }
+                return item;
             })
         };
 
@@ -745,6 +838,29 @@
             alert("Erro ao salvar alterações. Verifique o console para detalhes.");
             console.error("Erro ao salvar", entKey, json);
             return;
+        }
+
+        // Para checklist_itens, processa alterações de tipo_widget de itens existentes
+        if (entKey === "checklist_itens") {
+            const itemsComTipoAlterado = (ent.items || []).filter(function (it) {
+                return it.id && it._tipo_changed;
+            });
+
+            for (let i = 0; i < itemsComTipoAlterado.length; i++) {
+                const it = itemsComTipoAlterado[i];
+                const updateUrl = AppConfig.apiUrl ?
+                    AppConfig.apiUrl("/webhook/admin/form-edit/checklist-item-tipo/update-widget") :
+                    "/webhook/admin/form-edit/checklist-item-tipo/update-widget";
+
+                await fetchJson(updateUrl, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        item_tipo_id: it.id,
+                        tipo_widget: it.tipo_widget
+                    })
+                });
+            }
         }
 
         // Após salvar, recarrega a lista para essa entidade
