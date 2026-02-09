@@ -274,6 +274,12 @@
     // ============================
 
     function renderEntityTable(entityKey) {
+        // Para sala_config, usa renderização específica
+        if (entityKey === "sala_config") {
+            renderSalaConfigTable();
+            return;
+        }
+
         const cfg = ENTITY_CONFIG[entityKey];
         if (!cfg) return;
 
