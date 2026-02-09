@@ -902,6 +902,8 @@
                 id: it.id,
                 item_tipo_id: it.item_tipo_id,
                 nome: it.nome,
+                nome_base: it.nome_base,
+                nome_customizado: it.nome_customizado || null,
                 ativo: !!it.ativo,
                 obrigatorio: !!it.obrigatorio
             };
@@ -999,9 +1001,7 @@
                     <td class="drag-cell"><span title="Arrastar para escolher a posição">⋮⋮</span></td>
                     <td class="position-cell"></td>
                     <td class="name-cell">
-                        <select id="sala-config-new-item-select" class="form-edit-input-name">
-                            <option value="">Adicionar item existente...</option>
-                        </select>
+                        <input type="text" id="sala-config-new-item-input" class="form-edit-input-name" placeholder="Digite o nome do novo item...">
                     </td>
                     <td class="obrigatorio-cell"></td>
                     <td class="ativo-cell"></td>
@@ -1060,6 +1060,14 @@
             tr.addEventListener("dragend", onRowDragEnd);
         });
 
+        // Duplo clique para editar nome (somente itens ativos)
+        const nameCells = tbody.querySelectorAll("tr[data-type='item'] td.name-cell");
+        nameCells.forEach(function (td) {
+            td.addEventListener("dblclick", function () {
+                startEditSalaConfigName(td);
+            });
+        });
+
         // Checkbox Ativo/Ativa
         const checkboxesAtivo = tbody.querySelectorAll("input.form-edit-checkbox-ativo");
         checkboxesAtivo.forEach(function (chk) {
@@ -1090,45 +1098,112 @@
     }
 
     function setupSalaConfigBlankRow() {
-        const select = document.getElementById("sala-config-new-item-select");
-        if (!select) return;
+        const input = document.getElementById("sala-config-new-item-input");
+        if (!input) return;
+
+        input.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter") {
+                ev.preventDefault();
+                input.blur();
+            } else if (ev.key === "Escape") {
+                ev.preventDefault();
+                input.value = "";
+            }
+        });
+
+        input.addEventListener("blur", function () {
+            const value = input.value.trim();
+            if (!value) return;
+            createNewSalaConfigItemFromName(value);
+        });
+    }
+
+    function startEditSalaConfigName(cell) {
+        const row = cell.closest("tr");
+        if (!row) return;
+        const idx = parseInt(row.getAttribute("data-item-index"), 10);
+        if (isNaN(idx)) return;
 
         const ent = state.entities.sala_config;
+        const item = (ent.items || [])[idx];
+        if (!item || !item.ativo) return;
 
-        // Popula o select com itens que ainda não estão na lista
-        const usedItemIds = new Set();
-        (ent.items || []).forEach(function (it) {
-            if (it.item_tipo_id) usedItemIds.add(it.item_tipo_id);
-        });
+        if (cell.querySelector("input")) return;
 
-        const availableItems = (ent.allItemsTipo || []).filter(function (item) {
-            return !usedItemIds.has(item.id);
-        });
+        const current = item.nome || "";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = current;
+        input.className = "form-edit-input-name";
 
-        const opts = ['<option value="">Adicionar item existente...</option>'].concat(
-            availableItems.map(function (item) {
-                return '<option value="' + item.id + '">' + escapeHtml(item.nome) + '</option>';
-            })
-        ).join('');
+        cell.innerHTML = "";
+        cell.appendChild(input);
+        input.focus();
+        input.select();
 
-        select.innerHTML = opts;
+        function commit() {
+            const newVal = input.value.trim();
+            if (newVal && newVal !== item.nome) {
+                // Se o nome foi alterado, salva como nome_customizado
+                if (newVal !== item.nome_base) {
+                    item.nome_customizado = newVal;
+                } else {
+                    item.nome_customizado = null;
+                }
+                item.nome = newVal;
+                item._highlight = true;
+                markDirty("sala_config");
+            }
+            renderSalaConfigTable();
+        }
 
-        select.addEventListener("change", function () {
-            const itemTipoId = parseInt(select.value, 10);
-            if (!itemTipoId || isNaN(itemTipoId)) return;
-
-            const item = ent.allItemsTipo.find(function (it) {
-                return it.id === itemTipoId;
-            });
-
-            if (item) {
-                createNewSalaConfigItem(item);
+        input.addEventListener("blur", commit);
+        input.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter") {
+                ev.preventDefault();
+                input.blur();
+            } else if (ev.key === "Escape") {
+                ev.preventDefault();
+                renderSalaConfigTable();
             }
         });
     }
 
-    function createNewSalaConfigItem(itemTipo) {
+    async function createNewSalaConfigItemFromName(nome) {
         const ent = state.entities.sala_config;
+
+        // Cria o item tipo no backend
+        const base = getFormEditBaseEndpoint();
+        if (!base) return;
+
+        const endpoint = `${base}/checklist-item-tipo/create`;
+        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
+
+        const json = await fetchJson(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nome: nome })
+        });
+
+        if (!json || !json.success) {
+            alert("Erro ao criar item: " + (json && json.message ? json.message : "Erro desconhecido"));
+            renderSalaConfigTable();
+            return;
+        }
+
+        const itemTipoId = json.id;
+        const itemNome = json.nome;
+
+        // Adiciona à lista master se ainda não existe
+        if (!ent.allItemsTipo.find(function (it) { return it.id === itemTipoId; })) {
+            ent.allItemsTipo.push({
+                id: itemTipoId,
+                nome: itemNome,
+                ativo: true
+            });
+        }
+
+        // Adiciona à configuração da sala
         const items = ent.items || [];
         const activeCount = countActive(items);
 
@@ -1139,8 +1214,10 @@
 
         const novo = {
             id: null,
-            item_tipo_id: itemTipo.id,
-            nome: itemTipo.nome,
+            item_tipo_id: itemTipoId,
+            nome: itemNome,
+            nome_base: itemNome,
+            nome_customizado: null,
             ativo: true,
             obrigatorio: true,
             _highlight: true
@@ -1209,7 +1286,8 @@
                     item_tipo_id: it.item_tipo_id,
                     ordem: idx + 1,
                     ativo: true,
-                    obrigatorio: !!it.obrigatorio
+                    obrigatorio: !!it.obrigatorio,
+                    nome_customizado: it.nome_customizado || null
                 };
             })
         };
@@ -1254,7 +1332,8 @@
                     item_tipo_id: it.item_tipo_id,
                     ordem: idx + 1,
                     ativo: true,
-                    obrigatorio: !!it.obrigatorio
+                    obrigatorio: !!it.obrigatorio,
+                    nome_customizado: it.nome_customizado || null
                 };
             })
         };
