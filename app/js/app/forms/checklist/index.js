@@ -1,49 +1,39 @@
 (function () {
     "use strict";
 
-    // ====== Variáveis de Estado ======
-    let _inicioTestes = null;
-    let _terminoTestes = null;
-    let _timerInterval = null;
+    // ====== Estado da Aplicação ======
+    const state = {
+        salaId: null,
+        salaNome: "",       // Para exibição
+        itens: [],          // Lista de itens carregada do backend
+        currentIndex: 0,    // Índice do item atual no array
+        respostas: {},      // Armazena as respostas: { item_id: { status, descricao, valor_texto } }
+        startTime: null     // Data/Hora de início (Auditável, invisível)
+    };
 
     // ====== UI Helpers ======
     const $ = (id) => document.getElementById(id);
 
-    const pad2 = (n) => String(n).padStart(2, '0');
-
     // Formata Date -> HH:MM:SS
+    const pad2 = (n) => String(n).padStart(2, '0');
     const hhmmss = (d) => {
         if (!d) return null;
         return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
     };
 
-    // Atualiza o display do cronômetro
-    function updateCronometro() {
-        if (!_inicioTestes) return;
-        const now = new Date();
-        const diff = Math.floor((now - _inicioTestes) / 1000); // segundos
-
-        const m = Math.floor(diff / 60);
-        const s = diff % 60;
-
-        const el = $("cronometro");
-        if (el) el.textContent = `${pad2(m)}:${pad2(s)}`;
-    }
-
-    // ====== Lógica de Dados ======
+    // ====== Lógica de API ======
 
     // Busca Salas
     async function loadSalas() {
         const url = AppConfig.apiUrl(AppConfig.endpoints.lookups.salas);
         const sel = $("sala_id");
         sel.innerHTML = '<option value="">Carregando...</option>';
+
         try {
             let resp;
             if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(url, { method: 'GET' });
-            else {
-                // Fallback sem auth module (raro)
-                resp = await fetch(url, { method: 'GET' });
-            }
+            else resp = await fetch(url, { method: 'GET' });
+
             const json = await resp.json().catch(() => ({}));
             const rows = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
 
@@ -59,238 +49,380 @@
         }
     }
 
-    // Busca Tipos de Item (NOVO)
-    async function loadItensTipo() {
-        const url = AppConfig.apiUrl(AppConfig.endpoints.forms.checklistItensTipo);
+    // Busca Itens Específicos da Sala
+    async function loadItensPorSala(salaId) {
+        const url = `${AppConfig.apiUrl(AppConfig.endpoints.forms.checklistItensTipo)}?sala_id=${salaId}`;
         try {
             let resp;
             if (window.Auth && Auth.authFetch) resp = await Auth.authFetch(url, { method: 'GET' });
             else resp = await fetch(url, { method: 'GET' });
 
             const json = await resp.json();
+            if (!json.ok) throw new Error(json.error || "Erro ao buscar itens");
+
             return Array.isArray(json.data) ? json.data : [];
         } catch (e) {
-            console.error("Erro ao carregar itens de checklist:", e);
+            console.error("Erro ao carregar itens da sala:", e);
+            alert("Erro ao carregar configuração da sala. Tente novamente.");
             return [];
         }
     }
 
-    // Renderiza os itens na tela
-    function renderItens(listaItens) {
-        const container = $("itens-container");
-        container.innerHTML = "";
+    // ====== Lógica do Wizard (Passo a Passo) ======
 
-        if (!listaItens.length) {
-            container.innerHTML = '<div class="muted">Nenhum item configurado no sistema.</div>';
+    async function startWizard() {
+        if (!state.salaId) return;
+
+        // 1. Busca configuração
+        const btnStart = $("btn-start-wizard");
+        const originalText = btnStart.textContent;
+        btnStart.disabled = true;
+        btnStart.textContent = "Carregando...";
+
+        const itens = await loadItensPorSala(state.salaId);
+
+        if (!itens || itens.length === 0) {
+            alert("Esta sala não possui itens de verificação configurados.");
+            btnStart.textContent = originalText;
+            btnStart.disabled = false;
             return;
         }
 
-        // Ordena por ordem definida no banco
-        listaItens.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+        state.itens = itens;
+        state.currentIndex = 0;
 
-        listaItens.forEach(item => {
-            // Cria ID único para os radios
-            // Ex: item_1_ok, item_1_falha
-            const groupName = `item_${item.id}`;
+        // Se já tiver respostas (usuário foi e voltou), mantemos. Senão, zera.
+        // Neste ponto (startWizard), assume-se um fluxo novo ou reiniciado. 
+        // Se quiser persistir dados ao voltar para o Setup e avançar de novo, não zere aqui.
+        // state.respostas = {}; // Comentado para permitir ir e voltar sem perder
 
-            const div = document.createElement("div");
-            div.className = "check-item";
+        // 2. Registra Início (Auditável) - Se já existir, não sobrescreve (preserva o primeiro clique)
+        if (!state.startTime) {
+            state.startTime = new Date();
+        }
 
-            div.innerHTML = `
-                <span class="check-item-label">${item.nome}</span>
-                <div class="check-item-controls">
-                    <label class="radio">
-                        <input type="radio" name="${groupName}" value="Ok"> Ok
-                    </label>
-                    <label class="radio">
-                        <input type="radio" name="${groupName}" value="Falha"> Falha
-                    </label>
-                </div>
-                <textarea class="falha-descricao" name="${groupName}_falha" placeholder="Descreva a falha..."></textarea>
-            `;
+        // 3. Atualiza UI
+        $("step-setup").classList.add("hidden");
+        $("step-wizard").classList.remove("hidden");
 
-            container.appendChild(div);
+        // Exibe Nome da Sala
+        const sel = $("sala_id");
+        state.salaNome = sel.options[sel.selectedIndex].text;
+        $("wizard-sala-nome").textContent = state.salaNome;
 
-            // Listener para mostrar/esconder textarea
-            const radios = div.querySelectorAll(`input[name="${groupName}"]`);
-            const area = div.querySelector("textarea");
+        // Contadores
+        const elTotal = $("wizard-total");
+        if (elTotal) elTotal.textContent = state.itens.length;
 
-            radios.forEach(r => {
-                r.addEventListener("change", (e) => {
-                    if (e.target.value === "Falha") {
-                        area.style.display = "block";
-                        area.focus();
-                    } else {
-                        area.style.display = "none";
-                        area.value = "";
-                    }
-                });
-            });
-        });
+        btnStart.disabled = false;
+        btnStart.textContent = originalText;
+
+        renderCurrentItem();
     }
 
-    // Lê o status dos itens da tela para enviar
-    function readItensValues() {
-        const itens = [];
-        const blocks = document.querySelectorAll("#itens-container .check-item");
+    function renderCurrentItem() {
+        const item = state.itens[state.currentIndex];
 
-        blocks.forEach(block => {
-            const labelEl = block.querySelector(".check-item-label");
-            const nomeItem = labelEl ? labelEl.textContent.trim() : null;
+        // Recupera resposta salva (se houver) para preencher os campos
+        const savedData = state.respostas[item.id] || null;
 
-            const radio = block.querySelector("input[type=radio]:checked");
-            const status = radio ? radio.value : null;
+        // Atualiza contador visual
+        const elIdx = $("wizard-current-idx");
+        if (elIdx) elIdx.textContent = state.currentIndex + 1;
 
-            const textarea = block.querySelector(".falha-descricao");
-            const desc = textarea && textarea.value.trim() ? textarea.value.trim() : null;
+        // Container
+        const container = $("wizard-container");
+        container.innerHTML = "";
 
-            // Só adiciona se tiver nome (segurança)
-            if (nomeItem) {
-                itens.push({
-                    nome: nomeItem,
-                    status: status, // pode ser null se não marcado
-                    descricao_falha: desc
-                });
-            }
-        });
-        return itens;
+        // Título
+        const h2 = document.createElement("h2");
+        h2.className = "wizard-item-title";
+        h2.textContent = item.nome;
+        container.appendChild(h2);
+
+        // Área de Input
+        const inputArea = document.createElement("div");
+        inputArea.id = "wizard-input-area";
+        container.appendChild(inputArea);
+
+        const btnNext = $("btn-wizard-next");
+
+        // Renderiza
+        if (item.tipo_widget === 'text') {
+            renderTextInput(inputArea, item, btnNext, savedData);
+        } else {
+            renderRadioInput(inputArea, item, btnNext, savedData);
+        }
     }
 
-    function buildPayload() {
-        const val = (id) => ($(id)?.value || "").trim();
-        const toNull = (v) => v || null;
+    // --- Renderizador: TEXTO ---
+    function renderTextInput(container, item, btnNext, savedData) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.id = "wiz_text_val";
+        input.className = "wizard-text-input";
+        input.placeholder = "Digite o valor...";
+        input.autocomplete = "off";
 
-        return {
-            data_operacao: toNull(val('data_operacao')),
-            sala_id: parseInt(val('sala_id'), 10) || null,
-            hora_inicio_testes: _inicioTestes ? hhmmss(_inicioTestes) : null,
-            hora_termino_testes: _terminoTestes ? hhmmss(_terminoTestes) : null,
-            usb_01: toNull(val('usb_01')),
-            usb_02: toNull(val('usb_02')),
-            observacoes: toNull(val('observacoes')),
-            itens: readItensValues()
+        // Restaura valor
+        if (savedData && savedData.valor_texto) {
+            input.value = savedData.valor_texto;
+        }
+
+        container.appendChild(input);
+
+        // Foco
+        setTimeout(() => input.focus(), 100);
+
+        const validate = () => {
+            const val = input.value.trim();
+            const isObrigatorio = false; // Todos os itens são opcionais
+            btnNext.disabled = (isObrigatorio && val.length === 0);
         };
+
+        input.addEventListener("input", validate);
+
+        // Valida estado inicial (se veio preenchido, libera botão)
+        validate();
     }
 
-    // ====== Inicialização ======
+    // --- Renderizador: RADIO (Ok/Falha) ---
+    function renderRadioInput(container, item, btnNext, savedData) {
+        container.innerHTML = `
+            <div class="wizard-radios">
+                <label class="radio-card">
+                    <input type="radio" name="wiz_radio" value="Ok">
+                    <span class="radio-label">✅ Ok</span>
+                </label>
+                <label class="radio-card">
+                    <input type="radio" name="wiz_radio" value="Falha">
+                    <span class="radio-label">❌ Falha</span>
+                </label>
+            </div>
+            <div id="wiz_falha_container" class="hidden" style="margin-top: 15px;">
+                <label class="required">Descrição da falha:</label>
+                <textarea id="wiz_desc_falha" rows="3" placeholder="Descreva o problema (mínimo 10 caracteres)..."></textarea>
+            </div>
+        `;
+
+        const radios = container.querySelectorAll("input[name='wiz_radio']");
+        const areaFalha = container.querySelector("#wiz_falha_container");
+        const txtFalha = container.querySelector("#wiz_desc_falha");
+
+        // --- Restaura Estado Anterior ---
+        if (savedData) {
+            if (savedData.status === "Ok") {
+                const r = container.querySelector("input[value='Ok']");
+                if (r) r.checked = true;
+                btnNext.disabled = false;
+            } else if (savedData.status === "Falha") {
+                const r = container.querySelector("input[value='Falha']");
+                if (r) r.checked = true;
+                areaFalha.classList.remove("hidden");
+                txtFalha.value = savedData.descricao_falha || "";
+
+                // Valida se já libera o botão
+                if (txtFalha.value.length >= 10) btnNext.disabled = false;
+            }
+        } else {
+            // Se não tem dados salvos, bloqueia botão
+            btnNext.disabled = true;
+        }
+
+        const handleRadioChange = (e) => {
+            const val = e.target.value;
+            if (val === "Ok") {
+                areaFalha.classList.add("hidden");
+                txtFalha.value = "";
+                btnNext.disabled = false;
+                btnNext.focus();
+            } else {
+                areaFalha.classList.remove("hidden");
+                txtFalha.focus();
+                btnNext.disabled = true; // Precisa digitar descrição
+            }
+        };
+
+        const handleTextFalha = () => {
+            if (txtFalha.value.trim().length >= 10) {
+                btnNext.disabled = false;
+            } else {
+                btnNext.disabled = true;
+            }
+        };
+
+        radios.forEach(r => r.addEventListener("change", handleRadioChange));
+        txtFalha.addEventListener("input", handleTextFalha);
+    }
+
+    // --- Navegação: Avançar ---
+    function nextStep() {
+        const item = state.itens[state.currentIndex];
+
+        // Salva dados atuais
+        const respostaData = {
+            item_tipo_id: item.id,
+            status: null,
+            descricao_falha: null,
+            valor_texto: null
+        };
+
+        if (item.tipo_widget === 'text') {
+            respostaData.valor_texto = $("wiz_text_val").value.trim();
+            respostaData.status = "Ok";
+        } else {
+            const checked = document.querySelector("input[name='wiz_radio']:checked");
+            if (!checked) return;
+            respostaData.status = checked.value;
+            if (respostaData.status === "Falha") {
+                respostaData.descricao_falha = $("wiz_desc_falha").value.trim();
+            }
+        }
+
+        state.respostas[item.id] = respostaData;
+
+        // Avança
+        if (state.currentIndex < state.itens.length - 1) {
+            state.currentIndex++;
+            renderCurrentItem();
+        } else {
+            finishWizardFlow();
+        }
+    }
+
+    // --- Navegação: Voltar ---
+    function prevStep() {
+        if (state.currentIndex > 0) {
+            // Volta um item no Wizard
+            state.currentIndex--;
+            renderCurrentItem();
+        } else {
+            // Volta para a seleção de sala (Setup)
+            $("step-wizard").classList.add("hidden");
+            $("step-setup").classList.remove("hidden");
+            // Nota: Não zeramos state.respostas propositalmente para manter o preenchimento se ele voltar.
+        }
+    }
+
+    // --- Tela Final ---
+    function finishWizardFlow() {
+        $("step-wizard").classList.add("hidden");
+        $("step-finish").classList.remove("hidden");
+        setTimeout(() => $("observacoes").focus(), 100);
+    }
+
+    function backFromFinish() {
+        // Volta para o último item do wizard
+        $("step-finish").classList.add("hidden");
+        $("step-wizard").classList.remove("hidden");
+        // currentIndex já estará no último índice, basta renderizar
+        renderCurrentItem();
+    }
+
+
+    // ====== Submit Final ======
+    async function submitData() {
+        const btn = $("btn-save-all");
+        const originalTxt = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
+
+        try {
+            const payload = {
+                data_operacao: $("data_operacao").value,
+                sala_id: parseInt(state.salaId, 10),
+                // Auditabilidade invisível
+                hora_inicio_testes: hhmmss(state.startTime),
+                hora_termino_testes: hhmmss(new Date()),
+                observacoes: $("observacoes").value || null,
+                itens: Object.values(state.respostas)
+            };
+
+            const url = AppConfig.apiUrl(AppConfig.endpoints.forms.checklist);
+
+            let resp;
+            const headers = { 'Content-Type': 'application/json' };
+
+            if (window.Auth && Auth.authFetch) {
+                resp = await Auth.authFetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                const token = localStorage.getItem('auth_token');
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+                resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
+            }
+
+            if (resp.status === 401 || resp.status === 403) {
+                alert("Sessão expirada.");
+                window.location.href = "/index.html";
+                return;
+            }
+
+            const json = await resp.json().catch(() => ({}));
+
+            if (resp.ok && json.ok) {
+                alert("Checklist salvo com sucesso!");
+                window.location.href = "/home.html";
+            } else {
+                const msg = json.message || json.error || "Erro ao salvar.";
+                console.warn("Erro backend:", json);
+                alert("Não foi possível salvar: " + msg);
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("Erro de conexão ao salvar.");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalTxt;
+        }
+    }
+
+
+    // ====== Init ======
     document.addEventListener("DOMContentLoaded", async () => {
-        // 1. Data Padrão
-        $("data_operacao").valueAsDate = new Date();
+        const dateInput = $("data_operacao");
+        if (dateInput) dateInput.valueAsDate = new Date();
 
-        // 2. Carregar Dados
         await loadSalas();
-        const itensConfig = await loadItensTipo();
-        renderItens(itensConfig);
 
-        // 3. Cronômetro
-        const btnIniciar = $("btn-iniciar-testes");
-        const btnFinalizar = $("btn-finalizar-testes");
-
-        btnIniciar.addEventListener("click", () => {
-            if (_inicioTestes) return;
-            _inicioTestes = new Date();
-
-            btnIniciar.disabled = true;
-            btnIniciar.classList.remove("btn-primary");
-            btnIniciar.classList.add("btn-secondary");
-
-            btnFinalizar.disabled = false;
-            btnFinalizar.classList.remove("btn-secondary");
-            btnFinalizar.classList.add("btn-danger"); // Destaque visual
-
-            _timerInterval = setInterval(updateCronometro, 1000);
-        });
-
-        btnFinalizar.addEventListener("click", () => {
-            if (!_inicioTestes || _terminoTestes) return;
-            _terminoTestes = new Date();
-
-            clearInterval(_timerInterval);
-            updateCronometro(); // Última atualização
-
-            btnFinalizar.disabled = true;
-            btnFinalizar.textContent = "Testes Finalizados";
-        });
-
-        // 4. Submit
-        $("form-checklist").addEventListener("submit", async (ev) => {
-            ev.preventDefault();
-
-            // Validações de Fluxo
-            if (!_inicioTestes) {
-                alert("Você precisa clicar em 'Iniciar Testes' antes de salvar.");
-                return;
-            }
-            if (!_terminoTestes) {
-                alert("Você precisa clicar em 'Finalizar Testes' antes de salvar.");
-                return;
-            }
-
-            // Validação de Itens (Pelo menos um marcado)
-            const itensValores = readItensValues();
-            const algumMarcado = itensValores.some(it => it.status === "Ok" || it.status === "Falha");
-
-            if (!algumMarcado) {
-                alert("Marque o status (Ok ou Falha) de pelo menos um item antes de salvar.");
-                return;
-            }
-
-            // Se algum estiver marcado como Falha mas sem descrição (opcional, mas boa prática)
-            const falhaSemDesc = itensValores.find(it => it.status === "Falha" && !it.descricao_falha);
-            if (falhaSemDesc) {
-                alert(`O item "${falhaSemDesc.nome}" está marcado como Falha. Por favor, descreva o problema.`);
-                return;
-            }
-
-            // Envio
-            const btn = ev.target.querySelector('button[type="submit"]');
-            const originalTxt = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = "Salvando...";
-
-            try {
-                const url = AppConfig.apiUrl(AppConfig.endpoints.forms.checklist);
-                const payload = buildPayload();
-
-                let resp;
-                if (window.Auth && Auth.authFetch) {
-                    resp = await Auth.authFetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+        // Listeners Setup
+        const selSala = $("sala_id");
+        if (selSala) {
+            selSala.addEventListener("change", (e) => {
+                state.salaId = e.target.value;
+                const btnStart = $("btn-start-wizard");
+                if (state.salaId) {
+                    btnStart.disabled = false;
+                    btnStart.classList.remove("btn-secondary"); // Estilo visual
+                    btnStart.classList.add("btn-primary");
                 } else {
-                    // fallback
-                    const h = { 'Content-Type': 'application/json' };
-                    const t = localStorage.getItem('auth_token');
-                    if (t) h['Authorization'] = 'Bearer ' + t;
-                    resp = await fetch(url, { method: 'POST', headers: h, body: JSON.stringify(payload) });
+                    btnStart.disabled = true;
                 }
+            });
+        }
 
-                if (resp.status === 401 || resp.status === 403) {
-                    alert("Sessão expirada.");
-                    window.location.href = "/index.html";
-                    return;
-                }
+        $("btn-start-wizard").addEventListener("click", startWizard);
 
-                const json = await resp.json().catch(() => ({}));
+        // Listeners Wizard
+        $("btn-wizard-next").addEventListener("click", nextStep);
+        $("btn-wizard-prev").addEventListener("click", prevStep);
 
-                if (resp.ok && json.ok) {
-                    alert("Checklist salvo com sucesso!");
-                    window.location.href = "/home.html";
-                } else {
-                    const msg = json.message || json.error || "Erro ao salvar.";
-                    alert("Não foi possível salvar: " + msg);
-                }
+        // Listeners Finish
+        $("btn-finish-back").addEventListener("click", backFromFinish);
+        $("btn-save-all").addEventListener("click", submitData); // Botão do form final
 
-            } catch (e) {
-                console.error(e);
-                alert("Erro de conexão ao salvar.");
-            } finally {
-                btn.disabled = false;
-                btn.textContent = originalTxt;
-            }
-        });
+        // Bloqueia Submit padrão do Form
+        const form = document.getElementById("form-checklist");
+        if (form) {
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                submitData();
+            });
+        }
     });
 
 })();

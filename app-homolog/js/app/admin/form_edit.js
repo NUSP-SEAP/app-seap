@@ -12,12 +12,6 @@
             cardId: "card-edit-salas",
             title: "Edição de Salas"
         },
-        checklist_itens: {
-            apiKey: "checklist-itens",
-            tableId: "tb-checklist-itens",
-            cardId: "card-edit-checklist",
-            title: "Edição dos Itens de Verificação"
-        },
         comissoes: {
             apiKey: "comissoes",
             tableId: "tb-comissoes",
@@ -28,7 +22,7 @@
             apiKey: "sala-config",
             tableId: "tb-sala-config-itens",
             cardId: "card-edit-sala-config",
-            title: "Configuração de Itens por Sala",
+            title: "Edição dos Itens de Verificação",
             sectionId: "sala-config-section"
         }
     };
@@ -42,13 +36,6 @@
                 items: [],
                 originalItems: [],
                 insertIndex: null  // posição da linha em branco entre as ativas
-            },
-            checklist_itens: {
-                loaded: false,
-                dirty: false,
-                items: [],
-                originalItems: [],
-                insertIndex: null
             },
             comissoes: {
                 loaded: false,
@@ -65,8 +52,7 @@
                 insertIndex: null,
                 salasLoaded: false,
                 salas: [],
-                selectedSalaId: null,
-                allItemsTipo: []  // todos os itens disponíveis (master list)
+                selectedSalaId: null
             }
         }
     };
@@ -255,8 +241,7 @@
             return {
                 id: it.id,
                 nome: it.nome || "",
-                ativo: !!it.ativo,
-                tipo_widget: it.tipo_widget || "radio"  // Para checklist-itens
+                ativo: !!it.ativo
             };
         });
 
@@ -313,26 +298,12 @@
 
         function buildActiveRow(item, index) {
             const pos = index + 1;
-            const itemIndex = index; // ativo sempre está no topo do array canonical
+            const itemIndex = index;
             const checkedAttr = item.ativo ? "checked" : "";
 
             const rowClasses = ["form-edit-row"];
             if (item._highlight) {
                 rowClasses.push("form-edit-row-moved");
-            }
-
-            // Coluna tipo_widget apenas para checklist_itens
-            let tipoCell = "";
-            if (entityKey === "checklist_itens") {
-                const tipoWidget = item.tipo_widget || "radio";
-                tipoCell = `
-                    <td class="tipo-cell">
-                        <select class="form-edit-select-tipo" data-item-index="${itemIndex}">
-                            <option value="radio" ${tipoWidget === "radio" ? "selected" : ""}>Ok/Falha</option>
-                            <option value="text" ${tipoWidget === "text" ? "selected" : ""}>Texto livre</option>
-                        </select>
-                    </td>
-                `;
             }
 
             return `
@@ -344,7 +315,6 @@
                 <td class="drag-cell"><span title="Arrastar para reordenar">⋮⋮</span></td>
                 <td class="position-cell">${pos}</td>
                 <td class="name-cell">${escapeHtml(item.nome)}</td>
-                ${tipoCell}
                 <td class="ativo-cell">
                     <div class="form-edit-checkbox">
                         <input type="checkbox" class="form-edit-checkbox-ativo" ${checkedAttr}>
@@ -358,26 +328,11 @@
             const itemIndex = index;
             const checkedAttr = item.ativo ? "checked" : "";
 
-            // Coluna tipo_widget apenas para checklist_itens
-            let tipoCell = "";
-            if (entityKey === "checklist_itens") {
-                const tipoWidget = item.tipo_widget || "radio";
-                tipoCell = `
-                    <td class="tipo-cell">
-                        <select class="form-edit-select-tipo" data-item-index="${itemIndex}" disabled>
-                            <option value="radio" ${tipoWidget === "radio" ? "selected" : ""}>Ok/Falha</option>
-                            <option value="text" ${tipoWidget === "text" ? "selected" : ""}>Texto livre</option>
-                        </select>
-                    </td>
-                `;
-            }
-
             return `
                 <tr class="form-edit-row form-edit-row-inactive" data-type="inactive" data-item-index="${itemIndex}">
                     <td class="drag-cell"><span title="Item desativado">⋮⋮</span></td>
                     <td class="position-cell"></td>
                     <td class="name-cell">${escapeHtml(item.nome)}</td>
-                    ${tipoCell}
                     <td class="ativo-cell">
                         <div class="form-edit-checkbox">
                             <input type="checkbox" class="form-edit-checkbox-ativo" ${checkedAttr}>
@@ -389,20 +344,6 @@
 
         function buildBlankRow() {
             const inputId = `form-edit-new-name-${entityKey}`;
-            const selectId = `form-edit-new-tipo-${entityKey}`;
-
-            // Coluna tipo_widget apenas para checklist_itens
-            let tipoCell = "";
-            if (entityKey === "checklist_itens") {
-                tipoCell = `
-                    <td class="tipo-cell">
-                        <select id="${selectId}" class="form-edit-select-tipo">
-                            <option value="radio">Ok/Falha</option>
-                            <option value="text">Texto livre</option>
-                        </select>
-                    </td>
-                `;
-            }
 
             return `
                 <tr class="form-edit-row form-edit-row-blank" data-type="blank" data-active-index="${insertIndex}" draggable="true">
@@ -411,7 +352,6 @@
                     <td class="name-cell">
                         <input type="text" id="${inputId}" class="form-edit-input-name" placeholder="Novo registro...">
                     </td>
-                    ${tipoCell}
                     <td class="ativo-cell">
                         <div class="form-edit-checkbox">
                             <input type="checkbox" disabled>
@@ -505,19 +445,6 @@
                 handleAtivoChange(entityKey, idx, chk.checked);
             });
         });
-
-        // Dropdown Tipo (apenas para checklist_itens)
-        if (entityKey === "checklist_itens") {
-            const selectsTipo = tbody.querySelectorAll("select.form-edit-select-tipo");
-            selectsTipo.forEach(function (select) {
-                select.addEventListener("change", function () {
-                    const idx = parseInt(select.getAttribute("data-item-index"), 10);
-                    if (isNaN(idx)) return;
-
-                    handleTipoChange(entityKey, idx, select.value);
-                });
-            });
-        }
 
     }
 
@@ -616,28 +543,6 @@
         renderEntityTable(entityKey);
     }
 
-    function handleTipoChange(entityKey, index, novoTipo) {
-        const ent = state.entities[entityKey];
-        if (!ent || !Array.isArray(ent.items)) return;
-
-        const items = ent.items.slice();
-        const item = items[index];
-        if (!item) return;
-
-        if (item.tipo_widget === novoTipo) {
-            return;
-        }
-
-        item.tipo_widget = novoTipo;
-        item._highlight = true;
-        item._tipo_changed = true; // Flag para indicar que precisa chamar API de update
-
-        ent.items = items;
-        markDirty(entityKey);
-        renderEntityTable(entityKey);
-    }
-
-
 
     function createNewItemFromBlankRow(entityKey, nome) {
         const ent = state.entities[entityKey];
@@ -653,14 +558,8 @@
             id: null,
             nome: nome,
             ativo: true,
-            _highlight: true // nova linha já entra destacada
+            _highlight: true
         };
-
-        // Para checklist_itens, inclui o tipo_widget
-        if (entityKey === "checklist_itens") {
-            const selectTipo = document.getElementById(`form-edit-new-tipo-${entityKey}`);
-            novo.tipo_widget = selectTipo ? selectTipo.value : "radio";
-        }
 
         // insere o novo item entre as linhas ativas
         items.splice(insertIndex, 0, novo);
@@ -813,16 +712,11 @@
 
         const payload = {
             items: (ent.items || []).map(function (it) {
-                const item = {
+                return {
                     id: it.id,
                     nome: it.nome,
                     ativo: !!it.ativo
                 };
-                // Para checklist_itens novos, inclui tipo_widget
-                if (entKey === "checklist_itens" && !it.id) {
-                    item.tipo_widget = it.tipo_widget || "radio";
-                }
-                return item;
             })
         };
 
@@ -838,29 +732,6 @@
             alert("Erro ao salvar alterações. Verifique o console para detalhes.");
             console.error("Erro ao salvar", entKey, json);
             return;
-        }
-
-        // Para checklist_itens, processa alterações de tipo_widget de itens existentes
-        if (entKey === "checklist_itens") {
-            const itemsComTipoAlterado = (ent.items || []).filter(function (it) {
-                return it.id && it._tipo_changed;
-            });
-
-            for (let i = 0; i < itemsComTipoAlterado.length; i++) {
-                const it = itemsComTipoAlterado[i];
-                const updateUrl = AppConfig.apiUrl ?
-                    AppConfig.apiUrl("/webhook/admin/form-edit/checklist-item-tipo/update-widget") :
-                    "/webhook/admin/form-edit/checklist-item-tipo/update-widget";
-
-                await fetchJson(updateUrl, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        item_tipo_id: it.id,
-                        tipo_widget: it.tipo_widget
-                    })
-                });
-            }
         }
 
         // Após salvar, recarrega a lista para essa entidade
@@ -949,27 +820,6 @@
         }
     }
 
-    async function loadAllItemsTipo() {
-        const ent = state.entities.sala_config;
-        if (ent.allItemsTipo.length > 0) return; // Já carregado
-
-        const base = getFormEditBaseEndpoint();
-        if (!base) return;
-
-        const endpoint = `${base}/checklist-itens/list`;
-        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
-
-        const json = await fetchJson(url);
-        if (!json || !json.success) {
-            console.error("Falha ao carregar itens tipo", json);
-            return;
-        }
-
-        ent.allItemsTipo = (json.items || []).filter(function (item) {
-            return item.ativo; // Apenas itens ativos da lista mestre
-        });
-    }
-
     async function loadSalaConfigItems(salaId) {
         const ent = state.entities.sala_config;
 
@@ -985,7 +835,7 @@
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="empty-state">Carregando configuração...</td>
+                        <td colspan="5" class="empty-state">Carregando configuração...</td>
                     </tr>
                 `;
             }
@@ -999,7 +849,7 @@
                 if (tbody) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="empty-state">Erro ao carregar configuração.</td>
+                            <td colspan="5" class="empty-state">Erro ao carregar configuração.</td>
                         </tr>
                     `;
                 }
@@ -1024,10 +874,8 @@
                 id: it.id,
                 item_tipo_id: it.item_tipo_id,
                 nome: it.nome,
-                nome_base: it.nome_base,
-                nome_customizado: it.nome_customizado || null,
-                ativo: !!it.ativo,
-                obrigatorio: !!it.obrigatorio
+                tipo_widget: it.tipo_widget || "radio",
+                ativo: !!it.ativo
             };
         });
     }
@@ -1064,15 +912,13 @@
             const pos = index + 1;
             const itemIndex = index;
             const checkedAtivo = item.ativo ? "checked" : "";
-            const checkedObrig = item.obrigatorio ? "checked" : "";
 
             const rowClasses = ["form-edit-row"];
             if (item._highlight) {
                 rowClasses.push("form-edit-row-moved");
             }
 
-            // Exibe tipo do widget (somente leitura)
-            const tipoLabel = item.tipo_widget === "text" ? "Texto livre" : "Ok/Falha";
+            const tipoWidget = item.tipo_widget || "radio";
 
             return `
             <tr class="${rowClasses.join(" ")}"
@@ -1083,11 +929,11 @@
                 <td class="drag-cell"><span title="Arrastar para reordenar">⋮⋮</span></td>
                 <td class="position-cell">${pos}</td>
                 <td class="name-cell">${escapeHtml(item.nome)}</td>
-                <td class="tipo-cell" style="color: #64748b; font-size: 0.9em;">${tipoLabel}</td>
-                <td class="obrigatorio-cell">
-                    <div class="form-edit-checkbox">
-                        <input type="checkbox" class="form-edit-checkbox-obrigatorio" ${checkedObrig}>
-                    </div>
+                <td class="tipo-cell">
+                    <select class="form-edit-select-tipo" data-item-index="${itemIndex}">
+                        <option value="radio" ${tipoWidget === "radio" ? "selected" : ""}>Ok/Falha</option>
+                        <option value="text" ${tipoWidget === "text" ? "selected" : ""}>Texto livre</option>
+                    </select>
                 </td>
                 <td class="ativo-cell">
                     <div class="form-edit-checkbox">
@@ -1101,9 +947,6 @@
         function buildInactiveRow(item, index) {
             const itemIndex = index;
             const checkedAtivo = item.ativo ? "checked" : "";
-            const checkedObrig = item.obrigatorio ? "checked" : "";
-
-            // Exibe tipo do widget (somente leitura)
             const tipoLabel = item.tipo_widget === "text" ? "Texto livre" : "Ok/Falha";
 
             return `
@@ -1112,11 +955,6 @@
                     <td class="position-cell"></td>
                     <td class="name-cell">${escapeHtml(item.nome)}</td>
                     <td class="tipo-cell" style="color: #64748b; font-size: 0.9em;">${tipoLabel}</td>
-                    <td class="obrigatorio-cell">
-                        <div class="form-edit-checkbox">
-                            <input type="checkbox" class="form-edit-checkbox-obrigatorio" ${checkedObrig} disabled>
-                        </div>
-                    </td>
                     <td class="ativo-cell">
                         <div class="form-edit-checkbox">
                             <input type="checkbox" class="form-edit-checkbox-ativo" ${checkedAtivo}>
@@ -1134,8 +972,12 @@
                     <td class="name-cell">
                         <input type="text" id="sala-config-new-item-input" class="form-edit-input-name" placeholder="Digite o nome do novo item...">
                     </td>
-                    <td class="tipo-cell"></td>
-                    <td class="obrigatorio-cell"></td>
+                    <td class="tipo-cell">
+                        <select id="sala-config-new-tipo-input" class="form-edit-select-tipo">
+                            <option value="radio">Ok/Falha</option>
+                            <option value="text">Texto livre</option>
+                        </select>
+                    </td>
                     <td class="ativo-cell"></td>
                 </tr>
             `;
@@ -1160,7 +1002,7 @@
         if (!html) {
             html = `
                 <tr>
-                    <td colspan="6" class="empty-state">Nenhum item configurado.</td>
+                    <td colspan="5" class="empty-state">Nenhum item configurado.</td>
                 </tr>
             `;
         }
@@ -1214,17 +1056,13 @@
             });
         });
 
-        // Checkbox Obrigatório
-        const checkboxesObrig = tbody.querySelectorAll("input.form-edit-checkbox-obrigatorio");
-        checkboxesObrig.forEach(function (chk) {
-            chk.addEventListener("change", function () {
-                const row = chk.closest("tr");
-                if (!row) return;
-
-                const idx = parseInt(row.getAttribute("data-item-index"), 10);
+        // Dropdown Tipo
+        const selectsTipo = tbody.querySelectorAll("select.form-edit-select-tipo");
+        selectsTipo.forEach(function (select) {
+            select.addEventListener("change", function () {
+                const idx = parseInt(select.getAttribute("data-item-index"), 10);
                 if (isNaN(idx)) return;
-
-                handleSalaConfigObrigatorioChange(idx, chk.checked);
+                handleSalaConfigTipoChange(idx, select.value);
             });
         });
     }
@@ -1276,12 +1114,6 @@
         function commit() {
             const newVal = input.value.trim();
             if (newVal && newVal !== item.nome) {
-                // Se o nome foi alterado, salva como nome_customizado
-                if (newVal !== item.nome_base) {
-                    item.nome_customizado = newVal;
-                } else {
-                    item.nome_customizado = null;
-                }
                 item.nome = newVal;
                 item._highlight = true;
                 markDirty("sala_config");
@@ -1301,41 +1133,13 @@
         });
     }
 
-    async function createNewSalaConfigItemFromName(nome) {
+    function createNewSalaConfigItemFromName(nome) {
         const ent = state.entities.sala_config;
 
-        // Cria o item tipo no backend
-        const base = getFormEditBaseEndpoint();
-        if (!base) return;
+        // Captura tipo_widget do dropdown da linha em branco
+        const tipoSelect = document.getElementById("sala-config-new-tipo-input");
+        const tipoWidget = tipoSelect ? tipoSelect.value : "radio";
 
-        const endpoint = `${base}/checklist-item-tipo/create`;
-        const url = AppConfig.apiUrl ? AppConfig.apiUrl(endpoint) : endpoint;
-
-        const json = await fetchJson(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome: nome })
-        });
-
-        if (!json || !json.success) {
-            alert("Erro ao criar item: " + (json && json.message ? json.message : "Erro desconhecido"));
-            renderSalaConfigTable();
-            return;
-        }
-
-        const itemTipoId = json.id;
-        const itemNome = json.nome;
-
-        // Adiciona à lista master se ainda não existe
-        if (!ent.allItemsTipo.find(function (it) { return it.id === itemTipoId; })) {
-            ent.allItemsTipo.push({
-                id: itemTipoId,
-                nome: itemNome,
-                ativo: true
-            });
-        }
-
-        // Adiciona à configuração da sala
         const items = ent.items || [];
         const activeCount = countActive(items);
 
@@ -1346,12 +1150,10 @@
 
         const novo = {
             id: null,
-            item_tipo_id: itemTipoId,
-            nome: itemNome,
-            nome_base: itemNome,
-            nome_customizado: null,
+            item_tipo_id: null,
+            nome: nome,
+            tipo_widget: tipoWidget,
             ativo: true,
-            obrigatorio: true,
             _highlight: true
         };
 
@@ -1384,14 +1186,14 @@
         renderSalaConfigTable();
     }
 
-    function handleSalaConfigObrigatorioChange(index, checked) {
+    function handleSalaConfigTipoChange(index, novoTipo) {
         const ent = state.entities.sala_config;
         if (!ent || !Array.isArray(ent.items)) return;
 
         const item = ent.items[index];
-        if (!item || !item.ativo) return;
+        if (!item || !item.ativo || item.tipo_widget === novoTipo) return;
 
-        item.obrigatorio = !!checked;
+        item.tipo_widget = novoTipo;
         item._highlight = true;
 
         markDirty("sala_config");
@@ -1412,14 +1214,13 @@
         const payload = {
             sala_id: salaId,
             items: (ent.items || []).filter(function (it) {
-                return it.ativo; // Envia apenas itens ativos
+                return it.ativo;
             }).map(function (it, idx) {
                 return {
-                    item_tipo_id: it.item_tipo_id,
+                    nome: it.nome,
+                    tipo_widget: it.tipo_widget || "radio",
                     ordem: idx + 1,
-                    ativo: true,
-                    obrigatorio: !!it.obrigatorio,
-                    nome_customizado: it.nome_customizado || null
+                    ativo: true
                 };
             })
         };
@@ -1461,11 +1262,10 @@
                 return it.ativo;
             }).map(function (it, idx) {
                 return {
-                    item_tipo_id: it.item_tipo_id,
+                    nome: it.nome,
+                    tipo_widget: it.tipo_widget || "radio",
                     ordem: idx + 1,
-                    ativo: true,
-                    obrigatorio: !!it.obrigatorio,
-                    nome_customizado: it.nome_customizado || null
+                    ativo: true
                 };
             })
         };
@@ -1511,7 +1311,6 @@
                     if (entityKey === "sala_config") {
                         if (!ent.salasLoaded) {
                             loadSalasForConfig();
-                            loadAllItemsTipo();
                         }
                     } else {
                         if (!ent.loaded) {

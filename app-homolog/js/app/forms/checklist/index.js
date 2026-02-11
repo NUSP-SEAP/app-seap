@@ -176,7 +176,7 @@
 
         const validate = () => {
             const val = input.value.trim();
-            const isObrigatorio = (item.obrigatorio !== false);
+            const isObrigatorio = false; // Todos os itens são opcionais
             btnNext.disabled = (isObrigatorio && val.length === 0);
         };
 

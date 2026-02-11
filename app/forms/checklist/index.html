@@ -14,67 +14,77 @@
     <main>
         <div class="card">
             <h1>Verificação de Salas</h1>
-            <p class="muted">Inicie o cronômetro, verifique os itens e finalize para salvar.</p>
 
-            <form id="form-checklist" novalidate>
-                <input type="hidden" id="hora_inicio_testes" name="hora_inicio_testes" />
-                <input type="hidden" id="hora_termino_testes" name="hora_termino_testes" />
+            <form id="form-checklist" novalidate onsubmit="return false;">
 
-                <div class="timer-container">
-                    <button type="button" id="btn-iniciar-testes" class="btn btn-primary btn-timer">
-                        ▶ Iniciar Testes
-                    </button>
-                    <span id="cronometro" class="timer-display">00:00</span>
-                </div>
+                <div id="step-setup">
+                    <p class="muted">Selecione o local para iniciar a verificação.</p>
 
-                <div class="grid grid-2">
-                    <div>
-                        <label class="required" for="data_operacao">Data</label>
-                        <input type="date" id="data_operacao" name="data_operacao" required />
+                    <div class="grid grid-2">
+                        <div>
+                            <label class="required" for="data_operacao">Data</label>
+                            <input type="date" id="data_operacao" name="data_operacao" required />
+                        </div>
+                        <div>
+                            <label class="required" for="sala_id">Local</label>
+                            <select id="sala_id" name="sala_id" disabled required>
+                                <option value="">Carregando...</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label class="required" for="sala_id">Local</label>
-                        <select id="sala_id" name="sala_id" disabled required>
-                            <option value="">Carregando...</option>
-                        </select>
-                    </div>
-                </div>
 
-                <div>
-                    <div class="section-title">Itens Verificados</div>
+                    <div class="actions" style="justify-content: space-between; margin-top: 20px;">
+                        <a href="/home.html" class="btn btn-secondary">← Voltar</a>
 
-                    <div id="itens-container" class="checklist">
-                        <div class="muted">Carregando itens de verificação...</div>
+                        <button type="button" id="btn-start-wizard" class="btn btn-primary" disabled>
+                            Avançar →
+                        </button>
                     </div>
                 </div>
 
-                <div class="grid grid-2">
-                    <div>
-                        <div class="section-title">Trilha do Gravador 01</div>
-                        <input type="text" id="usb_01" name="usb_01" placeholder="USB / Tascam" />
+                <div id="step-wizard" class="hidden">
+                    <div
+                        style="background: #eff6ff; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #dbeafe;">
+                        <span
+                            style="color: #64748b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Verificando:</span>
+                        <div id="wizard-sala-nome" style="font-size: 1.2rem; font-weight: 600; color: #1e293b;">--</div>
                     </div>
-                    <div>
-                        <div class="section-title">Trilha do Gravador 02</div>
-                        <input type="text" id="usb_02" name="usb_02" placeholder="USB / Tascam" />
+
+                    <div id="wizard-container" class="checklist-wizard-container" style="min-height: 200px;">
+                    </div>
+
+                    <div class="actions wizard-actions" style="justify-content: space-between; margin-top: 20px;">
+                        <button type="button" id="btn-wizard-prev" class="btn btn-secondary">
+                            ← Voltar
+                        </button>
+
+                        <button type="button" id="btn-wizard-next" class="btn btn-primary" disabled>
+                            Confirmar e Avançar →
+                        </button>
+                    </div>
+
+                    <div class="wizard-progress"
+                        style="text-align: center; margin-top: 15px; color: #94a3b8; font-size: 0.9rem;">
+                        Item <span id="wizard-current-idx">1</span> de <span id="wizard-total">--</span>
                     </div>
                 </div>
 
-                <div>
-                    <div class="section-title">Observações</div>
-                    <textarea id="observacoes" name="observacoes"></textarea>
+                <div id="step-finish" class="hidden">
+                    <div class="section-title">Observações Finais</div>
+                    <textarea id="observacoes" name="observacoes"
+                        placeholder="Algo mais a relatar sobre esta sala?"></textarea>
+
+                    <div class="actions" style="justify-content: space-between; margin-top: 20px;">
+                        <button type="button" id="btn-finish-back" class="btn btn-secondary">
+                            ← Voltar
+                        </button>
+
+                        <button type="submit" id="btn-save-all" class="btn btn-primary">
+                            Salvar Verificação
+                        </button>
+                    </div>
                 </div>
 
-                <div class="actions" style="flex-wrap: wrap; gap: 10px;">
-                    <a href="/home.html" class="btn btn-secondary">Voltar</a>
-
-                    <button type="button" id="btn-finalizar-testes" class="btn btn-secondary" disabled>
-                        ⏹ Finalizar Testes
-                    </button>
-
-                    <button type="submit" class="btn btn-primary">Salvar verificação</button>
-                </div>
-
-                <div id="msg" class="card hidden" style="margin-top:12px;"></div>
             </form>
         </div>
     </main>

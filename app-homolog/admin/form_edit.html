@@ -30,19 +30,14 @@
                 <div class="muted">Definir nomes e ordem das salas</div>
             </a>
 
-            <a href="#" class="card form-edit-card" id="card-edit-checklist" data-entity="checklist_itens">
-                Edição dos Itens de Verificação
-                <div class="muted">Gerenciar nomes e ordem dos itens do checklist</div>
-            </a>
-
             <a href="#" class="card form-edit-card" id="card-edit-comissoes" data-entity="comissoes">
                 Edição de Comissões
                 <div class="muted">Configurar lista de comissões</div>
             </a>
 
             <a href="#" class="card form-edit-card" id="card-edit-sala-config" data-entity="sala_config">
-                Configuração de Itens por Sala
-                <div class="muted">Gerenciar itens específicos de cada sala</div>
+                Edição dos Itens de Verificação
+                <div class="muted">Gerenciar itens de checklist por sala</div>
             </a>
         </div>
 
@@ -65,24 +60,6 @@
                     <tbody>
                         <tr>
                             <td colspan="4" class="empty-state">Nenhuma sala carregada.</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Tabela Itens de Verificação -->
-                <table id="tb-checklist-itens" class="data-table form-edit-table hidden"
-                    data-entity-key="checklist_itens">
-                    <thead>
-                        <tr>
-                            <th style="width: 32px;"></th>
-                            <th style="width: 80px;">Posição</th>
-                            <th>Nome do Item</th>
-                            <th style="width: 90px;">Ativo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="4" class="empty-state">Nenhum item carregado.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -126,14 +103,13 @@
                                 <th style="width: 32px;"></th>
                                 <th style="width: 80px;">Posição</th>
                                 <th>Nome do Item</th>
-                                <th style="width: 120px;">Tipo</th>
-                                <th style="width: 110px;">Obrigatório</th>
+                                <th style="width: 140px;">Tipo</th>
                                 <th style="width: 90px;">Ativo</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="6" class="empty-state">Selecione uma sala para configurar.</td>
+                                <td colspan="5" class="empty-state">Selecione uma sala para configurar.</td>
                             </tr>
                         </tbody>
                     </table>
