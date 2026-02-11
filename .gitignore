@@ -15,3 +15,5 @@ html/
 
 # Outros arquivos
 old_*
+*.sql
+*.md
