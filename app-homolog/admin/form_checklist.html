@@ -15,10 +15,8 @@
     <main>
         <div class="card">
             <span class="read-only-badge">Apenas Leitura</span>
-            <h1>Detalhe da Verificação de Sala</h1>
-            <p class="subtitle">
-                Visualização administrativa do checklist nº <span id="display-id">--</span>.
-            </p>
+            <h1>Detalhe da Verificação de Plenário</h1>
+            <p class="subtitle" id="display-id" style="display:none"></p>
 
             <form id="form-checklist-readonly">
                 <!-- 1) Identificação -->
@@ -50,35 +48,22 @@
                     </div>
                 </div>
 
-                <!-- 2) Itens do teste -->
-                <div class="section-title">2) Itens do teste</div>
+                <!-- 2) Itens Verificados -->
+                <div class="section-title">2) Itens Verificados</div>
                 <div id="checklist-items-container" class="checklist">
                     <!-- Itens serão injetados aqui via JS -->
                     <div class="muted">Carregando itens...</div>
                 </div>
 
-                <!-- 3) Recursos/Parâmetros -->
-                <div class="section-title">3) Recursos/Parâmetros</div>
-                <div class="grid grid-2">
-                    <div>
-                        <div class="section-title">Trilha do Gravador 01</div>
-                        <input type="text" id="usb_01" readonly />
-                    </div>
-                    <div>
-                        <div class="section-title">Trilha do Gravador 01</div>
-                        <input type="text" id="usb_02" readonly />
-                    </div>
-                </div>
-
-                <!-- 4) Observações -->
-                <div class="section-title">4) Observações</div>
+                <!-- 3) Observações -->
+                <div class="section-title">3) Observações</div>
                 <div>
                     <label for="observacoes">Anotações gerais</label>
                     <textarea id="observacoes" readonly></textarea>
                 </div>
 
-                <!-- 5) Responsável -->
-                <div class="section-title">5) Responsável</div>
+                <!-- 4) Responsável -->
+                <div class="section-title">4) Responsável</div>
                 <div>
                     <label for="operador_nome">Verificado por</label>
                     <input type="text" id="operador_nome" readonly />

@@ -48,7 +48,7 @@
 
             const d = json.data;
 
-            // Preenche Header
+            // Preenche Header (mantém o ID oculto para referência)
             document.getElementById("display-id").textContent = d.id;
 
             // Preenche Campos
@@ -58,8 +58,6 @@
             setVal("hora_inicio", fmtTime(d.hora_inicio));
             setVal("hora_termino", fmtTime(d.hora_termino));
             setVal("duracao", d.duracao);
-            setVal("usb_01", d.usb_01);
-            setVal("usb_02", d.usb_02);
             setVal("observacoes", d.observacoes);
             setVal("operador_nome", d.operador_nome || "Sistema");
 
@@ -83,30 +81,45 @@
 
         let html = '';
         itens.forEach(it => {
-            const statusClass = it.status === 'Ok' ? 'status-ok' : 'status-falha';
-            const statusIcon = it.status === 'Ok' ? '✅' : '❌';
+            const isText = it.tipo_widget === 'text';
 
-            // Só mostra a descrição se houver falha e texto
-            let descHtml = '';
-            if (it.status === 'Falha' && it.descricao_falha) {
-                descHtml = `
-                    <div class="falha-box">
-                        <strong>Descrição da falha:</strong> ${it.descricao_falha}
+            if (isText) {
+                // Item de texto livre: exibe o valor preenchido
+                const valor = it.valor_texto || '--';
+                html += `
+                    <div class="check-item-readonly">
+                        <div class="check-header">
+                            <span class="check-label">${it.item_nome}</span>
+                        </div>
+                        <div class="text-value-box">${valor}</div>
+                    </div>
+                `;
+            } else {
+                // Item radio (Ok/Falha)
+                const statusClass = it.status === 'Ok' ? 'status-ok' : 'status-falha';
+                const statusIcon = it.status === 'Ok' ? '✅' : '❌';
+
+                let descHtml = '';
+                if (it.status === 'Falha' && it.descricao_falha) {
+                    descHtml = `
+                        <div class="falha-box">
+                            <strong>Descrição da falha:</strong> ${it.descricao_falha}
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="check-item-readonly">
+                        <div class="check-header">
+                            <span class="check-label">${it.item_nome}</span>
+                            <span class="check-status ${statusClass}">
+                                ${statusIcon} ${it.status}
+                            </span>
+                        </div>
+                        ${descHtml}
                     </div>
                 `;
             }
-
-            html += `
-                <div class="check-item-readonly">
-                    <div class="check-header">
-                        <span class="check-label">${it.item_nome}</span>
-                        <span class="check-status ${statusClass}">
-                            ${statusIcon} ${it.status}
-                        </span>
-                    </div>
-                    ${descHtml}
-                </div>
-            `;
         });
 
         container.innerHTML = html;

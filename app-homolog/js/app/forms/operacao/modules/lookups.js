@@ -25,17 +25,17 @@ export async function loadSalas(salaSelect) {
 
         const json = await safeJson(resp);
         if (!resp.ok || !json || json.ok === false || !Array.isArray(json.data)) {
-            console.error("Falha ao carregar salas:", json);
+            console.error("Falha ao carregar locais:", json);
             salaSelect.innerHTML =
-                '<option value="">Falha ao carregar salas</option>';
+                '<option value="">Falha ao carregar locais</option>';
             return;
         }
 
-        fillSelect(salaSelect, json.data, "id", "nome", "Selecione a sala");
+        fillSelect(salaSelect, json.data, "id", "nome", "Selecione o local");
     } catch (e) {
         console.error("Erro inesperado ao carregar salas:", e);
         salaSelect.innerHTML =
-            '<option value="">Falha ao carregar salas</option>';
+            '<option value="">Falha ao carregar locais</option>';
     } finally {
         salaSelect.disabled = false;
     }

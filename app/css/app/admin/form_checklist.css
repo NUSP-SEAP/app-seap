@@ -78,3 +78,13 @@ textarea {
     color: #7f1d1d;
     font-size: 0.9rem;
 }
+
+.text-value-box {
+    margin-top: 6px;
+    padding: 8px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #334155;
+    font-size: 0.9rem;
+}

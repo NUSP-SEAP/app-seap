@@ -158,7 +158,7 @@ export async function salvarEntrada(modo, elements, opcoes) {
 
     if (!form) return;
     if (!salaSelect || !salaSelect.value) {
-        alert("Selecione uma sala antes de salvar o registro.");
+        alert("Selecione um local antes de salvar o registro.");
         return;
     }
 
@@ -177,7 +177,7 @@ export async function salvarEntrada(modo, elements, opcoes) {
         const optSala = salaSelect.options[salaSelect.selectedIndex] || null;
         const textoSala = ((optSala && (optSala.textContent || optSala.innerText || optSala.label)) || "").toLowerCase();
         const isAuditorio = /audit[oó]rio/.test(textoSala);
-        const isPlenario = /plen[áa]rio/.test(textoSala);
+        const isPlenario = /plen[áa]rio(?!\s*\d)/.test(textoSala);
         const exigeTipo = !isAuditorio && !isPlenario;
 
         if (exigeTipo && !comissaoSelect.value) {

@@ -703,18 +703,27 @@
                             <tr>
                                 <th>Item verificado</th>
                                 <th style="width:100px;">Status</th>
-                                <th>Descrição da Falha</th>
+                                <th>Descrição</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${chk.itens.map(it => {
-                    const color = it.status === 'Ok' ? 'green' : 'red';
-                    const weight = it.status === 'Falha' ? 'bold' : 'normal';
+                    const isText = it.tipo_widget === 'text';
+                    let statusHtml, descricao;
+                    if (isText) {
+                        statusHtml = `<span style="color:#333">Texto</span>`;
+                        descricao = it.valor_texto || '-';
+                    } else {
+                        const color = it.status === 'Ok' ? 'green' : 'red';
+                        const weight = it.status === 'Falha' ? 'bold' : 'normal';
+                        statusHtml = `<span style="color:${color}; font-weight:${weight}">${it.status}</span>`;
+                        descricao = it.falha || '-';
+                    }
                     return `
                                     <tr>
                                         <td>${it.item}</td>
-                                        <td style="color:${color}; font-weight:${weight}">${it.status}</td>
-                                        <td>${it.falha || '-'}</td>
+                                        <td>${statusHtml}</td>
+                                        <td>${descricao}</td>
                                     </tr>
                                 `;
                 }).join('')}
@@ -829,7 +838,7 @@
                 tableId: "tb-checklists",
                 state: stateChk,
                 columns: {
-                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala_nome", label: "Sala" },
+                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala_nome", label: "Local" },
                     data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
                     operador: { type: "text", sortable: true, sortKey: "operador", dataKey: "operador", label: "Verificado por" },
 

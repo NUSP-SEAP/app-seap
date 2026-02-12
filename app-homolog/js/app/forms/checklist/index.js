@@ -62,8 +62,8 @@
 
             return Array.isArray(json.data) ? json.data : [];
         } catch (e) {
-            console.error("Erro ao carregar itens da sala:", e);
-            alert("Erro ao carregar configuração da sala. Tente novamente.");
+            console.error("Erro ao carregar itens do local:", e);
+            alert("Erro ao carregar configuração do local. Tente novamente.");
             return [];
         }
     }
@@ -82,7 +82,7 @@
         const itens = await loadItensPorSala(state.salaId);
 
         if (!itens || itens.length === 0) {
-            alert("Esta sala não possui itens de verificação configurados.");
+            alert("Este local não possui itens de verificação configurados.");
             btnStart.textContent = originalText;
             btnStart.disabled = false;
             return;

@@ -800,12 +800,12 @@
         const salas = ent.salas || [];
 
         if (salas.length === 0) {
-            select.innerHTML = '<option value="">Nenhuma sala disponível</option>';
+            select.innerHTML = '<option value="">Nenhum local disponível</option>';
             select.disabled = true;
             return;
         }
 
-        const opts = ['<option value="">Selecione uma sala...</option>'].concat(
+        const opts = ['<option value="">Selecione um local...</option>'].concat(
             salas.map(function (sala) {
                 return '<option value="' + sala.id + '">' + escapeHtml(sala.nome) + '</option>';
             })
@@ -1245,8 +1245,8 @@
         const ent = state.entities.sala_config;
         if (!ent.selectedSalaId) return;
 
-        const confirmMsg = "Deseja aplicar a configuração atual a TODAS as salas?\n\n" +
-                          "Isso irá sobrescrever a configuração individual de cada sala.";
+        const confirmMsg = "Deseja aplicar a configuração atual a TODOS os locais?\n\n" +
+                          "Isso irá sobrescrever a configuração individual de cada local.";
 
         if (!confirm(confirmMsg)) return;
 
@@ -1282,7 +1282,7 @@
         }
 
         const salasAtualizadas = json.salas_atualizadas || 0;
-        alert("Configuração aplicada com sucesso a " + salasAtualizadas + " sala(s)!");
+        alert("Configuração aplicada com sucesso a " + salasAtualizadas + " local(is)!");
         markDirty("sala_config", false);
     }
 

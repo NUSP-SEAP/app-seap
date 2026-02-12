@@ -30,7 +30,7 @@
     function getOperacoesColumns() {
         if (stateOps.groupBySala) {
             return {
-                sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Local" },
                 data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
                 autor: { type: "text", sortable: true, sortKey: "autor", dataKey: "autor", label: "1º Registro por" },
                 verificacao: { type: "text", sortable: false, dataKey: "verificacao", label: "Checklist" },
@@ -40,7 +40,7 @@
         }
 
         return {
-            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Local" },
             data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
             operador: { type: "text", sortable: true, sortKey: "operador", dataKey: "operador", label: "Operador" },
             tipo: { type: "text", sortable: true, sortKey: "tipo", dataKey: "tipo", label: "Tipo" },
@@ -1264,7 +1264,7 @@
                     // Então devolvemos a configuração de colunas conforme o modo atual.
                     if (stateOps.groupBySala) {
                         return {
-                            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Local" },
                             data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
                             autor: { type: "text", sortable: true, sortKey: "autor", dataKey: "autor", label: "1º Registro por" },
                             verificacao: { type: "text", sortable: false, dataKey: "verificacao", label: "Checklist?" },
@@ -1274,7 +1274,7 @@
 
                     // Modo lista plana (uma linha por entrada)
                     return {
-                        sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                        sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Local" },
                         data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
                         operador: { type: "text", sortable: true, sortKey: "operador", dataKey: "operador", label: "Operador" },
                         tipo: { type: "text", sortable: false, dataKey: "tipo", label: "Tipo" },
@@ -1333,7 +1333,7 @@
                 getColumns: () => {
                     if (stateOps.groupBySala) {
                         return {
-                            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                            sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Local" },
                             data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
                             autor: { type: "text", sortable: true, sortKey: "autor", dataKey: "autor", label: "1º Registro por" },
                             verificacao: { type: "text", sortable: false, dataKey: "verificacao", label: "Checklist?" },
@@ -1343,7 +1343,7 @@
 
                     // modo lista plana (uma linha por entrada)
                     return {
-                        sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                        sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Local" },
                         data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
                         operador: { type: "text", sortable: false, dataKey: "operador", label: "Operador" },
                         tipo: { type: "text", sortable: false, dataKey: "tipo", label: "Tipo" },
@@ -1391,7 +1391,7 @@
             lblGroup.className = "date-filter-toggle";
             lblGroup.innerHTML = `
                 <input type="checkbox" id="chk-group-by-sala" checked>
-                <span>Agrupar por sala</span>
+                <span>Agrupar por local</span>
             `;
 
             // Insere bem perto do "Filtrar por data"
@@ -1435,7 +1435,7 @@
                 state: anomState,
                 columns: {
                     data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
-                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Sala" },
+                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala", label: "Local" },
                     registrado_por: { type: "text", sortable: true, sortKey: "registrado_por", dataKey: "registrado_por", label: "Registrado por" },
                     descricao: { type: "text", sortable: true, sortKey: "descricao", dataKey: "descricao", label: "Descrição" },
                     solucionada: { type: "bool", sortable: true, sortKey: "solucionada", dataKey: "solucionada", label: "Solucionada" },
