@@ -73,6 +73,17 @@ const AppConfig = {
             anormalidade: "/webhook/operacao/anormalidade/registro"
         },
 
+        // Dashboard do Operador (Meus Registros)
+        operadorDashboard: {
+            meusChecklists: "/webhook/operador/meus-checklists",
+            meusChecklistsRelatorio: "/webhook/operador/meus-checklists/relatorio",
+            detalheChecklist: "/webhook/operador/checklist/detalhe",
+            minhasOperacoes: "/webhook/operador/minhas-operacoes",
+            minhasOperacoesRelatorio: "/webhook/operador/minhas-operacoes/relatorio",
+            detalheOperacao: "/webhook/operador/operacao/detalhe",
+            detalheAnormalidade: "/webhook/operador/anormalidade/detalhe",
+        },
+
         // Novo conjunto de endpoints JSON da Operação de Áudio (Etapa 6)
         operacaoAudio: {
             // GET – estado da sessão (sala + operador)

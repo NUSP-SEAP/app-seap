@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>Detalhe da Verificação | Operador</title>
+
+    <link rel="stylesheet" href="/css/app/forms/checklist/index.css">
+    <link rel="stylesheet" href="/css/app/admin/form_checklist.css">
+    <link rel="stylesheet" href="/css/app/body.css">
+</head>
+
+<body>
+    <main>
+        <div class="card">
+            <span class="read-only-badge">Apenas Leitura</span>
+            <h1>Detalhe da Verificação de Plenário</h1>
+            <p class="subtitle" id="display-id" style="display:none"></p>
+
+            <form id="form-checklist-readonly">
+                <!-- 1) Identificação -->
+                <div class="section-title">1) Identificação</div>
+                <div class="grid grid-2">
+                    <div>
+                        <label for="data_operacao">Data</label>
+                        <input type="text" id="data_operacao" readonly />
+                    </div>
+                    <div>
+                        <label for="sala_nome">Local</label>
+                        <input type="text" id="sala_nome" readonly />
+                    </div>
+                </div>
+
+                <!-- 2) Itens Verificados -->
+                <div class="section-title">2) Itens Verificados</div>
+                <div id="checklist-items-container" class="checklist">
+                    <div class="muted">Carregando itens...</div>
+                </div>
+
+                <!-- 3) Observações -->
+                <div class="section-title">3) Observações</div>
+                <div>
+                    <label for="observacoes">Anotações gerais</label>
+                    <textarea id="observacoes" readonly></textarea>
+                </div>
+
+                <!-- Ações -->
+                <div class="actions" style="justify-content: flex-start; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="window.close()">Fechar Aba</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth_jwt.js"></script>
+    <script src="/js/session-autoload.js" defer></script>
+    <script src="/js/app/forms/checklist/detalhe.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Detalhe da Anormalidade | Operador</title>
+    <link rel="stylesheet" href="/css/app/admin/form_anormalidade.css">
+    <link rel="stylesheet" href="/css/app/body.css">
+</head>
+
+<body>
+    <main>
+        <div class="card">
+            <span class="read-only-badge">Apenas Leitura</span>
+            <h1>Detalhe da Anormalidade</h1>
+
+            <form id="form-raoa-readonly">
+                <!-- 1) Referência ao Registro de Operação -->
+                <div class="section-title">1) Referência ao Registro de Operação</div>
+                <div class="grid grid-3">
+                    <div>
+                        <label>Data</label>
+                        <input type="text" id="data" readonly />
+                    </div>
+                    <div>
+                        <label>Local do Evento</label>
+                        <input type="text" id="sala_nome" readonly />
+                    </div>
+                    <div>
+                        <label>Nome do Evento</label>
+                        <input type="text" id="nome_evento" readonly />
+                    </div>
+                </div>
+
+                <!-- 2) Responsáveis -->
+                <div class="section-title" style="margin-top: 16px;">2) Responsáveis</div>
+                <div>
+                    <label for="responsavel_evento">Responsável do evento (Comissão/Mesa/Organização)</label>
+                    <input type="text" id="responsavel_evento" readonly />
+                </div>
+
+                <!-- 3) Detalhes da Anormalidade -->
+                <div class="section-title" style="margin-top: 20px;">3) Detalhes da Anormalidade</div>
+                <div>
+                    <label>Horário do início da ocorrência</label>
+                    <input type="time" id="hora_inicio_anormalidade" readonly style="max-width: 150px;" />
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <label>Descrição da anormalidade</label>
+                    <textarea id="descricao_anormalidade" readonly></textarea>
+                </div>
+
+                <div class="field-group">
+                    <label>Houve prejuízo ao andamento?</label>
+                    <input type="text" id="houve_prejuizo" readonly />
+                    <div id="grp_prejuizo" class="hidden" style="margin-top: 5px;">
+                        <textarea id="descricao_prejuizo" readonly></textarea>
+                    </div>
+                </div>
+
+                <div class="field-group" style="margin-top: 10px;">
+                    <label>Houve reclamação?</label>
+                    <input type="text" id="houve_reclamacao" readonly />
+                    <div id="grp_reclamacao" class="hidden" style="margin-top: 5px;">
+                        <textarea id="autores_conteudo_reclamacao" readonly></textarea>
+                    </div>
+                </div>
+
+                <div class="field-group" style="margin-top: 10px;">
+                    <label>Acionou manutenção?</label>
+                    <input type="text" id="acionou_manutencao" readonly />
+                    <div id="grp_manutencao" class="hidden" style="margin-top: 5px;">
+                        <label>Hora acionamento:</label>
+                        <input type="time" id="hora_acionamento_manutencao" readonly style="max-width: 150px;" />
+                    </div>
+                </div>
+
+                <div class="field-group" style="margin-top: 10px;">
+                    <label>Resolvida pelo operador?</label>
+                    <input type="text" id="resolvida_pelo_operador" readonly />
+                    <div id="grp_procedimentos" class="hidden" style="margin-top: 5px;">
+                        <textarea id="procedimentos_adotados" readonly></textarea>
+                    </div>
+                </div>
+
+                <!-- 4) Observações (era "Responsáveis" no admin) -->
+                <div class="section-title">4) Observações</div>
+                <!-- Observações administrativas (sempre read-only para operador) -->
+                <div class="admin-observacao-bloco">
+                    <label for="observacao_supervisor">Observações do Supervisor</label>
+                    <textarea id="observacao_supervisor"
+                              class="admin-observacao-input"
+                              readonly></textarea>
+                </div>
+
+                <div class="admin-observacao-bloco">
+                    <label for="observacao_chefe">Observações do Chefe de Serviço</label>
+                    <textarea id="observacao_chefe"
+                              class="admin-observacao-input"
+                              readonly></textarea>
+                </div>
+
+                <div class="actions" style="justify-content: flex-start; margin-top: 30px;">
+                    <button type="button" class="btn-secondary" onclick="window.close()">Fechar Aba</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth_jwt.js"></script>
+    <script src="/js/session-autoload.js"></script>
+    <script src="/js/app/forms/operacao/detalhe_anormalidade.js" defer></script>
+</body>
+
+</html>
