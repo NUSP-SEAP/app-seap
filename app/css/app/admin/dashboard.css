@@ -214,6 +214,18 @@ table.sub-table tr:hover {
     border-color: #94a3b8;
 }
 
+.btn-xs.btn-anom-sim {
+    background-color: #fef2f2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+    font-weight: bold;
+}
+
+.btn-xs.btn-anom-sim:hover {
+    background-color: #fee2e2;
+    border-color: #f87171;
+}
+
 /* Empty State */
 .empty-state {
     padding: 32px;
@@ -629,16 +641,4 @@ table.sub-table tr:hover {
     outline: none;
     border-color: #2563eb;
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-}
-
-/* Botão vermelho para anormalidade SIM */
-.btn-xs.btn-anom-sim {
-    background-color: #fef2f2;
-    border-color: #fca5a5;
-    color: #b91c1c;
-    font-weight: bold;
-}
-.btn-xs.btn-anom-sim:hover {
-    background-color: #fee2e2;
-    border-color: #f87171;
 }

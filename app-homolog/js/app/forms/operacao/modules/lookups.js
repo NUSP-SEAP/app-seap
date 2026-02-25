@@ -33,7 +33,7 @@ export async function loadSalas(salaSelect) {
 
         fillSelect(salaSelect, json.data, "id", "nome", "Selecione o local");
     } catch (e) {
-        console.error("Erro inesperado ao carregar salas:", e);
+        console.error("Erro inesperado ao carregar locais:", e);
         salaSelect.innerHTML =
             '<option value="">Falha ao carregar locais</option>';
     } finally {

@@ -838,7 +838,7 @@
                 tableId: "tb-checklists",
                 state: stateChk,
                 columns: {
-                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala_nome", label: "Sala" },
+                    sala: { type: "text", sortable: true, sortKey: "sala", dataKey: "sala_nome", label: "Local" },
                     data: { type: "date", sortable: true, sortKey: "data", dataKey: "data", label: "Data" },
                     operador: { type: "text", sortable: true, sortKey: "operador", dataKey: "operador", label: "Verificado por" },
 

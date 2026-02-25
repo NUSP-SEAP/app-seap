@@ -202,6 +202,7 @@
             <div id="wiz_falha_container" class="hidden" style="margin-top: 15px;">
                 <label class="required">Descrição da falha:</label>
                 <textarea id="wiz_desc_falha" rows="3" placeholder="Descreva o problema (mínimo 10 caracteres)..."></textarea>
+                <p id="wiz_falha_hint" class="hidden" style="color: #dc2626; font-size: 0.85rem; margin-top: 5px;">Insira no mínimo 10 caracteres para continuar</p>
             </div>
         `;
 
@@ -243,11 +244,21 @@
             }
         };
 
+        const hintFalha = container.querySelector("#wiz_falha_hint");
+
         const handleTextFalha = () => {
-            if (txtFalha.value.trim().length >= 10) {
+            const len = txtFalha.value.trim().length;
+            if (len >= 10) {
                 btnNext.disabled = false;
+                hintFalha.classList.add("hidden");
             } else {
                 btnNext.disabled = true;
+                // Exibe o aviso apenas se o usuário já começou a digitar
+                if (len > 0) {
+                    hintFalha.classList.remove("hidden");
+                } else {
+                    hintFalha.classList.add("hidden");
+                }
             }
         };
 
@@ -420,7 +431,7 @@
         if (form) {
             form.addEventListener("submit", (e) => {
                 e.preventDefault();
-                submitData();
+                // Não chama submitData() aqui — o salvamento só ocorre pelo clique no botão
             });
         }
     });

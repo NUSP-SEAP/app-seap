@@ -30,7 +30,7 @@ export function getTipoEventoSelecionado(salaSelect, comissaoSelect) {
     ).toLowerCase();
 
     const isAuditorio = /audit[oó]rio/.test(textoSala);
-    const isPlenario = /plen[áa]rio/.test(textoSala);
+    const isPlenario = /plen[áa]rio(?!\s*\d)/.test(textoSala);
 
     if (isAuditorio) {
         return "outros";

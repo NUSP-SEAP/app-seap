@@ -123,7 +123,7 @@ export function atualizarVisibilidadeTipoPorSala(salaSelect, comissaoSelect) {
     ).toLowerCase();
 
     const isAuditorio = /audit[oó]rio/.test(textoSala);
-    const isPlenario = /plen[áa]rio/.test(textoSala);
+    const isPlenario = /plen[áa]rio(?!\s*\d)/.test(textoSala);
 
     if (isAuditorio || isPlenario) {
         // Auditório ou Plenário → "Tipo" fica oculto e desabilitado
@@ -495,8 +495,37 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
             btnSalvarRegistro.textContent = "Novo registro (2ª entrada)";
         }
         if (btnSalvarEdicao) { btnSalvarEdicao.style.display = "none"; btnSalvarEdicao.disabled = false; }
-        if (btnEditarEntrada1) { btnEditarEntrada1.style.display = ""; btnEditarEntrada1.disabled = false; }
+
+        // Verifica se a 1ª entrada está em aberto (sem horário de término)
+        const entradasOp = Array.isArray(estadoSessao.entradas_operador) ? estadoSessao.entradas_operador : [];
+        const entrada1 = entradasOp.find(e => e.seq === 1);
+        const entrada1EmAberto = entrada1 && !entrada1.horario_termino;
+
+        // Esconde botão de editar se a entrada está em aberto
+        if (btnEditarEntrada1) {
+            if (entrada1EmAberto) {
+                btnEditarEntrada1.style.display = "none";
+            } else {
+                btnEditarEntrada1.style.display = "";
+                btnEditarEntrada1.disabled = false;
+            }
+        }
         if (btnEditarEntrada2) { btnEditarEntrada2.style.display = "none"; }
+
+        // Se a entrada está em aberto, pré-preenche o formulário com os dados da entrada
+        // mantendo em branco: horário de término, trilhas, observações e anormalidade em "Não"
+        if (entrada1EmAberto) {
+            const entradaCopia = { ...entrada1 };
+            delete entradaCopia.houve_anormalidade;
+            delete entradaCopia.horario_termino;
+            delete entradaCopia.usb_01;
+            delete entradaCopia.usb_02;
+            delete entradaCopia.observacoes;
+            preencherFormularioComEntrada(elements, entradaCopia, estadoSessao);
+
+            const radioNao = document.querySelector('input[name="houve_anormalidade"][value="nao"]');
+            if (radioNao) radioNao.checked = true;
+        }
 
         atualizarCabecalhoOperadoresSessao(
             headerOperadores,
@@ -510,6 +539,18 @@ export function aplicarEstadoSessaoNaUI(elements, state) {
     // === CASO 4: operador com 2 entradas ===
     if (situacao === "duas_entradas") {
         aplicarModoOperadorComDuasEntradas(elements);
+
+        // Esconde botões de editar para entradas em aberto (sem horário de término)
+        const entradasOp2 = Array.isArray(estadoSessao.entradas_operador) ? estadoSessao.entradas_operador : [];
+        const ent1 = entradasOp2.find(e => e.seq === 1);
+        const ent2 = entradasOp2.find(e => e.seq === 2);
+        if (btnEditarEntrada1 && ent1 && !ent1.horario_termino) {
+            btnEditarEntrada1.style.display = "none";
+        }
+        if (btnEditarEntrada2 && ent2 && !ent2.horario_termino) {
+            btnEditarEntrada2.style.display = "none";
+        }
+
         atualizarCabecalhoOperadoresSessao(
             headerOperadores,
             modoEdicaoInfo,
@@ -546,11 +587,18 @@ function preencherFormularioComUltimaEntradaDaSessao(elements, estadoSessao) {
     // Cópia superficial para não modificar o objeto em estadoSessao
     const entradaCopia = { ...ultima };
 
-    // Não herdamos a resposta de "Houve anormalidade?".
-    // O novo operador sempre decide isso explicitamente.
+    // Campos que NÃO devem ser herdados (ficam em branco para novo preenchimento)
     delete entradaCopia.houve_anormalidade;
+    delete entradaCopia.horario_termino;
+    delete entradaCopia.usb_01;
+    delete entradaCopia.usb_02;
+    delete entradaCopia.observacoes;
 
     preencherFormularioComEntrada(elements, entradaCopia, estadoSessao);
+
+    // Garante "Houve anormalidade?" marcado em "Não"
+    const radioNao = document.querySelector('input[name="houve_anormalidade"][value="nao"]');
+    if (radioNao) radioNao.checked = true;
 }
 
 // =============================================================================
@@ -671,7 +719,7 @@ function bloquearCabecalhoSeSessaoAberta(elements, estadoSessao) {
         ).toLowerCase();
 
         isAuditorio = /audit[oó]rio/.test(textoSala);
-        isPlenario = /plen[áa]rio/.test(textoSala);
+        isPlenario = /plen[áa]rio(?!\s*\d)/.test(textoSala);
     }
 
     const val = estadoSessao.comissao_id;

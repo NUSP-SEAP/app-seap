@@ -12,6 +12,8 @@ node_modules/
 .vscode/
 docs-db/
 html/
+backup_bd/
+chats/
 
 # Outros arquivos
 old_*

@@ -26,8 +26,8 @@
 
         <div class="cards">
             <a href="#" class="card form-edit-card" id="card-edit-salas" data-entity="salas">
-                Edição de Salas
-                <div class="muted">Definir nomes e ordem das salas</div>
+                Edição de Locais
+                <div class="muted">Definir nomes e ordem dos locais</div>
             </a>
 
             <a href="#" class="card form-edit-card" id="card-edit-comissoes" data-entity="comissoes">
@@ -37,7 +37,7 @@
 
             <a href="#" class="card form-edit-card" id="card-edit-sala-config" data-entity="sala_config">
                 Edição dos Itens de Verificação
-                <div class="muted">Gerenciar itens de checklist por sala</div>
+                <div class="muted">Gerenciar itens de checklist por local</div>
             </a>
         </div>
 
@@ -53,13 +53,13 @@
                         <tr>
                             <th style="width: 32px;"></th>
                             <th style="width: 80px;">Posição</th>
-                            <th>Nome da Sala</th>
+                            <th>Nome do Local</th>
                             <th style="width: 90px;">Ativa</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="4" class="empty-state">Nenhuma sala carregada.</td>
+                            <td colspan="4" class="empty-state">Nenhum local carregado.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -84,15 +84,15 @@
                 <!-- Configuração de Itens por Sala -->
                 <div id="sala-config-section" class="hidden" data-entity-key="sala_config">
                     <div class="sala-config-selector">
-                        <label for="sala-config-select">Selecione a sala:</label>
+                        <label for="sala-config-select">Selecione o local:</label>
                         <select id="sala-config-select" class="sala-config-select">
-                            <option value="">Carregando salas...</option>
+                            <option value="">Carregando locais...</option>
                         </select>
                     </div>
 
                     <div id="sala-config-info" class="sala-config-info hidden">
                         <p class="info-text">
-                            Configure quais itens de verificação aparecerão no formulário desta sala.
+                            Configure quais itens de verificação aparecerão no formulário deste local.
                             Você pode ativar/desativar itens, reordenar e adicionar novos.
                         </p>
                     </div>
@@ -109,7 +109,7 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="5" class="empty-state">Selecione uma sala para configurar.</td>
+                                <td colspan="5" class="empty-state">Selecione um local para configurar.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -119,7 +119,7 @@
             <div id="form-edit-actions" class="form-edit-actions hidden">
                 <button id="btn-form-edit-salvar" class="btn-page btn-primary" disabled>Salvar Alterações</button>
                 <button id="btn-form-edit-cancelar" class="btn-page">Cancelar</button>
-                <button id="btn-sala-config-aplicar-todas" class="btn-page btn-secondary hidden" disabled>Aplicar a Todas as Salas</button>
+                <button id="btn-sala-config-aplicar-todas" class="btn-page btn-secondary hidden" disabled>Aplicar a Todos os Locais</button>
             </div>
         </div>
     </main>
