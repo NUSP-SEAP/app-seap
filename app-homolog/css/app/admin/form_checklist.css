@@ -5,7 +5,6 @@ body {
     background-color: #e2e8f0;
 }
 
-/* Badge indicando Read-Only */
 .card {
     border-top: 4px solid #64748b;
     position: relative;
@@ -22,7 +21,7 @@ body {
     float: right;
 }
 
-/* Inputs travados */
+/* Inputs travados (modo leitura - padrão) */
 input,
 select,
 textarea {
@@ -32,7 +31,28 @@ textarea {
     border-color: #cbd5e1;
 }
 
-/* Estilização da lista de itens */
+/* Botões devem sempre ser clicáveis */
+button {
+    pointer-events: auto !important;
+    cursor: pointer;
+}
+
+/* ===== Modo de edição: desbloqueia inputs ===== */
+form.editing input:not([readonly]),
+form.editing select,
+form.editing textarea:not([readonly]) {
+    pointer-events: auto !important;
+    background-color: #fff !important;
+    color: #1e293b;
+    border-color: #94a3b8;
+    cursor: text;
+}
+
+form.editing select {
+    cursor: pointer;
+}
+
+/* ===== Estilização da lista de itens (modo leitura) ===== */
 .check-item-readonly {
     background: #fff;
     border: 1px solid #e2e8f0;
@@ -87,4 +107,116 @@ textarea {
     border-radius: 6px;
     color: #334155;
     font-size: 0.9rem;
+}
+
+/* ===== Badge "editado" ===== */
+.edited-badge {
+    display: inline;
+    color: #94a3b8;
+    font-size: 0.7rem;
+    font-weight: 400;
+    font-style: italic;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
+/* ===== Itens em modo de edição ===== */
+.check-item-edit {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 10px;
+}
+
+/* Radio buttons no modo de edição */
+.edit-radio-controls {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.radio-card-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+    font-weight: 500;
+    user-select: none;
+}
+
+.radio-card-edit:hover {
+    border-color: #94a3b8;
+    background-color: #f8fafc;
+}
+
+.radio-card-edit input[type="radio"] {
+    pointer-events: auto !important;
+    cursor: pointer;
+    margin: 0;
+    width: auto;
+    accent-color: #2563eb;
+}
+
+.radio-card-edit:has(input:checked) {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+}
+
+.radio-label-edit {
+    font-size: 0.95rem;
+}
+
+/* Container de falha no modo edição */
+.edit-falha-container {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: #fff1f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+}
+
+.edit-falha-container label {
+    font-weight: 600;
+    color: #7f1d1d;
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.edit-falha-container textarea {
+    width: 100%;
+    min-height: 70px;
+    resize: vertical;
+    border: 1px solid #fca5a5 !important;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.9rem;
+    background-color: #fff !important;
+}
+
+.falha-hint {
+    color: #dc2626;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+
+/* Input de texto editável */
+.edit-text-input {
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+/* Utilitário */
+.hidden {
+    display: none !important;
 }

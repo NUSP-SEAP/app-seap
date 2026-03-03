@@ -8,15 +8,14 @@
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <title>Detalhe da Verificação | Operador</title>
 
-    <link rel="stylesheet" href="/css/app/forms/checklist/index.css">
-    <link rel="stylesheet" href="/css/app/admin/form_checklist.css">
+    <link rel="stylesheet" href="/css/app/forms/checklist/index.css?v=20260303b">
+    <link rel="stylesheet" href="/css/app/admin/form_checklist.css?v=20260303b">
     <link rel="stylesheet" href="/css/app/body.css">
 </head>
 
 <body>
     <main>
         <div class="card">
-            <span class="read-only-badge">Apenas Leitura</span>
             <h1>Detalhe da Verificação de Plenário</h1>
             <p class="subtitle" id="display-id" style="display:none"></p>
 
@@ -27,10 +26,14 @@
                     <div>
                         <label for="data_operacao">Data</label>
                         <input type="text" id="data_operacao" readonly />
+                        <input type="date" id="data_operacao_edit" class="hidden" />
                     </div>
                     <div>
                         <label for="sala_nome">Local</label>
                         <input type="text" id="sala_nome" readonly />
+                        <select id="sala_id_edit" class="hidden" disabled>
+                            <option value="">Carregando...</option>
+                        </select>
                     </div>
                 </div>
 
@@ -48,17 +51,22 @@
                 </div>
 
                 <!-- Ações -->
-                <div class="actions" style="justify-content: flex-start; margin-top: 30px;">
+                <div class="actions" style="justify-content: space-between; margin-top: 30px;">
                     <button type="button" class="btn btn-secondary" onclick="window.close()">Fechar Aba</button>
+                    <div id="edit-actions" style="display: flex; gap: 10px;">
+                        <button type="button" id="btn-editar" class="btn btn-primary">Editar</button>
+                        <button type="button" id="btn-cancelar" class="btn btn-secondary hidden">Cancelar</button>
+                        <button type="button" id="btn-salvar" class="btn btn-primary hidden">Salvar Edição</button>
+                    </div>
                 </div>
             </form>
         </div>
     </main>
 
-    <script src="/js/config.js"></script>
+    <script src="/js/config.js?v=20260303b"></script>
     <script src="/js/auth_jwt.js"></script>
     <script src="/js/session-autoload.js" defer></script>
-    <script src="/js/app/forms/checklist/detalhe.js" defer></script>
+    <script src="/js/app/forms/checklist/detalhe.js?v=20260303b" defer></script>
     <script src="/js/manual_usuario.js"></script>
 </body>
 
