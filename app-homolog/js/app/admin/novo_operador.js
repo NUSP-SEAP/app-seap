@@ -145,11 +145,7 @@
                 const id = data?.operador?.id || "(sem ID)";
                 alert("Operador cadastrado com sucesso! ID: " + id);
 
-                // Limpa formulário e preview
-                form.reset();
-                preview.style.display = "none";
-                preview.src = "";
-                fileName.textContent = "Nenhum arquivo selecionado";
+                window.location.href = "/admin/index.html";
 
             } catch (err) {
                 console.error(err);

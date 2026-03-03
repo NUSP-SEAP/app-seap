@@ -169,11 +169,14 @@ async function renderUserHeader() {
   } catch { }
 }
 function paintHeader(me) {
+  const avatarEl = document.getElementById('user-avatar');
   const nameEl = document.querySelector('#user-greeting, [data-user-name]');
   const roleEl = document.querySelector('#user-role, [data-user-role]');
   const logoutEl = document.querySelector('#btn-logout, #btnLogout');
   const name = clean(me.user?.name || me.user?.username || '');
   const role = clean(me.role || '');
+  const fotoUrl = clean(me.user?.foto_url || '');
+  if (avatarEl && fotoUrl) { avatarEl.src = fotoUrl; avatarEl.alt = name; avatarEl.style.display = ''; }
   if (nameEl) { nameEl.textContent = name; nameEl.style.display = ''; }
   if (roleEl && role) { roleEl.textContent = role; roleEl.style.display = ''; }
   if (logoutEl) { logoutEl.style.display = ''; }

@@ -6,8 +6,9 @@
             <img class="site-logo" src="/imgs/header-senado.png" alt="Logo Senado Federal">
         </div>
 
-        <!-- Área da direita: saudação + logout -->
+        <!-- Área da direita: foto + saudação + logout -->
         <div class="site-header__right">
+            <img id="user-avatar" class="user-avatar" src="" alt="" style="display: none;" />
             <span id="user-greeting" style="display: none;"></span>
             <a id="btn-logout" href="#" class="btn-logout" style="display: none;">Sair</a>
         </div>
@@ -77,6 +78,15 @@
         justify-content: flex-end;
         gap: 10px;
         flex: 0 0 auto;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.6);
+        flex-shrink: 0;
     }
 
     #user-greeting {

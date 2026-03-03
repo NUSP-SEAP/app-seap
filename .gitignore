@@ -14,8 +14,10 @@ docs-db/
 html/
 backup_bd/
 chats/
+etc/
 
 # Outros arquivos
 old_*
 *.sql
 *.md
+Manual.docx
